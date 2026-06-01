@@ -98,15 +98,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         try:
             content = read_input(file_path)
             parsed = parse_markdown(content)
+            interactive = _should_run_interactive(file_path, runtime["quiet"])
             output = render(
                 parsed,
                 theme=runtime["theme"],
                 theme_file=runtime["theme_file"],
-                line_numbers=runtime["line_numbers"],
+                line_numbers=runtime["line_numbers"] and not interactive,
                 quiet=runtime["quiet"],
             )
-            if _should_run_interactive(file_path, runtime["quiet"]):
-                run_interactive_viewer(output.splitlines())
+            if interactive:
+                run_interactive_viewer(
+                    output.splitlines(),
+                    line_numbers=runtime["line_numbers"],
+                )
             elif not runtime["quiet"] and output:
                 print(output)
         except KeyboardInterrupt:
