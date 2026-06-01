@@ -3,15 +3,26 @@
 from __future__ import annotations
 
 import argparse
+import configparser
 import sys
 from collections.abc import Sequence
+from pathlib import Path
+from typing import TypedDict, cast
 
 from . import __version__
+from .config import default_config_path, ensure_config_file, load_config
 from .display import run_interactive_viewer
 from .parser import parse_markdown
 from .reader import read_input
 from .renderer import render
-from .themes import DEFAULT_THEME, theme_names
+from .themes import theme_names
+
+
+class RuntimeOptions(TypedDict):
+    theme: str
+    theme_file: str | None
+    line_numbers: bool
+    quiet: bool
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -27,13 +38,28 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     arg_parser.add_argument(
         "--theme",
-        default=DEFAULT_THEME,
         choices=theme_names(),
         help="Choose built-in theme",
     )
     arg_parser.add_argument("--theme-file", help="Path to JSON/TOML theme file")
-    arg_parser.add_argument("--line-numbers", action="store_true", help="Show line numbers")
-    arg_parser.add_argument("--quiet", action="store_true", help="Suppress rendered output")
+    arg_parser.add_argument("--config", help="Path to an alternate INI configuration file")
+    arg_parser.add_argument(
+        "--generate-config",
+        action="store_true",
+        help="Create a starter configuration file with current defaults and exit",
+    )
+    arg_parser.add_argument(
+        "--line-numbers",
+        action="store_true",
+        default=None,
+        help="Show line numbers",
+    )
+    arg_parser.add_argument(
+        "--quiet",
+        action="store_true",
+        default=None,
+        help="Suppress rendered output",
+    )
     arg_parser.add_argument(
         "--version",
         action="version",
@@ -48,6 +74,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     arg_parser = build_arg_parser()
     args = arg_parser.parse_args(argv)
 
+    try:
+        config_path = Path(args.config) if args.config else default_config_path()
+        ensure_config_file(config_path)
+        config = load_config(config_path)
+    except (OSError, UnicodeError, configparser.Error, ValueError) as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+    if args.generate_config:
+        print(f"Configuration file ready: {config_path}")
+        return 0
+
+    runtime = _resolve_runtime_options(args, config, arg_parser)
+
     if not args.files and sys.stdin.isatty():
         arg_parser.print_usage(sys.stderr)
         print("mdutil: error: provide a file path or pipe Markdown on stdin", file=sys.stderr)
@@ -60,14 +100,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             parsed = parse_markdown(content)
             output = render(
                 parsed,
-                theme=args.theme,
-                theme_file=args.theme_file,
-                line_numbers=args.line_numbers,
-                quiet=args.quiet,
+                theme=runtime["theme"],
+                theme_file=runtime["theme_file"],
+                line_numbers=runtime["line_numbers"],
+                quiet=runtime["quiet"],
             )
-            if _should_run_interactive(file_path, args.quiet):
+            if _should_run_interactive(file_path, runtime["quiet"]):
                 run_interactive_viewer(output.splitlines())
-            elif not args.quiet and output:
+            elif not runtime["quiet"] and output:
                 print(output)
         except KeyboardInterrupt:
             return 130
@@ -75,6 +115,35 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"Error: {exc}", file=sys.stderr)
             return 1
     return 0
+
+
+def _resolve_runtime_options(
+    args: argparse.Namespace,
+    config: dict[str, object],
+    arg_parser: argparse.ArgumentParser,
+) -> RuntimeOptions:
+    """Merge built-in/config defaults with explicit CLI options."""
+    theme = cast(str, args.theme if args.theme is not None else config["theme"])
+    if theme not in theme_names():
+        valid = ", ".join(theme_names())
+        arg_parser.error(f"invalid theme in configuration: {theme!r} (choose from {valid})")
+
+    theme_file = cast(
+        str | None,
+        args.theme_file if args.theme_file is not None else config["theme_file"],
+    )
+    line_numbers = cast(
+        bool,
+        args.line_numbers if args.line_numbers is not None else config["line_numbers"],
+    )
+    quiet = cast(bool, args.quiet if args.quiet is not None else config["quiet"])
+
+    return {
+        "theme": theme,
+        "theme_file": theme_file,
+        "line_numbers": line_numbers,
+        "quiet": quiet,
+    }
 
 
 def _should_run_interactive(file_path: str | None, quiet: bool) -> bool:
