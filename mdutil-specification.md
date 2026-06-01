@@ -102,31 +102,31 @@ The CLI parser loads built-in defaults, merges any user configuration file, then
 │      CLI Parser       │
 └──────▲───────┬────────┘
        │       │
-       │  args
+       │      args
        │       │
 ┌──────▼───────┴───────┐
 │  Markdown Reader     │
 └──────▲───────┬───────┘
        │       │
-       │  file
+       │      file
        │       │
 ┌──────▼───────┴───────┐
 │  Markdown Parser     │ 
 └──────▲───────┬───────┘
        │       │
-       │  events
+       │     events
        │       │
 ┌──────▼───────┴───────┐
 │  Renderer            │
 └──────▲───────┬───────┘
        │       │
-       │  tokens
+       │    tokens
        │       │
 ┌──────▼───────┴───────┐
 │  Syntax Highlighter  │
 └──────▲───────┬───────┘
        │       │
-       │  ANSI
+       │     ANSI
        │       │
 ┌──────▼───────┴──────┐
 │  Terminal Display   │
