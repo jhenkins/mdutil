@@ -4,7 +4,7 @@
 **Version:** 1.0.0  
 **Last‑Updated:** 2026‑05‑15  
 **License:** MIT  
-**Repository:** <http://gitea.local/jan/mdutil>
+**Repository:** <https://github.com/jhenkins/mdutil>
 
 ---
 
@@ -141,7 +141,7 @@ The CLI parser loads built-in defaults, merges any user configuration file, then
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | **Unit Tests**             | Each component (`Renderer`, `Highlighter`) gets pure‑function tests.                                                  |
 | **Integration Tests**      | Run `mdutil` against a set of sample Markdown files (covering tables, code fences, footnotes).                        |
-| **Configuration Tests**    | Verify default config paths, config generation, comments/default values, alternate `--config`, and CLI precedence.     |
+| **Configuration Tests**    | Verify default config paths, config generation, comments/default values, alternate `--config`, and CLI precedence.    |
 | **End‑to‑End (CLI)**       | Use `assert_cmd` to spawn `mdutil` with various flags and verify output length / presence of expected ANSI sequences. |
 | **Cross‑Platform CI**      | GitHub Actions matrix: ubuntu, macos, windows.                                                                        |
 | **Performance Benchmarks** | Measure rendering time on large docs (10k lines).                                                                     |
