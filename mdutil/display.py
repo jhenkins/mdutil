@@ -47,6 +47,35 @@ def build_help_modal_text() -> str:
     )
 
 
+def build_help_modal_overlay(columns: int, rows: int) -> str:
+    """Return a centered bordered help modal with a false shadow."""
+    content_lines = build_help_modal_text().splitlines()
+    content_width = max(len(line) for line in content_lines)
+    box_width = content_width + 4
+    box_height = len(content_lines) + 2
+    shadow_width = box_width + 2
+    shadow_height = box_height + 1
+
+    left = max(0, (columns - shadow_width) // 2)
+    top = max(0, (rows - shadow_height) // 2)
+    inner_width = box_width - 2
+
+    modal_lines = [
+        "┌" + "─" * inner_width + "┐" + "░░",
+        *[
+            "│ " + line.ljust(content_width) + " │" + "░░"
+            for line in content_lines
+        ],
+        "└" + "─" * inner_width + "┘" + "░░",
+        "░" * shadow_width,
+    ]
+
+    return "\n".join(
+        ["" for _ in range(top)]
+        + [(" " * left) + line for line in modal_lines]
+    )
+
+
 def build_status_bar_text(document_name: str | None = None) -> str:
     """Return the compact bottom status bar text."""
     name = document_name or "stdin"
@@ -181,10 +210,14 @@ def build_interactive_app(
         always_hide_cursor=True,
     )
 
+    def current_help_overlay() -> ANSI:
+        app = get_app()
+        size = app.output.get_size()
+        return ANSI(build_help_modal_overlay(columns=size.columns, rows=size.rows))
+
     help_modal = ConditionalContainer(
         Window(
-            content=FormattedTextControl(lambda: ANSI(build_help_modal_text())),
-            style="class:help-modal",
+            content=FormattedTextControl(current_help_overlay),
             always_hide_cursor=True,
         ),
         filter=Condition(lambda: viewer_state.help_visible),
@@ -194,10 +227,11 @@ def build_interactive_app(
         floats=[
             Float(
                 content=help_modal,
-                top=2,
-                left=4,
-                right=4,
-                height=10,
+                top=0,
+                left=0,
+                width=lambda: get_app().output.get_size().columns,
+                height=lambda: get_app().output.get_size().rows,
+                transparent=True,
             )
         ],
     )
