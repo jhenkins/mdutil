@@ -43,17 +43,18 @@ The focus is on a clean, fast, and fully‑featured viewer that can later evolve
 
 ## 3. Functional Requirements
 
-| Feature                      | Description                                                     | CLI Option(s)                        |
-| ---------------------------- | --------------------------------------------------------------- | ------------------------------------ | ------- |
-| **Load Markdown**            | Accept a file path or read from stdin.                          | `mdutil <file.md>` or `< cat file.md | mdutil` |
-| **Basic Rendering**          | Render headings, lists, blockquotes, emphasis, tables, etc.     | –                                    |
-| **Code Syntax Highlighting** | Detect language via ` ```lang ` fences; fallback to plain text. | –                                    |
-| **Theming**                  | Choose a theme: `--theme <theme-name>`                          | `--theme dracula`                    |
-| **Custom Theme**             | Load a custom theme file (JSON or TOML).                        | `--theme-file <path>`                |
-| **Line Numbers**             | Toggle line numbers for code blocks.                            | `--line-numbers`                     |
-| **Scroll**                   | Arrow keys or `j/k` to scroll up/down; `q` to quit.             | –                                    |
-| **Help**                     | Show command‑line usage.                                        | `--help`                             |
-| **Version**                  | Print version.                                                  | `--version`                          |
+| Feature                      | Description                                                     | CLI Option(s)                                           |
+| ---------------------------- | --------------------------------------------------------------- | ------------------------------------------------------- |
+| **Load Markdown**            | Accept a file path or read from stdin.                          | `mdutil <file.md>` or `cat file.md \| mdutil`           |
+| **Basic Rendering**          | Render headings, lists, blockquotes, emphasis, tables, etc.     | –                                                       |
+| **Code Syntax Highlighting** | Detect language via ` ```lang ` fences; fallback to plain text. | –                                                       |
+| **Theming**                  | Choose a theme: `--theme <theme-name>`                          | `--theme dracula`                                       |
+| **Custom Theme**             | Load a custom theme file (JSON or TOML).                        | `--theme-file <path>`                                   |
+| **Configuration File**       | Load user defaults from an editable configuration file.          | `--config <path>` and `--generate-config`               |
+| **Line Numbers**             | Toggle line numbers for code blocks.                            | `--line-numbers`                                        |
+| **Scroll**                   | Arrow keys or `j/k` to scroll up/down; `q` to quit.             | –                                                       |
+| **Help**                     | Show command‑line usage.                                        | `--help`                                                |
+| **Version**                  | Print version.                                                  | `--version`                                             |
 
 > **User‑Interface Constraints**
 >
@@ -64,6 +65,18 @@ The focus is on a clean, fast, and fully‑featured viewer that can later evolve
 >
 > - v1 uses `prompt-toolkit` for the interactive viewer because it provides cross-platform keyboard handling, terminal resizing, fullscreen rendering, and future editing primitives while remaining lighter than a full widget framework.
 > - `textual` remains a good albeit heavier alternative for the future if mdutil grows into a richer TUI with panels, widgets, command palettes, tabs, or split edit/preview layouts.
+>
+> **Configuration File**
+>
+> - `mdutil` supports a plain-text, standard-editor-editable user configuration file for runtime defaults.
+> - On Linux and macOS, the default user configuration file is `~/.mdutilcfg`.
+> - On Windows, the default user configuration file is `%USERPROFILE%\mdutil.ini`.
+> - The configuration file is stored in the user's home folder using the path convention of the operating system.
+> - The configuration format is INI-style text with comments. Generated files must include the current runtime defaults and helpful comments describing available options and accepted values.
+> - If the configuration file does not exist, `mdutil` runs with built-in defaults. A user can create the file manually or generate a starter file with `--generate-config`.
+> - Runtime precedence is: built-in defaults → user configuration file → explicit CLI options.
+> - `--config <path>` may be used to load an alternate configuration file for a single invocation.
+> - Configuration must not require network access and must be parsed offline.
 
 ---
 
@@ -81,6 +94,8 @@ The focus is on a clean, fast, and fully‑featured viewer that can later evolve
 ---
 
 ## 5. Architecture Overview
+
+The CLI parser loads built-in defaults, merges any user configuration file, then applies explicit command-line options before passing resolved runtime settings through the rest of the pipeline.
 
 ```
 ┌───────────────────────┐
@@ -126,6 +141,7 @@ The focus is on a clean, fast, and fully‑featured viewer that can later evolve
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | **Unit Tests**             | Each component (`Renderer`, `Highlighter`) gets pure‑function tests.                                                  |
 | **Integration Tests**      | Run `mdutil` against a set of sample Markdown files (covering tables, code fences, footnotes).                        |
+| **Configuration Tests**    | Verify default config paths, config generation, comments/default values, alternate `--config`, and CLI precedence.     |
 | **End‑to‑End (CLI)**       | Use `assert_cmd` to spawn `mdutil` with various flags and verify output length / presence of expected ANSI sequences. |
 | **Cross‑Platform CI**      | GitHub Actions matrix: ubuntu, macos, windows.                                                                        |
 | **Performance Benchmarks** | Measure rendering time on large docs (10k lines).                                                                     |

@@ -1,4 +1,5 @@
 import io
+import os
 import subprocess
 import sys
 import tempfile
@@ -10,14 +11,28 @@ from mdutil.cli import main
 
 
 class CliTests(unittest.TestCase):
-    def run_mdutil(self, *args, input_text=None):
-        return subprocess.run(
-            [sys.executable, "-m", "mdutil", *args],
-            input=input_text,
-            text=True,
-            capture_output=True,
-            check=False,
-        )
+    def run_mdutil(self, *args, input_text=None, env=None):
+        if env is not None:
+            return subprocess.run(
+                [sys.executable, "-m", "mdutil", *args],
+                input=input_text,
+                text=True,
+                capture_output=True,
+                check=False,
+                env=env,
+            )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            isolated_env = os.environ.copy()
+            isolated_env["HOME"] = tmpdir
+            return subprocess.run(
+                [sys.executable, "-m", "mdutil", *args],
+                input=input_text,
+                text=True,
+                capture_output=True,
+                check=False,
+                env=isolated_env,
+            )
 
     def test_reads_file_argument(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -115,6 +130,66 @@ class CliTests(unittest.TestCase):
         self.assertIn("   1 | ", result.stdout)
         self.assertIn("# Numbered", result.stdout)
         self.assertEqual(result.stderr, "")
+
+    def test_creates_default_config_in_home_when_missing(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["HOME"] = tmpdir
+
+            result = self.run_mdutil("-", input_text="# Config created\n", env=env)
+
+            config_path = Path(tmpdir) / ".mdutilcfg"
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(config_path.exists())
+            config_text = config_path.read_text(encoding="utf-8")
+            self.assertIn("# mdutil configuration file", config_text)
+            self.assertIn("theme = colored", config_text)
+            self.assertIn("# Available built-in themes:", config_text)
+
+    def test_generate_config_creates_config_without_requiring_markdown_input(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "generated.ini"
+
+            result = self.run_mdutil("--config", str(config_path), "--generate-config")
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(f"Configuration file ready: {config_path}", result.stdout)
+            self.assertTrue(config_path.exists())
+            self.assertIn("theme = colored", config_path.read_text(encoding="utf-8"))
+
+    def test_loads_runtime_defaults_from_config_file(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "custom.ini"
+            config_path.write_text("[mdutil]\nline_numbers = true\ntheme = dracula\n", encoding="utf-8")
+
+            result = self.run_mdutil("--config", str(config_path), "-", input_text="# Configured\n")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("   1 | ", result.stdout)
+        self.assertIn("# Configured", result.stdout)
+        self.assertIn("\033[38;2;255;121;198m", result.stdout)
+
+    def test_cli_options_override_config_file_defaults(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            theme_file = Path(tmpdir) / "theme.json"
+            theme_file.write_text('{"name": "custom", "markdown": {"h1": "#ffffff"}}', encoding="utf-8")
+            config_path = Path(tmpdir) / "custom.ini"
+            config_path.write_text("[mdutil]\nline_numbers = true\ntheme = dracula\n", encoding="utf-8")
+
+            result = self.run_mdutil(
+                "--config",
+                str(config_path),
+                "--theme",
+                "colored",
+                "--theme-file",
+                str(theme_file),
+                "-",
+                input_text="# Overridden\n",
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("   1 | ", result.stdout)
+        self.assertIn("\033[38;2;255;255;255m", result.stdout)
 
     def test_no_file_and_interactive_stdin_shows_usage_error(self):
         class InteractiveStdin(io.StringIO):

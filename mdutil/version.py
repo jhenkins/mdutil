@@ -5,4 +5,4 @@ phase, minor versions may contain breaking changes and patch versions remain
 backward-compatible bug fixes.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"

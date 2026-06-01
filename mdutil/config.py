@@ -1,0 +1,103 @@
+"""Configuration file handling for mdutil."""
+
+from __future__ import annotations
+
+import configparser
+import platform
+from pathlib import Path
+from typing import Any
+
+from .themes import DEFAULT_THEME, theme_names
+
+DEFAULTS: dict[str, Any] = {
+    "theme": DEFAULT_THEME,
+    "theme_file": None,
+    "line_numbers": False,
+    "quiet": False,
+}
+
+SECTION = "mdutil"
+
+
+def default_config_path(home: Path | None = None) -> Path:
+    """Return the conventional per-user mdutil configuration path."""
+    home_path = Path.home() if home is None else Path(home)
+    if platform.system() == "Windows":
+        return home_path / "mdutil.ini"
+    return home_path / ".mdutilcfg"
+
+
+def ensure_config_file(path: Path) -> bool:
+    """Create a default configuration file when missing.
+
+    Returns True when a new file was created and False when an existing file was
+    left untouched.
+    """
+    if path.exists():
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(default_config_text(), encoding="utf-8")
+    return True
+
+
+def load_config(path: Path) -> dict[str, Any]:
+    """Load mdutil runtime defaults from an INI configuration file."""
+    parser = configparser.ConfigParser()
+    parser.read(path, encoding="utf-8")
+
+    loaded = DEFAULTS.copy()
+    if not parser.has_section(SECTION):
+        return loaded
+
+    section = parser[SECTION]
+    if "theme" in section:
+        raw_theme = (
+            section.get("theme", fallback=DEFAULTS["theme"])
+            or DEFAULTS["theme"]
+        )
+        loaded["theme"] = raw_theme.strip() or DEFAULTS["theme"]
+    if "theme_file" in section:
+        raw_theme_file = section.get("theme_file", fallback="") or ""
+        theme_file = raw_theme_file.strip()
+        loaded["theme_file"] = theme_file or None
+    if "line_numbers" in section:
+        loaded["line_numbers"] = section.getboolean(
+            "line_numbers",
+            fallback=DEFAULTS["line_numbers"],
+        )
+    if "quiet" in section:
+        loaded["quiet"] = section.getboolean(
+            "quiet",
+            fallback=DEFAULTS["quiet"],
+        )
+    return loaded
+
+
+def default_config_text() -> str:
+    """Return the commented starter configuration with current runtime defaults."""
+    themes = ", ".join(theme_names())
+    return f"""# mdutil configuration file
+#
+# This file is plain INI-style text and can be edited with any standard text
+# editor. It is created automatically when missing.
+#
+# Runtime precedence:
+#   built-in defaults -> this configuration file -> explicit CLI options
+
+[{SECTION}]
+# Built-in theme to use when --theme is not supplied.
+# Available built-in themes: {themes}
+theme = {DEFAULTS['theme']}
+
+# Optional path to a JSON or TOML custom theme file.
+# Leave empty to use only the selected built-in theme.
+theme_file = 
+
+# Show line numbers by default when --line-numbers is not supplied.
+# Accepted values: true, false, yes, no, on, off, 1, 0
+line_numbers = false
+
+# Suppress rendered output by default when --quiet is not supplied.
+# Accepted values: true, false, yes, no, on, off, 1, 0
+quiet = false
+"""
