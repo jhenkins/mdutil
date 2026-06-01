@@ -7,6 +7,7 @@ from prompt_toolkit.output import DummyOutput
 from mdutil.display import (
     ScrollBuffer,
     ViewerState,
+    build_help_modal_overlay,
     build_help_modal_text,
     build_interactive_app,
     build_status_bar_text,
@@ -36,6 +37,30 @@ class ViewerStateTests(unittest.TestCase):
         self.assertIn("l", help_text)
         self.assertIn("Escape", help_text)
         self.assertIn("q", help_text)
+
+    def test_help_modal_overlay_has_border_and_false_shadow(self):
+        overlay = build_help_modal_overlay(columns=80, rows=24)
+        lines = overlay.splitlines()
+
+        self.assertTrue(any("┌" in line and "┐" in line for line in lines))
+        self.assertTrue(any("└" in line and "┘" in line for line in lines))
+        self.assertTrue(any("│" in line for line in lines))
+        self.assertTrue(any("░" in line for line in lines))
+        self.assertIn("F1: toggle this help", overlay)
+
+    def test_help_modal_overlay_is_centered_for_terminal_size(self):
+        overlay = build_help_modal_overlay(columns=80, rows=24)
+        lines = overlay.splitlines()
+        top_border_index = next(index for index, line in enumerate(lines) if "┌" in line)
+        bottom_shadow_index = max(index for index, line in enumerate(lines) if "░" in line)
+        left_border_index = lines[top_border_index].index("┌")
+        right_shadow_index = max(line.rfind("░") for line in lines)
+
+        modal_height = bottom_shadow_index - top_border_index + 1
+        modal_width = right_shadow_index - left_border_index + 1
+
+        self.assertEqual(top_border_index, (24 - modal_height) // 2)
+        self.assertEqual(left_border_index, (80 - modal_width) // 2)
 
 
     def test_status_bar_text_is_short_and_includes_document_name(self):
