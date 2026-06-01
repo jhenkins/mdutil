@@ -2,6 +2,42 @@
 
 A simple and comfortable Markdown viewer and editor for terminal written in Python.
 
+## The story behind this project
+
+Firstly - a word of warning:
+
+This is a test project that has been created with the help of AI. If you don't like that, then please
+ignore this project. If you find the software useful, feel free to use it. Due to the sandbox nature 
+of this project, it is unlikely that I will entertain any pull requests (unless there is something to
+be learned from it, of course).
+
+OK, are you still here? So, on with the story. Are you sitting comfortably? :-D
+
+The following tools and LLM's were used so far (more might be used as time goes on):
+
+* Hermes Agent (https://github.com/NousResearch/hermes-agent)
+* GPT 5.5 (via openai-codex)
+
+The intention behind this project wasn't neccessarily to create a functional piece of software (although I 
+dare say that it is already pretty functional as a Markdown reader), but to learn about doing functional 
+coding with AI. I claim no ability as a programmer, program designer or software architect - my background
+is physical network infrastructure and server hardware. Therefore this project is purely to see what can be
+done with AI and the tools available at the moment. 
+
+While I was playing with this project, I found that I had to use a cloud-based AI provider. The main reason 
+for this was that my local Ollama instance did not work so well, and constantly ran out of context space 
+causing agent timeouts and loads of time wasted. So, in order to at least get something done and learn the 
+ropes with Hermes, I decided to use my ChatGPT Plus account with the GPT 5.5 model. This worked  quite well, 
+and I hope to be able to set up a local LLM engine to work as well as this (I'll settle for 60%-80%
+as good). I am working at using llama.cpp instead, but that's an adventure for another day. 
+
+## Where we are today
+
+We currently have a functional Markdown reader with syntax highlighting and a few themes. There are no
+editing functions at the moment, that is planned for later versions. We also have a very simple ini-style 
+configuration file that you can edit to make your choice of theme and a few other things permanent. The
+(very) rough roadmap is visible in the mdutil-specification.md document.
+
 ## Quick Overview
 
 - Read markdown documents with syntax highlighting
@@ -9,7 +45,7 @@ A simple and comfortable Markdown viewer and editor for terminal written in Pyth
 - ANSI color output for terminal
 - Supports file input or stdin
 
-───────────────────────────────────────────────────────────────────
+---
 
 ## Installation
 
@@ -42,7 +78,7 @@ pip install .
 python -m mdutil your_file.md
 ```
 
-───────────────────────────────────────────────────────────────────
+---
 
 ## Usage Examples
 
@@ -70,7 +106,7 @@ mdutil your_document.md  # Shows with colors
 mdutil your_document.md --quiet
 ```
 
-───────────────────────────────────────────────────────────────────
+---
 
 ## Demo
 
@@ -93,7 +129,7 @@ Some markdown text.
 Use bold and code.
 ```
 
-───────────────────────────────────────────────────────────────────
+---
 
 ## Requirements
 - Python 3.11 or higher
@@ -102,7 +138,7 @@ Use bold and code.
   - `Pygments>=2.0`
   - `prompt-toolkit>=3.0`
 
-───────────────────────────────────────────────────────────────────
+---
 
 ## Versioning and Release Strategy
 
@@ -165,13 +201,13 @@ While mdutil is in the `0.y.z` phase, the public contract is still stabilizing:
 6. Create an annotated tag named `v{version}`.
 7. Build/publish artifacts from that tag.
 
-───────────────────────────────────────────────────────────────────
+---
 
 ## License
 
 MIT License - see LICENSE file for details.
 
-───────────────────────────────────────────────────────────────────
+---
 
 ## Documentation
 
