@@ -147,8 +147,9 @@ The focus is on a clean, fast, and fully‑featured viewer that can later evolve
 
 | Phase    | Feature        | Description                                             |
 | -------- | -------------- | ------------------------------------------------------- |
+| **v1.0** | _Viewing_      | Scroll with j/k and arrows, and page up/down.           |
+| **v1.0** | _Viewing_      | Enable/disable line numbers while viewing with 'l'      |
 | **v2.0** | _Editing_      | In‑place editing, key bindings (`i`, `dd`, `cw`).       |
-| **v2.0** | _Live Preview_ | Auto‑reload on file changes (`inotify`).                |
 | **v3.0** | _Export_       | Render to PDF/HTML using `pulldown-cmark` + `printpdf`. |
-| **v3.0** | _Plugins_      | Runtime loading of custom syntax highlighters.          |
+| **v4.0** | _Plugins_      | Runtime loading of custom syntax highlighters.          |
 
