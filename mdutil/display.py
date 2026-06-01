@@ -8,11 +8,49 @@ from typing import Any
 
 from prompt_toolkit import Application
 from prompt_toolkit.application.current import get_app
+from prompt_toolkit.filters import Condition
 from prompt_toolkit.formatted_text import ANSI
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import Layout
-from prompt_toolkit.layout.containers import HSplit, Window
+from prompt_toolkit.layout.containers import ConditionalContainer, Float, FloatContainer, HSplit, Window
 from prompt_toolkit.layout.controls import FormattedTextControl
+
+
+@dataclass
+class ViewerState:
+    """Mutable state for interactive viewer chrome."""
+
+    help_visible: bool = False
+
+    def toggle_help(self) -> None:
+        self.help_visible = not self.help_visible
+
+    def close_help(self) -> None:
+        self.help_visible = False
+
+
+def build_help_modal_text() -> str:
+    """Return the interactive help text shown in the F1 modal."""
+    return "\n".join(
+        [
+            "mdutil help",
+            "",
+            "F1: toggle this help",
+            "j / Down: scroll down",
+            "k / Up: scroll up",
+            "PageDown: page down",
+            "PageUp: page up",
+            "l: toggle line numbers",
+            "Escape: close help",
+            "q: quit",
+        ]
+    )
+
+
+def build_status_bar_text(document_name: str | None = None) -> str:
+    """Return the compact bottom status bar text."""
+    name = document_name or "stdin"
+    return f"F1 Help  •  {name}  •  q Quit"
 
 
 @dataclass
@@ -74,11 +112,13 @@ def build_interactive_app(
     lines: Iterable[str],
     *,
     line_numbers: bool = False,
+    document_name: str | None = None,
     input: Any | None = None,
     output: Any | None = None,
 ) -> Application:
     """Build the prompt-toolkit application for a rendered Markdown buffer."""
     scroll_buffer = ScrollBuffer(lines, line_numbers=line_numbers)
+    viewer_state = ViewerState()
     key_bindings = KeyBindings()
 
     def current_text() -> ANSI:
@@ -114,6 +154,16 @@ def build_interactive_app(
         scroll_buffer.page_up()
         event.app.invalidate()
 
+    @key_bindings.add("f1")
+    def _toggle_help(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
+        viewer_state.toggle_help()
+        event.app.invalidate()
+
+    @key_bindings.add("escape")
+    def _close_help(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
+        viewer_state.close_help()
+        event.app.invalidate()
+
     @key_bindings.add("l")
     def _toggle_line_numbers(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
         scroll_buffer.toggle_line_numbers()
@@ -126,21 +176,53 @@ def build_interactive_app(
     )
     help_line = Window(
         height=1,
-        content=FormattedTextControl("j/k, arrows, PgUp/PgDn: scroll  •  l: line numbers  •  q: quit"),
+        content=FormattedTextControl(build_status_bar_text(document_name)),
         style="reverse",
         always_hide_cursor=True,
     )
 
-    return Application(
-        layout=Layout(HSplit([body, help_line]), focused_element=body),
+    help_modal = ConditionalContainer(
+        Window(
+            content=FormattedTextControl(lambda: ANSI(build_help_modal_text())),
+            style="class:help-modal",
+            always_hide_cursor=True,
+        ),
+        filter=Condition(lambda: viewer_state.help_visible),
+    )
+    root_container = FloatContainer(
+        content=HSplit([body, help_line]),
+        floats=[
+            Float(
+                content=help_modal,
+                top=2,
+                left=4,
+                right=4,
+                height=10,
+            )
+        ],
+    )
+
+    app = Application(
+        layout=Layout(root_container, focused_element=body),
         key_bindings=key_bindings,
         full_screen=True,
         mouse_support=False,
         input=input,
         output=output,
     )
+    setattr(app, "mdutil_viewer_state", viewer_state)
+    return app
 
 
-def run_interactive_viewer(lines: Iterable[str], *, line_numbers: bool = False) -> None:
+def run_interactive_viewer(
+    lines: Iterable[str],
+    *,
+    line_numbers: bool = False,
+    document_name: str | None = None,
+) -> None:
     """Run the interactive prompt-toolkit Markdown viewer."""
-    build_interactive_app(lines, line_numbers=line_numbers).run()
+    build_interactive_app(
+        lines,
+        line_numbers=line_numbers,
+        document_name=document_name,
+    ).run()

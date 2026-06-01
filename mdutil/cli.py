@@ -110,6 +110,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 run_interactive_viewer(
                     output.splitlines(),
                     line_numbers=runtime["line_numbers"],
+                    document_name=Path(file_path).name if file_path else None,
                 )
             elif not runtime["quiet"] and output:
                 print(output)

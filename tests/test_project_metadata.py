@@ -35,6 +35,9 @@ class ProjectMetadataTests(unittest.TestCase):
     def test_package_version_is_semver(self):
         self.assertRegex(__version__, SEMVER_RE)
 
+    def test_package_version_is_current_release(self):
+        self.assertEqual(__version__, "1.5.0")
+
     def test_pyproject_uses_package_version_as_single_source_of_truth(self):
         metadata = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
