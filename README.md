@@ -1,6 +1,6 @@
 # mdutil
 
-A simple and comfortable Markdown viewer and editor for terminal.
+A simple and comfortable Markdown viewer and editor for terminal written in Python.
 
 ## Quick Overview
 
