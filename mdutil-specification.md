@@ -161,11 +161,11 @@ The CLI parser loads built-in defaults, merges any user configuration file, then
 
 ## 8. Future Enhancements (Roadmap)
 
-| Phase    | Feature        | Description                                             |
-| -------- | -------------- | ------------------------------------------------------- |
-| **v1.0** | _Viewing_      | Scroll with j/k and arrows, and page up/down.           |
-| **v1.0** | _Viewing_      | Enable/disable line numbers while viewing with 'l'      |
-| **v2.0** | _Editing_      | In‑place editing, key bindings (`i`, `dd`, `cw`).       |
-| **v3.0** | _Export_       | Render to PDF/HTML using `pulldown-cmark` + `printpdf`. |
-| **v4.0** | _Plugins_      | Runtime loading of custom syntax highlighters.          |
+| Phase    | Feature        | Description                                             | Status |
+| -------- | -------------- | ------------------------------------------------------- |--------|
+| **v1.0** | _Viewing_      | Scroll with j/k and arrows, and page up/down.           | Done   |
+| **v1.0** | _Viewing_      | Enable/disable line numbers while viewing with 'l'      | Done   |
+| **v2.0** | _Editing_      | In‑place editing, key bindings (`i`, `dd`, `cw`).       | Todo   |
+| **v3.0** | _Export_       | Render to PDF/HTML using `pulldown-cmark` + `printpdf`. | Todo   |
+| **v4.0** | _Plugins_      | Runtime loading of custom syntax highlighters.          | Todo   |
 
