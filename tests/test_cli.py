@@ -66,6 +66,7 @@ class CliTests(unittest.TestCase):
         viewer.assert_called_once()
         rendered_lines = viewer.call_args.args[0]
         self.assertTrue(any("# Interactive" in line for line in rendered_lines))
+        self.assertEqual(viewer.call_args.kwargs["document_name"], "doc.md")
 
     def test_file_argument_passes_line_number_preference_to_interactive_viewer(self):
         class TtyStdout(io.StringIO):
@@ -89,6 +90,7 @@ class CliTests(unittest.TestCase):
         self.assertTrue(any("# Interactive" in line for line in rendered_lines))
         self.assertFalse(any("   1 |" in line for line in rendered_lines))
         self.assertTrue(viewer.call_args.kwargs["line_numbers"])
+        self.assertEqual(viewer.call_args.kwargs["document_name"], "doc.md")
 
     def test_piped_stdin_keeps_non_interactive_output_even_when_stdout_is_terminal(self):
         class TtyStdout(io.StringIO):
