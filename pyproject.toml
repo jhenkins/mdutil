@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mdutil"
+dynamic = ["version"]
+description = "A terminal Markdown viewer with syntax highlighting"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [
+  { name = "Jan Henkins" }
+]
+dependencies = [
+  "markdown>=3.0",
+  "Pygments>=2.0",
+  "prompt-toolkit>=3.0"
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0"
+]
+
+[project.scripts]
+mdutil = "mdutil.cli:main"
+
+[tool.setuptools]
+packages = ["mdutil"]
+
+[tool.setuptools.dynamic]
+version = { attr = "mdutil.version.__version__" }
