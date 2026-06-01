@@ -67,6 +67,29 @@ class CliTests(unittest.TestCase):
         rendered_lines = viewer.call_args.args[0]
         self.assertTrue(any("# Interactive" in line for line in rendered_lines))
 
+    def test_file_argument_passes_line_number_preference_to_interactive_viewer(self):
+        class TtyStdout(io.StringIO):
+            def isatty(self):
+                return True
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "doc.md"
+            path.write_text("# Interactive\n", encoding="utf-8")
+
+            stdout = TtyStdout()
+            with (
+                patch("sys.stdout", stdout),
+                patch("mdutil.cli.run_interactive_viewer", return_value=None) as viewer,
+            ):
+                exit_code = main(["--line-numbers", str(path)])
+
+        self.assertEqual(exit_code, 0)
+        viewer.assert_called_once()
+        rendered_lines = viewer.call_args.args[0]
+        self.assertTrue(any("# Interactive" in line for line in rendered_lines))
+        self.assertFalse(any("   1 |" in line for line in rendered_lines))
+        self.assertTrue(viewer.call_args.kwargs["line_numbers"])
+
     def test_piped_stdin_keeps_non_interactive_output_even_when_stdout_is_terminal(self):
         class TtyStdout(io.StringIO):
             def isatty(self):

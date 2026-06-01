@@ -22,11 +22,19 @@ class ScrollBuffer:
     lines: list[str]
     height: int = 24
     offset: int = 0
+    line_numbers: bool = False
 
-    def __init__(self, lines: Iterable[str], height: int = 24) -> None:
+    def __init__(
+        self,
+        lines: Iterable[str],
+        height: int = 24,
+        *,
+        line_numbers: bool = False,
+    ) -> None:
         self.lines = list(lines)
         self.height = max(1, height)
         self.offset = 0
+        self.line_numbers = line_numbers
 
     @property
     def max_offset(self) -> int:
@@ -34,13 +42,28 @@ class ScrollBuffer:
 
     def visible_lines(self) -> list[str]:
         end = self.offset + self.height
-        return self.lines[self.offset:end]
+        lines = self.lines[self.offset:end]
+        if not self.line_numbers:
+            return lines
+        return [
+            f"{line_number:4d} | {line}"
+            for line_number, line in enumerate(lines, self.offset + 1)
+        ]
+
+    def toggle_line_numbers(self) -> None:
+        self.line_numbers = not self.line_numbers
 
     def scroll_down(self, amount: int = 1) -> None:
         self.offset = min(self.max_offset, self.offset + max(1, amount))
 
     def scroll_up(self, amount: int = 1) -> None:
         self.offset = max(0, self.offset - max(1, amount))
+
+    def page_down(self) -> None:
+        self.scroll_down(self.height)
+
+    def page_up(self) -> None:
+        self.scroll_up(self.height)
 
     def set_height(self, height: int) -> None:
         self.height = max(1, height)
@@ -50,11 +73,12 @@ class ScrollBuffer:
 def build_interactive_app(
     lines: Iterable[str],
     *,
+    line_numbers: bool = False,
     input: Any | None = None,
     output: Any | None = None,
 ) -> Application:
     """Build the prompt-toolkit application for a rendered Markdown buffer."""
-    scroll_buffer = ScrollBuffer(lines)
+    scroll_buffer = ScrollBuffer(lines, line_numbers=line_numbers)
     key_bindings = KeyBindings()
 
     def current_text() -> ANSI:
@@ -80,6 +104,21 @@ def build_interactive_app(
         scroll_buffer.scroll_up()
         event.app.invalidate()
 
+    @key_bindings.add("pagedown")
+    def _page_down(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
+        scroll_buffer.page_down()
+        event.app.invalidate()
+
+    @key_bindings.add("pageup")
+    def _page_up(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
+        scroll_buffer.page_up()
+        event.app.invalidate()
+
+    @key_bindings.add("l")
+    def _toggle_line_numbers(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
+        scroll_buffer.toggle_line_numbers()
+        event.app.invalidate()
+
     body = Window(
         content=FormattedTextControl(current_text, focusable=True),
         wrap_lines=False,
@@ -87,7 +126,7 @@ def build_interactive_app(
     )
     help_line = Window(
         height=1,
-        content=FormattedTextControl("j/k or arrows: scroll  •  q: quit"),
+        content=FormattedTextControl("j/k, arrows, PgUp/PgDn: scroll  •  l: line numbers  •  q: quit"),
         style="reverse",
         always_hide_cursor=True,
     )
@@ -102,6 +141,6 @@ def build_interactive_app(
     )
 
 
-def run_interactive_viewer(lines: Iterable[str]) -> None:
+def run_interactive_viewer(lines: Iterable[str], *, line_numbers: bool = False) -> None:
     """Run the interactive prompt-toolkit Markdown viewer."""
-    build_interactive_app(lines).run()
+    build_interactive_app(lines, line_numbers=line_numbers).run()
