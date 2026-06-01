@@ -43,18 +43,18 @@ The focus is on a clean, fast, and fully‑featured viewer that can later evolve
 
 ## 3. Functional Requirements
 
-| Feature                      | Description                                                     | CLI Option(s)                                           |
-| ---------------------------- | --------------------------------------------------------------- | ------------------------------------------------------- |
-| **Load Markdown**            | Accept a file path or read from stdin.                          | `mdutil <file.md>` or `cat file.md \| mdutil`           |
-| **Basic Rendering**          | Render headings, lists, blockquotes, emphasis, tables, etc.     | –                                                       |
-| **Code Syntax Highlighting** | Detect language via ` ```lang ` fences; fallback to plain text. | –                                                       |
-| **Theming**                  | Choose a theme: `--theme <theme-name>`                          | `--theme dracula`                                       |
-| **Custom Theme**             | Load a custom theme file (JSON or TOML).                        | `--theme-file <path>`                                   |
-| **Configuration File**       | Load user defaults from an editable configuration file.          | `--config <path>` and `--generate-config`               |
-| **Line Numbers**             | Toggle line numbers for code blocks.                            | `--line-numbers`                                        |
-| **Scroll**                   | Arrow keys or `j/k` to scroll up/down; `q` to quit.             | –                                                       |
-| **Help**                     | Show command‑line usage.                                        | `--help`                                                |
-| **Version**                  | Print version.                                                  | `--version`                                             |
+| Feature | Description | CLI Option(s) |
+| --- | --- | --- |
+| **Load Markdown** | Accept a file path or read from stdin. | `mdutil <file.md>` or <code>cat file.md &#124; mdutil</code> |
+| **Basic Rendering** | Render headings, lists, blockquotes, emphasis, tables, etc. | – |
+| **Code Syntax Highlighting** | Detect language via fenced code block info strings such as <code>```python</code>; fallback to plain text. | – |
+| **Theming** | Choose a theme. | `--theme <theme-name>` |
+| **Custom Theme** | Load a custom theme file (JSON or TOML). | `--theme-file <path>` |
+| **Configuration File** | Load user defaults from an editable configuration file. | `--config <path>` and `--generate-config` |
+| **Line Numbers** | Toggle line numbers for code blocks. | `--line-numbers` |
+| **Scroll** | Arrow keys or `j/k` to scroll up/down; `q` to quit. | – |
+| **Help** | Show command-line usage. | `--help` |
+| **Version** | Print version. | `--version` |
 
 > **User‑Interface Constraints**
 >
