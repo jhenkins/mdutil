@@ -11,7 +11,7 @@ ignore this project. If you find the software useful, feel free to use it. Due t
 of this project, it is unlikely that I will entertain any pull requests (unless there is something to
 be learned from it, of course).
 
-OK, are you still here? So, on with the story. Are you sitting comfortably? :-D
+Are you still here?  OK, grab a brew and let's carry on! :-D
 
 The following tools and LLM's were used so far (more might be used as time goes on):
 
