@@ -38,29 +38,33 @@ class ViewerStateTests(unittest.TestCase):
         self.assertIn("Escape", help_text)
         self.assertIn("q", help_text)
 
-    def test_help_modal_overlay_has_border_and_false_shadow(self):
+    def test_help_modal_overlay_has_titled_border_without_manual_shadow(self):
         overlay = build_help_modal_overlay(columns=80, rows=24)
         lines = overlay.splitlines()
 
-        self.assertTrue(any("┌" in line and "┐" in line for line in lines))
+        self.assertTrue(lines[0].startswith("┌"))
+        self.assertIn("F1 - Help", lines[0])
+        self.assertTrue(lines[0].endswith("┐"))
         self.assertTrue(any("└" in line and "┘" in line for line in lines))
         self.assertTrue(any("│" in line for line in lines))
-        self.assertTrue(any("░" in line for line in lines))
+        self.assertNotIn("░", overlay)
         self.assertIn("F1: toggle this help", overlay)
 
-    def test_help_modal_overlay_is_centered_for_terminal_size(self):
+    def test_help_modal_overlay_is_not_positioned_with_leading_spaces(self):
         overlay = build_help_modal_overlay(columns=80, rows=24)
         lines = overlay.splitlines()
-        top_border_index = next(index for index, line in enumerate(lines) if "┌" in line)
-        bottom_shadow_index = max(index for index, line in enumerate(lines) if "░" in line)
-        left_border_index = lines[top_border_index].index("┌")
-        right_shadow_index = max(line.rfind("░") for line in lines)
 
-        modal_height = bottom_shadow_index - top_border_index + 1
-        modal_width = right_shadow_index - left_border_index + 1
+        self.assertTrue(lines)
+        self.assertTrue(all(not line.startswith(" ") for line in lines if line))
+        self.assertEqual(lines[0][0], "┌")
 
-        self.assertEqual(top_border_index, (24 - modal_height) // 2)
-        self.assertEqual(left_border_index, (80 - modal_width) // 2)
+    def test_help_modal_overlay_is_slightly_larger_than_content(self):
+        overlay = build_help_modal_overlay(columns=80, rows=24)
+        lines = overlay.splitlines()
+        content_width = max(len(line) for line in build_help_modal_text().splitlines())
+
+        self.assertGreaterEqual(len(lines[0]), content_width + 8)
+        self.assertGreaterEqual(len(lines), len(build_help_modal_text().splitlines()) + 4)
 
 
     def test_status_bar_text_is_short_and_includes_document_name(self):

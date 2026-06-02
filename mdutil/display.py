@@ -14,6 +14,8 @@ from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import Layout
 from prompt_toolkit.layout.containers import ConditionalContainer, Float, FloatContainer, HSplit, Window
 from prompt_toolkit.layout.controls import FormattedTextControl
+from prompt_toolkit.styles import Style
+from prompt_toolkit.widgets import Shadow
 
 
 @dataclass
@@ -47,33 +49,41 @@ def build_help_modal_text() -> str:
     )
 
 
+HELP_MODAL_TITLE = "F1 - Help"
+
+
 def build_help_modal_overlay(columns: int, rows: int) -> str:
-    """Return a centered bordered help modal with a false shadow."""
+    """Return the bordered F1 help modal content without positioning or shadow."""
     content_lines = build_help_modal_text().splitlines()
     content_width = max(len(line) for line in content_lines)
-    box_width = content_width + 4
-    box_height = len(content_lines) + 2
-    shadow_width = box_width + 2
-    shadow_height = box_height + 1
-
-    left = max(0, (columns - shadow_width) // 2)
-    top = max(0, (rows - shadow_height) // 2)
-    inner_width = box_width - 2
+    inner_width = max(content_width + 6, len(HELP_MODAL_TITLE) + 4)
 
     modal_lines = [
-        "┌" + "─" * inner_width + "┐" + "░░",
+        _build_titled_top_border(inner_width),
+        "│" + " " * inner_width + "│",
         *[
-            "│ " + line.ljust(content_width) + " │" + "░░"
+            "│  " + line.ljust(inner_width - 4) + "  │"
             for line in content_lines
         ],
-        "└" + "─" * inner_width + "┘" + "░░",
-        "░" * shadow_width,
+        "│" + " " * inner_width + "│",
+        "└" + "─" * inner_width + "┘",
     ]
 
-    return "\n".join(
-        ["" for _ in range(top)]
-        + [(" " * left) + line for line in modal_lines]
-    )
+    return "\n".join(modal_lines)
+
+
+def _build_titled_top_border(inner_width: int) -> str:
+    title = f" {HELP_MODAL_TITLE} "
+    remaining_width = inner_width - len(title)
+    if remaining_width <= 0:
+        return "┌" + "─" * inner_width + "┐"
+    return "┌" + "─" + title + "─" * (remaining_width - 1) + "┐"
+
+
+def help_modal_size() -> tuple[int, int]:
+    """Return the width and height of the rendered help modal box."""
+    lines = build_help_modal_overlay(columns=0, rows=0).splitlines()
+    return max(len(line) for line in lines), len(lines)
 
 
 def build_status_bar_text(document_name: str | None = None) -> str:
@@ -215,10 +225,18 @@ def build_interactive_app(
         size = app.output.get_size()
         return ANSI(build_help_modal_overlay(columns=size.columns, rows=size.rows))
 
+    modal_width, modal_height = help_modal_size()
+
     help_modal = ConditionalContainer(
-        Window(
-            content=FormattedTextControl(current_help_overlay),
-            always_hide_cursor=True,
+        Shadow(
+            Window(
+                content=FormattedTextControl(current_help_overlay),
+                width=modal_width,
+                height=modal_height,
+                dont_extend_width=True,
+                dont_extend_height=True,
+                always_hide_cursor=True,
+            )
         ),
         filter=Condition(lambda: viewer_state.help_visible),
     )
@@ -227,10 +245,8 @@ def build_interactive_app(
         floats=[
             Float(
                 content=help_modal,
-                top=0,
-                left=0,
-                width=lambda: get_app().output.get_size().columns,
-                height=lambda: get_app().output.get_size().rows,
+                width=modal_width + 1,
+                height=modal_height + 1,
                 transparent=True,
             )
         ],
@@ -241,6 +257,7 @@ def build_interactive_app(
         key_bindings=key_bindings,
         full_screen=True,
         mouse_support=False,
+        style=Style.from_dict({"shadow": "bg:#444444"}),
         input=input,
         output=output,
     )
