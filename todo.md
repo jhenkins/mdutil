@@ -18,3 +18,13 @@ Status: ANSI renderer implemented.
 3. **Implement a simple ANSI renderer** – plain‑text + color.
 4. **Add scrolling** – curses wrapper implemented.
 5. **Write unit tests** – parser & renderer implemented.
+
+---
+
+## Issue #6 – F1 help modal visual fixes
+
+Add the valid visual fixes from GitHub issue #6:
+
+1. Add a modal window title, e.g. `F1 - Help`.
+2. Reduce and reposition the drop shadow so it has a proper bottom-right offset.
+3. Remove the full-height artefact to the left of the modal that obscures Markdown viewer text.
