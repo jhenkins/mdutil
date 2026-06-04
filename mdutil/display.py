@@ -210,7 +210,7 @@ def build_interactive_app(
 
     body = Window(
         content=FormattedTextControl(current_text, focusable=True),
-        wrap_lines=False,
+        wrap_lines=True,
         always_hide_cursor=True,
     )
     help_line = Window(

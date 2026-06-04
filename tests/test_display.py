@@ -171,6 +171,15 @@ class ScrollBufferTests(unittest.TestCase):
         self.assertIsNotNone(app.layout)
         self.assertIsNotNone(app.key_bindings)
 
+    def test_prompt_toolkit_body_wraps_long_lines(self):
+        long_line = "This is a very long line that should wrap instead of being clipped. " * 4
+        with create_pipe_input() as pipe_input:
+            app = build_interactive_app([long_line], input=pipe_input, output=DummyOutput())
+
+        body_container = getattr(app.layout.container, "content")
+        body = body_container.children[0]
+        self.assertTrue(body.wrap_lines())
+
     def test_prompt_toolkit_app_binds_page_navigation_keys(self):
         with create_pipe_input() as pipe_input:
             app = build_interactive_app(["# Title", "body"], input=pipe_input, output=DummyOutput())
