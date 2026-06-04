@@ -26,4 +26,5 @@ htmlcov/
 .cache/
 
 # Local agent/session artifacts
+.hermes/
 pi-session*.*
