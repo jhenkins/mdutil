@@ -43,19 +43,19 @@ Baseline verification at update time: `python -m pytest -q` -> 86 passed in 2.64
 
 ### 1. Keep the housekeeping branch clean
 
-- [ ] Review `git status` before making feature changes.
-- [ ] Confirm `todo.md` is the only intended housekeeping change on this branch unless additional cleanup is explicitly requested.
-- [ ] Do not push or open a PR unless explicitly asked.
+- [x] Reviewed `git status` before making documentation changes on 2026-06-05.
+- [x] Confirmed the working tree was clean before this documentation audit.
+- [x] Kept this as a local documentation update only; no push or PR was opened.
 
 ### 2. Reconcile documentation metadata with the current implementation
 
-The specification still has stale front-matter-style metadata even though the roadmap is broadly current.
+Completed on 2026-06-05.
 
-- [ ] Update `mdutil-specification.md` header fields as appropriate:
-  - version currently says `1.0.0` while package version is `1.5.1`.
-  - last-updated currently says `2026-05-15`.
-- [ ] Keep roadmap rows aligned with implemented state.
-- [ ] Re-run the doc-related metadata tests after any spec/README changes.
+- [x] Updated `mdutil-specification.md` header fields:
+  - version now says `1.5.1` and points to `mdutil/version.py` as the source of truth.
+  - last-updated now says `2026-06-05`.
+- [x] Audited roadmap rows against the current implementation; v1.0/v1.5 viewer rows remain `Done`, and v2.0+ rows remain `Todo`.
+- [x] Re-ran the doc-related metadata tests after the spec update.
 
 ### 3. Start the next roadmap slice: v2.0 editing foundation
 
