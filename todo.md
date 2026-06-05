@@ -99,6 +99,7 @@ From `mdutil-specification.md`:
 - [ ] v2.5: expose all Pygments syntax highlighting styles.
 - [ ] v2.5: cycle through styles and save the last used style on exit.
 - [ ] v3.0: render/export to PDF/HTML.
+- [ ] v3.5: support rendering of Mermaid diagrams.
 - [ ] v4.0: runtime loading of custom syntax highlighters.
 
 ## Verification checklist before committing changes

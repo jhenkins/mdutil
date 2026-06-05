@@ -171,4 +171,5 @@ The CLI parser loads built-in defaults, merges any user configuration file, then
 | **v2.5** | _Highlighting_ | Expose all Pygments syntax highlighting styles.         | Todo   |
 | **v2.5** | _Highlighting_ | Cycle through styles and save last used style on exit.  | Todo   |
 | **v3.0** | _Export_       | Render to PDF/HTML using `pulldown-cmark` + `printpdf`. | Todo   |
+| **v3.5** | _Export_       | Support rendering of Mermaid diagrams.                  | Todo   |
 | **v4.0** | _Plugins_      | Runtime loading of custom syntax highlighters.          | Todo   |
