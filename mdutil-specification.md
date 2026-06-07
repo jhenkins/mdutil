@@ -1,8 +1,8 @@
 # Markdown Viewer CLI – Program Specification
 
 **Author:** _Jan Henkins_  
-**Version:** 1.5.1 (source of truth: `mdutil/version.py`)  
-**Last‑Updated:** 2026‑06‑05  
+**Version:** 2.0.0 (source of truth: `mdutil/version.py`)  
+**Last‑Updated:** 2026‑06‑07  
 **License:** MIT  
 **Repository:** <https://github.com/jhenkins/mdutil>
 

@@ -37,6 +37,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Markdown files to read. Use '-' or omit files to read stdin.",
     )
     arg_parser.add_argument(
+        "--list",
+        action="store_true",
+        help="List available markdown files in the current directory and exit",
+    )
+    arg_parser.add_argument(
         "--theme",
         choices=theme_names(),
         help="Choose built-in theme",
@@ -74,6 +79,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     arg_parser = build_arg_parser()
     args = arg_parser.parse_args(argv)
 
+    if args.list:
+        import glob
+        md_files = sorted(glob.glob("*.md"))
+        if md_files:
+            print("Markdown files in current directory:")
+            for f in md_files:
+                print(f)
+        else:
+            print("No markdown files found.")
+        return 0
+
     try:
         config_path = Path(args.config) if args.config else default_config_path()
         ensure_config_file(config_path)
@@ -108,9 +124,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             if interactive:
                 run_interactive_viewer(
-                    output.splitlines(),
+                    content.splitlines(),
                     line_numbers=runtime["line_numbers"],
                     document_name=Path(file_path).name if file_path else None,
+                    save_path=file_path,
+                    theme=runtime["theme"],
+                    theme_file=runtime["theme_file"],
                 )
             elif not runtime["quiet"] and output:
                 print(output)
