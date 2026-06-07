@@ -286,6 +286,44 @@ class ScrollBufferTests(unittest.TestCase):
         self.assertTrue(strip_ansi(getattr(app, "mdutil_visible_rendered_text")()).startswith("- line 0"))
         self.assertEqual(event.app.invalidations, 2)
 
+    def test_prompt_toolkit_normal_scroll_reuses_cached_rendered_preview(self):
+        rendered_lines = [f"rendered line {number}" for number in range(50)]
+        with (
+            patch("mdutil.display.parse_markdown", return_value=[{"type": "paragraph"}]) as parser,
+            patch("mdutil.display.render", return_value="\n".join(rendered_lines)) as renderer,
+            create_pipe_input() as pipe_input,
+        ):
+            app = build_interactive_app(
+                [f"source line {number}" for number in range(50)],
+                input=pipe_input,
+                output=DummyOutput(),
+            )
+            first_visible = getattr(app, "mdutil_visible_rendered_text")()
+
+            self.assertIsNotNone(app.key_bindings)
+            key_bindings = cast(Any, app.key_bindings)
+            down_binding = next(
+                binding
+                for binding in key_bindings.bindings
+                if tuple(str(key) for key in binding.keys) == ("j",)
+            )
+
+            class FakeApp:
+                def invalidate(self):
+                    pass
+
+            class FakeEvent:
+                def __init__(self):
+                    self.app = FakeApp()
+
+            down_binding.handler(cast(Any, FakeEvent()))
+            second_visible = getattr(app, "mdutil_visible_rendered_text")()
+
+        self.assertTrue(first_visible.startswith("rendered line 0"))
+        self.assertTrue(second_visible.startswith("rendered line 1"))
+        parser.assert_called_once()
+        renderer.assert_called_once()
+
     def test_prompt_toolkit_app_binds_page_navigation_keys(self):
         with create_pipe_input() as pipe_input:
             app = build_interactive_app(["# Title", "body"], input=pipe_input, output=DummyOutput())
