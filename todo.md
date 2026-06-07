@@ -97,13 +97,16 @@ These are useful improvements, but lower priority than the next roadmap slice.
 - [ ] Improve inline rendering beyond stripping simple `<strong>`, `<em>`, and `<code>` tags.
 - [ ] Add more representative golden Markdown fixtures.
 - [ ] Review table rendering for width, alignment, and ANSI-width edge cases.
-- [ ] Add performance checks for larger documents if scrolling/rendering gets slower.
+- [ ] In the viewer, add a percentage indicator to the right of the document name to indicate where we are in the document.
+- [ ] Enable the "home" button to jump right to the top of the document.
+- [ ] Check whether performance checks for larger documents if scrolling/rendering gets slower covers everything.
 
 ### 6. Future roadmap items after v2.0
 
 From `mdutil-specification.md`:
 
-- [ ] v2.1: Deal with performance issues with large documents.
+- [x] v2.1: Deal with performance issues with large documents.
+- [ ] v2.1: Add polish to the viewer interface with added functionality
 - [ ] v2.2: Enhance and normalise editor functionality:
             - In editing mode we need to see only raw Markdown, the viewer mode is for proper rendering
             - In editing mode we need to be able to copy and paste characters, words or whole lines.
