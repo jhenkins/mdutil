@@ -286,43 +286,52 @@ class ScrollBufferTests(unittest.TestCase):
         self.assertTrue(strip_ansi(getattr(app, "mdutil_visible_rendered_text")()).startswith("- line 0"))
         self.assertEqual(event.app.invalidations, 2)
 
-    def test_prompt_toolkit_normal_scroll_reuses_cached_rendered_preview(self):
-        rendered_lines = [f"rendered line {number}" for number in range(50)]
-        with (
-            patch("mdutil.display.parse_markdown", return_value=[{"type": "paragraph"}]) as parser,
-            patch("mdutil.display.render", return_value="\n".join(rendered_lines)) as renderer,
-            create_pipe_input() as pipe_input,
-        ):
-            app = build_interactive_app(
-                [f"source line {number}" for number in range(50)],
-                input=pipe_input,
-                output=DummyOutput(),
-            )
-            first_visible = getattr(app, "mdutil_visible_rendered_text")()
+    def test_prompt_toolkit_normal_scroll_reuses_cached_rendered_preview_for_lorem_fixtures(self):
+        fixture_sizes = ["5k", "10k", "20k", "50k", "75k", "100k", "250k", "500k"]
 
-            self.assertIsNotNone(app.key_bindings)
-            key_bindings = cast(Any, app.key_bindings)
-            down_binding = next(
-                binding
-                for binding in key_bindings.bindings
-                if tuple(str(key) for key in binding.keys) == ("j",)
-            )
+        class FakeApp:
+            def invalidate(self):
+                pass
 
-            class FakeApp:
-                def invalidate(self):
-                    pass
+        class FakeEvent:
+            def __init__(self):
+                self.app = FakeApp()
 
-            class FakeEvent:
-                def __init__(self):
-                    self.app = FakeApp()
+        for size in fixture_sizes:
+            fixture_path = Path(__file__).parent / f"lorem_ipsum_{size}.md"
+            with self.subTest(size=size), fixture_path.open(encoding="utf-8") as fixture_file:
+                source_lines = fixture_file.read().splitlines()
+                rendered_lines = [
+                    f"rendered {size} line {number}"
+                    for number, _line in enumerate(source_lines)
+                ]
+                with (
+                    patch("mdutil.display.parse_markdown", return_value=[{"type": "paragraph"}]) as parser,
+                    patch("mdutil.display.render", return_value="\n".join(rendered_lines)) as renderer,
+                    create_pipe_input() as pipe_input,
+                ):
+                    app = build_interactive_app(
+                        source_lines,
+                        input=pipe_input,
+                        output=DummyOutput(),
+                    )
+                    first_visible = getattr(app, "mdutil_visible_rendered_text")()
 
-            down_binding.handler(cast(Any, FakeEvent()))
-            second_visible = getattr(app, "mdutil_visible_rendered_text")()
+                    self.assertIsNotNone(app.key_bindings)
+                    key_bindings = cast(Any, app.key_bindings)
+                    down_binding = next(
+                        binding
+                        for binding in key_bindings.bindings
+                        if tuple(str(key) for key in binding.keys) == ("j",)
+                    )
 
-        self.assertTrue(first_visible.startswith("rendered line 0"))
-        self.assertTrue(second_visible.startswith("rendered line 1"))
-        parser.assert_called_once()
-        renderer.assert_called_once()
+                    down_binding.handler(cast(Any, FakeEvent()))
+                    second_visible = getattr(app, "mdutil_visible_rendered_text")()
+
+                self.assertTrue(first_visible.startswith(f"rendered {size} line 0"))
+                self.assertTrue(second_visible.startswith(f"rendered {size} line 1"))
+                parser.assert_called_once()
+                renderer.assert_called_once()
 
     def test_prompt_toolkit_app_binds_page_navigation_keys(self):
         with create_pipe_input() as pipe_input:
