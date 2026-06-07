@@ -31,7 +31,7 @@ The focus is on a clean, fast, and fully‑featured viewer that can later evolve
 | 2   | **Syntax Highlight** | Code blocks are highlighted using the specified theme.                                           |
 | 3   | **Theming**          | User can choose from built‑in themes or provide a custom theme file.                             |
 | 4   | **Line Numbers**     | Optional display of line numbers for code blocks and the main document.                          |
-| 5   | **Future Edit**      | Placeholder hooks for editing (insert, delete, replace) that may be activated in later releases. |
+| 5   | **Edit**             | In-place Markdown editing with explicit save, dirty-state protection, and normal/insert modes.   |
 
 > **Out‑of‑Scope** (for v1.0.0)
 >
@@ -53,6 +53,8 @@ The focus is on a clean, fast, and fully‑featured viewer that can later evolve
 | **Configuration File** | Load user defaults from an editable configuration file. | `--config <path>` and `--generate-config` |
 | **Line Numbers** | Toggle line numbers for code blocks. | `--line-numbers` |
 | **Scroll** | Arrow keys or `j/k` to scroll up/down; `q` to quit. | – |
+| **Editing Foundation** | In-place editing with normal/insert modes, `i`, `dd`, `cw`, Escape back to normal mode, explicit Ctrl-S save, dirty-buffer status, dirty quit blocking, and `!q` discard-and-quit. | – |
+| **Safe File Writes** | File-backed interactive sessions write through atomic same-directory temporary files and preserve the original file on failed saves. | – |
 | **Help** | Show command-line usage. | `--help` |
 | **Version** | Print version. | `--version` |
 
@@ -96,6 +98,13 @@ The focus is on a clean, fast, and fully‑featured viewer that can later evolve
 ## 5. Architecture Overview
 
 The CLI parser loads built-in defaults, merges any user configuration file, then applies explicit command-line options before passing resolved runtime settings through the rest of the pipeline.
+
+Interactive terminal output has two coordinated modes. Normal/viewer mode renders
+the current Markdown buffer through the parser, renderer, syntax highlighter, and
+terminal display pipeline. Insert/editing mode exposes the raw Markdown buffer for
+text changes. File-backed sessions save explicitly with Ctrl-S, track dirty state,
+block accidental dirty quits, and write atomically via same-directory temporary
+files before replacing the target path.
 
 ```
 ┌───────────────────────┐
@@ -142,6 +151,7 @@ The CLI parser loads built-in defaults, merges any user configuration file, then
 | **Unit Tests**             | Each component (`Renderer`, `Highlighter`) gets pure‑function tests.                                                  |
 | **Integration Tests**      | Run `mdutil` against a set of sample Markdown files (covering tables, code fences, footnotes).                        |
 | **Configuration Tests**    | Verify default config paths, config generation, comments/default values, alternate `--config`, and CLI precedence.    |
+| **Interactive Editor Tests** | Verify normal/insert mode transitions, `i`, Escape, `dd`, `cw`, explicit Ctrl-S save, dirty indicators, dirty quit blocking, discard quit, failed-save preservation, and atomic-write cleanup. |
 | **End‑to‑End (CLI)**       | Use `assert_cmd` to spawn `mdutil` with various flags and verify output length / presence of expected ANSI sequences. |
 | **Cross‑Platform CI**      | GitHub Actions matrix: ubuntu, macos, windows.                                                                        |
 | **Performance Benchmarks** | Measure rendering time on large docs (10k lines).                                                                     |
@@ -167,10 +177,11 @@ The CLI parser loads built-in defaults, merges any user configuration file, then
 | **v1.0** | _Viewing_      | Enable/disable line numbers while viewing with 'l'      | Done   |
 | **v1.5** | _Viewing_      | Add F1 help modal popup to clean up status bar area     | Done   |
 | **v1.5** | _Viewing_      | Bottom status bar: F1 help, document name               | Done   |
-| **v2.0** | _Editing_      | In‑place editing, key bindings (`i`, `dd`, `cw`).       | Todo   |
+| **v2.0** | _Editing_      | In-place editing foundation: `i`, Escape, `dd`, `cw`, explicit Ctrl-S save, dirty protection, and atomic writes. | Done   |
 | **v2.1** | _Performance_  | Improve interactive performance on large documents.     | Done   |
-| **v2.5** | _Highlighting_ | Expose all Pygments syntax highlighting styles.         | Todo   |
-| **v2.5** | _Highlighting_ | Cycle through styles and save last used style on exit.  | Todo   |
+| **v2.2** | _Editing_      | Enhance and normalize editor functionality: raw Markdown editing, copy/paste, command model, clearer status bars, status colors, and theme/config color settings. | Todo   |
+| **v2.3** | _Highlighting_ | Expose all Pygments syntax highlighting styles.         | Todo   |
+| **v2.4** | _Highlighting_ | Cycle through styles and save last used style on exit.  | Todo   |
 | **v3.0** | _Export_       | Render to PDF/HTML using `pulldown-cmark` + `printpdf`. | Todo   |
 | **v3.5** | _Export_       | Support rendering of Mermaid diagrams.                  | Todo   |
 | **v4.0** | _Plugins_      | Runtime loading of custom syntax highlighters.          | Todo   |
