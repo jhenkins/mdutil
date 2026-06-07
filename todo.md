@@ -93,18 +93,20 @@ The first editor slice now has explicit Ctrl-S save, dirty indicators, and dirty
 - [x] Consider backup/atomic-write behavior before modifying user files.
   - Implemented atomic same-directory temp-file writes with `os.replace`; failed writes clean up temp files and leave the original target unchanged.
 
-### 5. Broaden viewer/rendering quality only after v2.0 direction is clear
+### 5. Broaden viewer/rendering quality after v2.0 direction is clear
 
 These are useful improvements, but lower priority than the next roadmap slice.
 
-- [ ] Improve inline rendering beyond stripping simple `<strong>`, `<em>`, and `<code>` tags.
+- [ ] Improve inline rendering beyond current lightweight handling of links and simple "\<strong>", "\<em>", and "\<code>" tags; cover nested spans, mixed emphasis/code, escapes, and punctuation edge cases.
 - [ ] Add more representative golden Markdown fixtures.
-- [ ] Review table rendering for width, alignment, and ANSI-width edge cases.
-- [ ] In the viewer, add a percentage indicator to the right of the document name to indicate where we are in the document.
-- [ ] Enable the "home" button to jump right to the top of the document.
-- [ ] Check whether performance checks for larger documents if scrolling/rendering gets slower covers everything.
+- [ ] Review table rendering for alignment, wide Unicode, combining characters, and ANSI-width edge cases. 
+- [ ] Add a normal-mode scroll percentage to the status bar beside the document name, based on the rendered     
+     preview scroll offset.
+- [ ] Bind Home/End in normal mode to jump to the top/bottom of the document.
+- [ ] Expand large-document performance coverage if scrolling/rendering regresses; include cache reuse,         
+     representative fixture sizes, and an explicit budget or benchmark for interactive scroll latency. 
 
-### 6. Future roadmap items after v2.0
+### 6. Proposed next roadmap items
 
 From `mdutil-specification.md`:
 
