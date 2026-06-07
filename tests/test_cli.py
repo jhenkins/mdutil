@@ -52,7 +52,7 @@ class CliTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "doc.md"
-            path.write_text("# Interactive\n", encoding="utf-8")
+            path.write_text("# Interactive\n\nbody\n", encoding="utf-8")
 
             stdout = TtyStdout()
             with (
@@ -64,9 +64,10 @@ class CliTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertEqual(stdout.getvalue(), "")
         viewer.assert_called_once()
-        rendered_lines = viewer.call_args.args[0]
-        self.assertTrue(any("# Interactive" in line for line in rendered_lines))
+        source_lines = viewer.call_args.args[0]
+        self.assertEqual(source_lines, ["# Interactive", "", "body"])
         self.assertEqual(viewer.call_args.kwargs["document_name"], "doc.md")
+        self.assertEqual(viewer.call_args.kwargs["save_path"], str(path))
 
     def test_file_argument_passes_line_number_preference_to_interactive_viewer(self):
         class TtyStdout(io.StringIO):
@@ -91,6 +92,7 @@ class CliTests(unittest.TestCase):
         self.assertFalse(any("   1 |" in line for line in rendered_lines))
         self.assertTrue(viewer.call_args.kwargs["line_numbers"])
         self.assertEqual(viewer.call_args.kwargs["document_name"], "doc.md")
+        self.assertEqual(viewer.call_args.kwargs["save_path"], str(path))
 
     def test_piped_stdin_keeps_non_interactive_output_even_when_stdout_is_terminal(self):
         class TtyStdout(io.StringIO):

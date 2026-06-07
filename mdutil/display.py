@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from collections.abc import Iterable
+from dataclasses import dataclass
+import os
+from pathlib import Path
+import tempfile
 from typing import Any
 
 from prompt_toolkit import Application
@@ -15,7 +18,12 @@ from prompt_toolkit.layout import Layout
 from prompt_toolkit.layout.containers import ConditionalContainer, Float, FloatContainer, HSplit, Window
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.styles import Style
-from prompt_toolkit.widgets import Shadow
+from prompt_toolkit.widgets import Shadow, TextArea
+
+from .editor import EditingMode, FileEditorState, change_word, delete_current_line
+from .parser import parse_markdown
+from .renderer import render
+from .themes import DEFAULT_THEME
 
 
 @dataclass
@@ -23,12 +31,19 @@ class ViewerState:
     """Mutable state for interactive viewer chrome."""
 
     help_visible: bool = False
+    save_error: str | None = None
 
     def toggle_help(self) -> None:
         self.help_visible = not self.help_visible
 
     def close_help(self) -> None:
         self.help_visible = False
+
+    def clear_save_error(self) -> None:
+        self.save_error = None
+
+    def record_save_error(self, error: OSError) -> None:
+        self.save_error = f"{error.__class__.__name__}: {error}"
 
 
 def build_help_modal_text() -> str:
@@ -43,8 +58,11 @@ def build_help_modal_text() -> str:
             "PageDown: page down",
             "PageUp: page up",
             "l: toggle line numbers",
-            "Escape: close help",
-            "q: quit",
+            "i: insert mode",
+            "Ctrl-S: save explicitly when a file target is available",
+            "!q: discard unsaved changes and quit",
+            "Escape: close help / leave insert mode",
+            "q: quit when buffer is unmodified",
         ]
     )
 
@@ -86,9 +104,22 @@ def help_modal_size() -> tuple[int, int]:
     return max(len(line) for line in lines), len(lines)
 
 
-def build_status_bar_text(document_name: str | None = None) -> str:
+def build_status_bar_text(
+    document_name: str | None = None,
+    *,
+    mode: EditingMode = EditingMode.NORMAL,
+    dirty: bool = False,
+    save_error: str | None = None,
+) -> str:
     """Return the compact bottom status bar text."""
     name = document_name or "stdin"
+    if save_error:
+        return f"F1 Help  •  {name}  •  save failed: {save_error}"
+    if mode is EditingMode.INSERT:
+        dirty_text = "modified" if dirty else "unmodified"
+        return f"INSERT  •  {name}  •  {dirty_text}  •  Esc Normal"
+    if dirty:
+        return f"F1 Help  •  {name}  •  modified  •  Ctrl-S Save  •  !q Discard"
     return f"F1 Help  •  {name}  •  q Quit"
 
 
@@ -147,53 +178,192 @@ class ScrollBuffer:
         self.offset = min(self.offset, self.max_offset)
 
 
+def atomic_write_text(path: Path, text: str) -> None:
+    """Atomically write UTF-8 text, preserving the original file on failure."""
+    target = Path(path)
+    directory = target.parent
+    temp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=directory,
+            prefix=f".{target.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as temp_file:
+            temp_path = Path(temp_file.name)
+            temp_file.write(text)
+            temp_file.flush()
+            os.fsync(temp_file.fileno())
+        os.replace(temp_path, target)
+    except Exception:
+        if temp_path is not None:
+            try:
+                temp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+        raise
+
+
 def build_interactive_app(
     lines: Iterable[str],
     *,
     line_numbers: bool = False,
     document_name: str | None = None,
+    save_path: str | None = None,
+    theme: str = DEFAULT_THEME,
+    theme_file: str | None = None,
     input: Any | None = None,
     output: Any | None = None,
 ) -> Application:
-    """Build the prompt-toolkit application for a rendered Markdown buffer."""
-    scroll_buffer = ScrollBuffer(lines, line_numbers=line_numbers)
-    viewer_state = ViewerState()
+    """Build the prompt-toolkit application for a source Markdown file editor."""
+    source_lines = list(lines)
+    original_text = "\n".join(source_lines)
+    editor_state = FileEditorState(original_text)
     key_bindings = KeyBindings()
+    viewer_state = ViewerState()
+    line_numbers_enabled = {"value": line_numbers}
+    normal_scroll_offset = {"value": 0}
+    normal_mode = Condition(lambda: editor_state.mode is EditingMode.NORMAL)
+    insert_mode = Condition(lambda: editor_state.mode is EditingMode.INSERT)
 
-    def current_text() -> ANSI:
-        app = get_app()
-        # Leave one row for the help/status line.
-        scroll_buffer.set_height(max(1, app.output.get_size().rows - 1))
-        return ANSI("\n".join(scroll_buffer.visible_lines()))
+    def sync_state_from_editor() -> None:
+        editor_state.text = editor.text
 
-    @key_bindings.add("q")
+    def is_dirty() -> bool:
+        sync_state_from_editor()
+        return editor_state.dirty
+
+    def editor_line_prefix(line_number: int, wrap_count: int) -> str:
+        if not line_numbers_enabled["value"]:
+            return ""
+        if wrap_count:
+            return "       "
+        return f"{line_number + 1:4d} | "
+
+    def rendered_editor_text() -> str:
+        sync_state_from_editor()
+        return render(
+            parse_markdown(editor_state.text),
+            theme=theme,
+            theme_file=theme_file,
+            line_numbers=line_numbers_enabled["value"],
+        )
+
+    def normal_view_height() -> int:
+        try:
+            # Leave room for the one-line status bar.
+            return max(1, get_app().output.get_size().rows - 1)
+        except Exception:
+            return 24
+
+    def max_normal_scroll_offset() -> int:
+        line_count = len(rendered_editor_text().splitlines())
+        return max(0, line_count - normal_view_height())
+
+    def visible_rendered_editor_text() -> str:
+        return "\n".join(rendered_editor_text().splitlines()[normal_scroll_offset["value"]:])
+
+    def clamp_normal_scroll_offset() -> None:
+        normal_scroll_offset["value"] = min(
+            normal_scroll_offset["value"],
+            max_normal_scroll_offset(),
+        )
+
+    def scroll_normal_view(amount: int) -> None:
+        normal_scroll_offset["value"] = max(
+            0,
+            min(max_normal_scroll_offset(), normal_scroll_offset["value"] + amount),
+        )
+
+    editor = TextArea(
+        text=original_text,
+        multiline=True,
+        wrap_lines=True,
+        scrollbar=True,
+        focusable=True,
+        read_only=normal_mode,
+        get_line_prefix=editor_line_prefix,
+    )
+    normal_viewer = Window(
+        content=FormattedTextControl(lambda: ANSI(visible_rendered_editor_text())),
+        wrap_lines=True,
+    )
+
+    def delete_editor_current_line() -> None:
+        sync_state_from_editor()
+        new_text, new_cursor = delete_current_line(
+            editor_state.text,
+            editor.buffer.cursor_position,
+        )
+        editor_state.text = new_text
+        editor.text = new_text
+        editor.buffer.cursor_position = new_cursor
+
+    def change_editor_word() -> None:
+        sync_state_from_editor()
+        new_text, new_cursor = change_word(
+            editor_state.text,
+            editor.buffer.cursor_position,
+        )
+        editor_state.text = new_text
+        editor.text = new_text
+        editor.buffer.cursor_position = new_cursor
+        editor_state.enter_insert_mode()
+
+    @key_bindings.add("q", filter=normal_mode)
     @key_bindings.add("c-c")
     def _quit(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
+        if is_dirty():
+            event.app.invalidate()
+            return
         event.app.exit()
 
-    @key_bindings.add("j")
-    @key_bindings.add("down")
-    def _scroll_down(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
-        scroll_buffer.scroll_down()
+    @key_bindings.add("!", "q", filter=normal_mode)
+    def _discard_and_quit(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
+        event.app.exit()
+
+    @key_bindings.add("c-s")
+    def _save(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
+        sync_state_from_editor()
+        if save_path is not None:
+            try:
+                atomic_write_text(Path(save_path), editor_state.text)
+            except OSError as error:
+                viewer_state.record_save_error(error)
+            else:
+                viewer_state.clear_save_error()
+                editor_state.mark_saved()
         event.app.invalidate()
 
-    @key_bindings.add("k")
-    @key_bindings.add("up")
-    def _scroll_up(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
-        scroll_buffer.scroll_up()
+    @key_bindings.add("j", filter=normal_mode)
+    @key_bindings.add("down", filter=normal_mode)
+    def _cursor_down(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
+        editor.buffer.cursor_down(count=1)
+        scroll_normal_view(1)
         event.app.invalidate()
 
-    @key_bindings.add("pagedown")
+    @key_bindings.add("k", filter=normal_mode)
+    @key_bindings.add("up", filter=normal_mode)
+    def _cursor_up(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
+        editor.buffer.cursor_up(count=1)
+        scroll_normal_view(-1)
+        event.app.invalidate()
+
+    @key_bindings.add("pagedown", filter=normal_mode)
     def _page_down(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
-        scroll_buffer.page_down()
+        editor.buffer.cursor_down(count=10)
+        scroll_normal_view(normal_view_height())
         event.app.invalidate()
 
-    @key_bindings.add("pageup")
+    @key_bindings.add("pageup", filter=normal_mode)
     def _page_up(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
-        scroll_buffer.page_up()
+        editor.buffer.cursor_up(count=10)
+        scroll_normal_view(-normal_view_height())
         event.app.invalidate()
 
-    @key_bindings.add("f1")
+    @key_bindings.add("f1", filter=normal_mode)
     def _toggle_help(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
         viewer_state.toggle_help()
         event.app.invalidate()
@@ -201,21 +371,45 @@ def build_interactive_app(
     @key_bindings.add("escape")
     def _close_help(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
         viewer_state.close_help()
+        if editor_state.mode is EditingMode.INSERT:
+            sync_state_from_editor()
+            editor_state.return_to_normal_mode()
+            event.app.layout.focus(editor)
         event.app.invalidate()
 
-    @key_bindings.add("l")
+    @key_bindings.add("l", filter=normal_mode)
     def _toggle_line_numbers(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
-        scroll_buffer.toggle_line_numbers()
+        line_numbers_enabled["value"] = not line_numbers_enabled["value"]
         event.app.invalidate()
 
-    body = Window(
-        content=FormattedTextControl(current_text, focusable=True),
-        wrap_lines=True,
-        always_hide_cursor=True,
-    )
+    @key_bindings.add("i", filter=normal_mode)
+    def _enter_insert_mode(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
+        editor_state.enter_insert_mode()
+        event.app.layout.focus(editor)
+        event.app.invalidate()
+
+    @key_bindings.add("d", "d", filter=normal_mode)
+    def _delete_current_line(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
+        delete_editor_current_line()
+        clamp_normal_scroll_offset()
+        event.app.invalidate()
+
+    @key_bindings.add("c", "w", filter=normal_mode)
+    def _change_word(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
+        change_editor_word()
+        event.app.layout.focus(editor)
+        event.app.invalidate()
+
     help_line = Window(
         height=1,
-        content=FormattedTextControl(build_status_bar_text(document_name)),
+        content=FormattedTextControl(
+            lambda: build_status_bar_text(
+                document_name,
+                mode=editor_state.mode,
+                dirty=is_dirty(),
+                save_error=viewer_state.save_error,
+            )
+        ),
         style="reverse",
         always_hide_cursor=True,
     )
@@ -241,7 +435,13 @@ def build_interactive_app(
         filter=Condition(lambda: viewer_state.help_visible),
     )
     root_container = FloatContainer(
-        content=HSplit([body, help_line]),
+        content=HSplit(
+            [
+                ConditionalContainer(normal_viewer, filter=normal_mode),
+                ConditionalContainer(editor, filter=insert_mode),
+                help_line,
+            ]
+        ),
         floats=[
             Float(
                 content=help_modal,
@@ -253,7 +453,7 @@ def build_interactive_app(
     )
 
     app = Application(
-        layout=Layout(root_container, focused_element=body),
+        layout=Layout(root_container, focused_element=editor),
         key_bindings=key_bindings,
         full_screen=True,
         mouse_support=False,
@@ -262,18 +462,32 @@ def build_interactive_app(
         output=output,
     )
     setattr(app, "mdutil_viewer_state", viewer_state)
+    setattr(app, "mdutil_editor", editor)
+    setattr(app, "mdutil_normal_viewer", normal_viewer)
+    setattr(app, "mdutil_rendered_text", rendered_editor_text)
+    setattr(app, "mdutil_visible_rendered_text", visible_rendered_editor_text)
+    setattr(app, "mdutil_normal_scroll_offset", lambda: normal_scroll_offset["value"])
+    setattr(app, "mdutil_editor_state", editor_state)
+    setattr(app, "mdutil_editing_mode", lambda: editor_state.mode)
+    setattr(app, "mdutil_line_numbers_enabled", lambda: line_numbers_enabled["value"])
+    setattr(app, "mdutil_is_dirty", is_dirty)
     return app
-
 
 def run_interactive_viewer(
     lines: Iterable[str],
     *,
     line_numbers: bool = False,
     document_name: str | None = None,
+    save_path: str | None = None,
+    theme: str = DEFAULT_THEME,
+    theme_file: str | None = None,
 ) -> None:
     """Run the interactive prompt-toolkit Markdown viewer."""
     build_interactive_app(
         lines,
         line_numbers=line_numbers,
         document_name=document_name,
+        save_path=save_path,
+        theme=theme,
+        theme_file=theme_file,
     ).run()
