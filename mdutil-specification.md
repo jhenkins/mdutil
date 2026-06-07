@@ -1,7 +1,7 @@
 # Markdown Viewer CLI – Program Specification
 
 **Author:** _Jan Henkins_  
-**Version:** 2.0.0 (source of truth: `mdutil/version.py`)  
+**Version:** 2.1.0 (source of truth: `mdutil/version.py`)  
 **Last‑Updated:** 2026‑06‑07  
 **License:** MIT  
 **Repository:** <https://github.com/jhenkins/mdutil>
@@ -168,6 +168,7 @@ The CLI parser loads built-in defaults, merges any user configuration file, then
 | **v1.5** | _Viewing_      | Add F1 help modal popup to clean up status bar area     | Done   |
 | **v1.5** | _Viewing_      | Bottom status bar: F1 help, document name               | Done   |
 | **v2.0** | _Editing_      | In‑place editing, key bindings (`i`, `dd`, `cw`).       | Todo   |
+| **v2.1** | _Performance_  | Improve interactive performance on large documents.     | Done   |
 | **v2.5** | _Highlighting_ | Expose all Pygments syntax highlighting styles.         | Todo   |
 | **v2.5** | _Highlighting_ | Cycle through styles and save last used style on exit.  | Todo   |
 | **v3.0** | _Export_       | Render to PDF/HTML using `pulldown-cmark` + `printpdf`. | Todo   |

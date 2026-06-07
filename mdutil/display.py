@@ -242,14 +242,32 @@ def build_interactive_app(
             return "       "
         return f"{line_number + 1:4d} | "
 
-    def rendered_editor_text() -> str:
+    rendered_preview_cache: dict[str, Any] = {
+        "text": None,
+        "line_numbers": None,
+        "lines": [],
+    }
+
+    def rendered_editor_lines() -> list[str]:
         sync_state_from_editor()
-        return render(
-            parse_markdown(editor_state.text),
-            theme=theme,
-            theme_file=theme_file,
-            line_numbers=line_numbers_enabled["value"],
+        cache_is_current = (
+            rendered_preview_cache["text"] == editor_state.text
+            and rendered_preview_cache["line_numbers"] == line_numbers_enabled["value"]
         )
+        if not cache_is_current:
+            rendered_text = render(
+                parse_markdown(editor_state.text),
+                theme=theme,
+                theme_file=theme_file,
+                line_numbers=line_numbers_enabled["value"],
+            )
+            rendered_preview_cache["text"] = editor_state.text
+            rendered_preview_cache["line_numbers"] = line_numbers_enabled["value"]
+            rendered_preview_cache["lines"] = rendered_text.splitlines()
+        return rendered_preview_cache["lines"]
+
+    def rendered_editor_text() -> str:
+        return "\n".join(rendered_editor_lines())
 
     def normal_view_height() -> int:
         try:
@@ -259,11 +277,11 @@ def build_interactive_app(
             return 24
 
     def max_normal_scroll_offset() -> int:
-        line_count = len(rendered_editor_text().splitlines())
+        line_count = len(rendered_editor_lines())
         return max(0, line_count - normal_view_height())
 
     def visible_rendered_editor_text() -> str:
-        return "\n".join(rendered_editor_text().splitlines()[normal_scroll_offset["value"]:])
+        return "\n".join(rendered_editor_lines()[normal_scroll_offset["value"]:])
 
     def clamp_normal_scroll_offset() -> None:
         normal_scroll_offset["value"] = min(

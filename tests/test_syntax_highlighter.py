@@ -38,6 +38,15 @@ class SyntaxHighlighterTests(unittest.TestCase):
 
         self.assertEqual(highlighted, code)
 
+    def test_plain_text_language_aliases_fall_back_to_plain_text(self):
+        code = "plain text only\nwith no syntax"
+
+        for language in ["text", "txt", "plain", "plaintext"]:
+            with self.subTest(language=language):
+                highlighted = highlight_code(code, language, BUILT_IN_THEMES["colored"])
+
+                self.assertEqual(highlighted, code)
+
 
 if __name__ == "__main__":
     unittest.main()

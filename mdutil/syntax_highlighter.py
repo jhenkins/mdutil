@@ -24,14 +24,17 @@ _CODE_TOKEN_KEYS = {
 }
 
 
+_PLAIN_TEXT_LANGUAGE_ALIASES = {"text", "txt", "plain", "plaintext"}
+
+
 def highlight_code(code: str, language: str = "", theme: dict[str, Any] | None = None) -> str:
     """Highlight code using Pygments, falling back to plain text.
 
     Unknown or missing languages intentionally return the original code unchanged so
     Markdown viewing never depends on lexer availability.
     """
-    lexer_name = language.strip()
-    if not lexer_name:
+    lexer_name = language.strip().lower()
+    if not lexer_name or lexer_name in _PLAIN_TEXT_LANGUAGE_ALIASES:
         return code
 
     try:

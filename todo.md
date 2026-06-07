@@ -1,9 +1,9 @@
 # mdutil TODO
 
 Last updated: 2026-06-07
-Current branch: `feature/v2.0-planning`
-Current package version: `2.0.0`
-Baseline verification at update time: `python -m pytest -q` -> 110 passed in 2.83s
+Current branch: `fix/issue-19-cache-rendered-preview`
+Current package version: `2.1.0`
+Baseline verification at update time: `python -m pytest -q` -> 112 passed, 12 subtests passed in 2.99s
 
 ## Current state
 
@@ -28,11 +28,14 @@ Baseline verification at update time: `python -m pytest -q` -> 110 passed in 2.8
 - Compact bottom status bar showing F1 help, document name, and quit hint.
 - F1 help modal with title, proper prompt-toolkit shadow, Escape close behavior, and no manual full-height shadow artifact.
 - Long-line wrapping in the interactive viewer.
+- Cached normal-mode rendered previews and plain-text code-fence fast paths for large documents.
 - SemVer version source of truth in `mdutil/version.py`, dynamically consumed by `pyproject.toml` and `mdutil --version`.
 
 ## Recently completed
 
 - v2.0.0 release version bump.
+- v2.1.0 performance release version bump.
+- Issue #19 large-document performance improvements.
 - Issue #6 visual cleanup for the F1 modal:
   - Added titled modal border: `F1 - Help`.
   - Reworked shadow handling to avoid the left-side full-height artifact.
@@ -55,9 +58,9 @@ Baseline verification at update time: `python -m pytest -q` -> 110 passed in 2.8
 Completed on 2026-06-05.
 
 - [x] Updated `mdutil-specification.md` header fields:
-  - version now says `2.0.0` and points to `mdutil/version.py` as the source of truth.
+  - version now says `2.1.0` and points to `mdutil/version.py` as the source of truth.
   - last-updated now says `2026-06-05`.
-- [x] Audited roadmap rows against the current implementation; v1.0/v1.5 viewer rows remain `Done`, and v2.0+ rows remain `Todo`.
+- [x] Audited roadmap rows against the current implementation; v1.0/v1.5 viewer rows remain `Done`, v2.1 performance is `Done`, and remaining future rows remain `Todo`.
 - [x] Re-ran the doc-related metadata tests after the spec update.
 
 ### 3. Start the next roadmap slice: v2.0 editing foundation
@@ -106,7 +109,6 @@ These are useful improvements, but lower priority than the next roadmap slice.
 From `mdutil-specification.md`:
 
 - [x] v2.1: Deal with performance issues with large documents.
-- [ ] v2.1: Add polish to the viewer interface with added functionality
 - [ ] v2.2: Enhance and normalise editor functionality:
             - In editing mode we need to see only raw Markdown, the viewer mode is for proper rendering
             - In editing mode we need to be able to copy and paste characters, words or whole lines.
