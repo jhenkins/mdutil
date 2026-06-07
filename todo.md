@@ -103,7 +103,8 @@ These are useful improvements, but lower priority than the next roadmap slice.
 
 From `mdutil-specification.md`:
 
-- [ ] v2.1: Enhance and normalise editor functionality:
+- [ ] v2.1: Deal with performance issues with large documents.
+- [ ] v2.2: Enhance and normalise editor functionality:
             - In editing mode we need to see only raw Markdown, the viewer mode is for proper rendering
             - In editing mode we need to be able to copy and paste characters, words or whole lines.
             - In editing mode we need better command shortcuts, either like Nano or VIM
@@ -111,8 +112,8 @@ From `mdutil-specification.md`:
             - In normal mode the status bar should be a neutral blue or green colour.
             - In editing mode the status bar should be a yellow or red colour.
             - There should be a setting in the configuration file for edit and normal mode status bar colours
-- [ ] v2.2: expose all Pygments syntax highlighting styles.
-- [ ] v2.3: cycle through styles and save the last used style on exit.
+- [ ] v2.3: expose all Pygments syntax highlighting styles.
+- [ ] v2.4: cycle through styles and save the last used style on exit.
 - [ ] v3.0: render/export to PDF/HTML.
 - [ ] v3.5: support rendering of Mermaid diagrams.
 - [ ] v4.0: runtime loading of custom syntax highlighters.
