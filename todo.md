@@ -100,7 +100,9 @@ These are useful improvements, but lower priority than the next roadmap slice.
 - [ ] Improve inline rendering beyond stripping simple `<strong>`, `<em>`, and `<code>` tags.
 - [ ] Add more representative golden Markdown fixtures.
 - [ ] Review table rendering for width, alignment, and ANSI-width edge cases.
-- [ ] Add performance checks for larger documents if scrolling/rendering gets slower.
+- [ ] In the viewer, add a percentage indicator to the right of the document name to indicate where we are in the document.
+- [ ] Enable the "home" button to jump right to the top of the document.
+- [ ] Check whether performance checks for larger documents if scrolling/rendering gets slower covers everything.
 
 ### 6. Future roadmap items after v2.0
 
