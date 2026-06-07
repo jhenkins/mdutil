@@ -1,9 +1,9 @@
 # mdutil TODO
 
 Last updated: 2026-06-07
-Current branch: `fix/issue-19-cache-rendered-preview`
+Current branch: `housekeeping`
 Current package version: `2.1.0`
-Baseline verification at update time: `python -m pytest -q` -> 112 passed, 12 subtests passed in 2.99s
+Baseline verification at update time: `python -m pytest -q` -> 112 passed, 12 subtests passed in 2.93s
 
 ## Current state
 
@@ -93,34 +93,33 @@ The first editor slice now has explicit Ctrl-S save, dirty indicators, and dirty
 - [x] Consider backup/atomic-write behavior before modifying user files.
   - Implemented atomic same-directory temp-file writes with `os.replace`; failed writes clean up temp files and leave the original target unchanged.
 
-### 5. Broaden viewer/rendering quality after v2.0 direction is clear
+### 5. Next viewer/rendering quality slice
 
-These are useful improvements, but lower priority than the next roadmap slice.
+The v2.0 editing foundation and save/write hardening are now clear enough that
+viewer and rendering quality can move into the next incremental backlog slice.
 
-- [ ] Improve inline rendering beyond current lightweight handling of links and simple "\<strong>", "\<em>", and "\<code>" tags; cover nested spans, mixed emphasis/code, escapes, and punctuation edge cases.
+- [ ] Improve inline rendering beyond current lightweight handling of links and simple `<strong>`, `<em>`, and `<code>` tags; cover nested spans, mixed emphasis/code, escapes, and punctuation edge cases.
 - [ ] Add more representative golden Markdown fixtures.
-- [ ] Review table rendering for alignment, wide Unicode, combining characters, and ANSI-width edge cases. 
-- [ ] Add a normal-mode scroll percentage to the status bar beside the document name, based on the rendered     
-     preview scroll offset.
+- [ ] Review table rendering for alignment, wide Unicode, combining characters, and ANSI-width edge cases.
+- [ ] Add a normal-mode scroll percentage to the status bar beside the document name, based on the rendered preview scroll offset.
 - [ ] Bind Home/End in normal mode to jump to the top/bottom of the document.
-- [ ] Expand large-document performance coverage if scrolling/rendering regresses; include cache reuse,         
-     representative fixture sizes, and an explicit budget or benchmark for interactive scroll latency. 
+- [ ] Expand large-document performance coverage if scrolling/rendering regresses; include cache reuse, representative fixture sizes, and an explicit budget or benchmark for interactive scroll latency.
 
-### 6. Proposed next roadmap items
+### 6. Proposed roadmap reconciliation with `mdutil-specification.md`
 
-From `mdutil-specification.md`:
+Keep this section aligned with the roadmap table in `mdutil-specification.md`.
 
+- [x] v2.0: Editing foundation: in-place editing, key bindings (`i`, `dd`, `cw`), explicit Ctrl-S save, dirty indicators, dirty quit blocking, and atomic file writes.
 - [x] v2.1: Deal with performance issues with large documents.
 - [ ] v2.2: Enhance and normalise editor functionality:
-            - In editing mode we need to see only raw Markdown, the viewer mode is for proper rendering
-            - In editing mode we need to be able to copy and paste characters, words or whole lines.
-            - In editing mode we need better command shortcuts, either like Nano or VIM
-            - In normal and editing mode, we need more intuitive information on the status bar.
-            - In normal mode the status bar should be a neutral blue or green colour.
-            - In editing mode the status bar should be a yellow or red colour.
-            - There should be a setting in the configuration file for edit and normal mode status bar colours
-- [ ] v2.3: expose all Pygments syntax highlighting styles.
-- [ ] v2.4: cycle through styles and save the last used style on exit.
+  - [ ] Ensure insert/editing mode shows raw Markdown only; normal/viewer mode remains responsible for rendered preview output.
+  - [ ] Add copy/paste support for characters, words, and whole lines.
+  - [ ] Choose and document the command model: Nano-like, Vim-like, or an explicit hybrid.
+  - [ ] Improve status-bar text in normal and editing modes.
+  - [ ] Add distinct normal/edit status-bar colors.
+  - [ ] Add normal/edit status-bar color keys to built-in themes and custom theme files, then expose config defaults for selecting or overriding them.
+- [ ] v2.3: Expose all Pygments syntax highlighting styles.
+- [ ] v2.4: Cycle through styles and save the last used style on exit.
 - [ ] v3.0: render/export to PDF/HTML.
 - [ ] v3.5: support rendering of Mermaid diagrams.
 - [ ] v4.0: runtime loading of custom syntax highlighters.
