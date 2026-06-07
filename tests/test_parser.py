@@ -53,6 +53,46 @@ class ParserTests(unittest.TestCase):
             ],
         )
 
+    def test_parse_nested_inline_spans_inside_strong_text(self):
+        tokens = parse_markdown("Mix **strong *em* and `code`** text.")
+
+        self.assertEqual(tokens[0]["type"], "paragraph")
+        self.assertEqual(
+            tokens[0]["content"],
+            "Mix <strong>strong <em>em</em> and <code>code</code></strong> text.",
+        )
+        self.assertEqual(
+            tokens[0]["spans"],
+            [
+                {"type": "emphasis", "text": "em"},
+                {"type": "inline_code", "text": "code"},
+                {"type": "strong", "text": "strong em and code"},
+            ],
+        )
+
+    def test_parse_inline_escapes_prevent_markdown_spans(self):
+        tokens = parse_markdown(r"Literal \*not emphasis\* and \[label](url).")
+
+        self.assertEqual(tokens[0]["type"], "paragraph")
+        self.assertEqual(tokens[0]["content"], "Literal *not emphasis* and [label](url).")
+        self.assertEqual(tokens[0]["spans"], [])
+
+    def test_parse_inline_code_shields_markdown_punctuation(self):
+        tokens = parse_markdown("Use `*literal*, [x](y)!` then *em*.")
+
+        self.assertEqual(tokens[0]["type"], "paragraph")
+        self.assertEqual(
+            tokens[0]["content"],
+            "Use <code>*literal*, [x](y)!</code> then <em>em</em>.",
+        )
+        self.assertEqual(
+            tokens[0]["spans"],
+            [
+                {"type": "inline_code", "text": "*literal*, [x](y)!"},
+                {"type": "emphasis", "text": "em"},
+            ],
+        )
+
     def test_parse_unordered_and_ordered_lists_separately(self):
         tokens = parse_markdown("- one\n* two\n\n1. first\n2. second")
 

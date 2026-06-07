@@ -111,6 +111,17 @@ class ViewerStateTests(unittest.TestCase):
             "F1 Help  •  guide.md  •  save failed: PermissionError: denied",
         )
 
+    def test_status_bar_text_can_include_normal_scroll_percentage(self):
+        self.assertEqual(
+            build_status_bar_text("guide.md", scroll_percent=37),
+            "F1 Help  •  guide.md  •  37%  •  q Quit",
+        )
+
+        self.assertEqual(
+            build_status_bar_text("guide.md", dirty=True, scroll_percent=37),
+            "F1 Help  •  guide.md  •  37%  •  modified  •  Ctrl-S Save  •  !q Discard",
+        )
+
 
 class ScrollBufferTests(unittest.TestCase):
     def test_visible_lines_start_at_top_and_fit_viewport(self):
@@ -286,6 +297,34 @@ class ScrollBufferTests(unittest.TestCase):
         self.assertTrue(strip_ansi(getattr(app, "mdutil_visible_rendered_text")()).startswith("- line 0"))
         self.assertEqual(event.app.invalidations, 2)
 
+    def test_prompt_toolkit_normal_scroll_percentage_tracks_rendered_preview_offset(self):
+        with create_pipe_input() as pipe_input:
+            app = build_interactive_app(
+                [f"- line {number}" for number in range(50)],
+                input=pipe_input,
+                output=DummyOutput(),
+            )
+
+        scroll_percent = getattr(app, "mdutil_normal_scroll_percent")
+        self.assertEqual(scroll_percent(), 0)
+
+        key_bindings = cast(Any, app.key_bindings)
+        down_binding = next(
+            binding
+            for binding in key_bindings.bindings
+            if tuple(str(key) for key in binding.keys) == ("j",)
+        )
+
+        class FakeApp:
+            def invalidate(self):
+                pass
+
+        class FakeEvent:
+            app = FakeApp()
+
+        down_binding.handler(cast(Any, FakeEvent()))
+        self.assertGreater(scroll_percent(), 0)
+
     def test_prompt_toolkit_normal_scroll_reuses_cached_rendered_preview_for_lorem_fixtures(self):
         fixture_sizes = ["5k", "10k", "20k", "50k", "75k", "100k", "250k", "500k"]
 
@@ -333,6 +372,40 @@ class ScrollBufferTests(unittest.TestCase):
                 parser.assert_called_once()
                 renderer.assert_called_once()
 
+    def test_prompt_toolkit_scroll_latency_budget_uses_cached_rendered_preview(self):
+        source_lines = [f"- line {number}" for number in range(5000)]
+        rendered_lines = [f"rendered line {number}" for number in range(5000)]
+
+        class FakeApp:
+            def invalidate(self):
+                pass
+
+        class FakeEvent:
+            app = FakeApp()
+
+        with (
+            patch("mdutil.display.parse_markdown", return_value=[{"type": "paragraph"}]) as parser,
+            patch("mdutil.display.render", return_value="\n".join(rendered_lines)) as renderer,
+            create_pipe_input() as pipe_input,
+        ):
+            app = build_interactive_app(source_lines, input=pipe_input, output=DummyOutput())
+            key_bindings = cast(Any, app.key_bindings)
+            down_binding = next(
+                binding
+                for binding in key_bindings.bindings
+                if tuple(str(key) for key in binding.keys) == ("j",)
+            )
+
+            start = time.perf_counter()
+            for _ in range(100):
+                down_binding.handler(cast(Any, FakeEvent()))
+                getattr(app, "mdutil_visible_rendered_text")()
+            elapsed = time.perf_counter() - start
+
+        parser.assert_called_once()
+        renderer.assert_called_once()
+        self.assertLess(elapsed, 0.25)
+
     def test_prompt_toolkit_app_binds_page_navigation_keys(self):
         with create_pipe_input() as pipe_input:
             app = build_interactive_app(["# Title", "body"], input=pipe_input, output=DummyOutput())
@@ -345,6 +418,60 @@ class ScrollBufferTests(unittest.TestCase):
         }
         self.assertIn("Keys.PageDown", bound_keys)
         self.assertIn("Keys.PageUp", bound_keys)
+
+    def test_prompt_toolkit_app_binds_home_end_navigation_keys(self):
+        with create_pipe_input() as pipe_input:
+            app = build_interactive_app(["# Title", "body"], input=pipe_input, output=DummyOutput())
+
+        self.assertIsNotNone(app.key_bindings)
+        bound_keys = {
+            str(key)
+            for binding in app.key_bindings.bindings
+            for key in binding.keys
+        }
+        self.assertIn("Keys.Home", bound_keys)
+        self.assertIn("Keys.End", bound_keys)
+
+    def test_prompt_toolkit_home_end_jump_to_rendered_preview_bounds(self):
+        with create_pipe_input() as pipe_input:
+            app = build_interactive_app(
+                [f"- line {number}" for number in range(50)],
+                input=pipe_input,
+                output=DummyOutput(),
+            )
+
+        key_bindings = cast(Any, app.key_bindings)
+        home_binding = next(
+            binding
+            for binding in key_bindings.bindings
+            if tuple(str(key) for key in binding.keys) == ("Keys.Home",)
+        )
+        end_binding = next(
+            binding
+            for binding in key_bindings.bindings
+            if tuple(str(key) for key in binding.keys) == ("Keys.End",)
+        )
+
+        class FakeApp:
+            def __init__(self):
+                self.invalidations = 0
+
+            def invalidate(self):
+                self.invalidations += 1
+
+        class FakeEvent:
+            def __init__(self):
+                self.app = FakeApp()
+
+        event = FakeEvent()
+        end_binding.handler(cast(Any, event))
+        self.assertEqual(getattr(app, "mdutil_normal_scroll_percent")(), 100)
+        self.assertGreater(getattr(app, "mdutil_normal_scroll_offset")(), 0)
+
+        home_binding.handler(cast(Any, event))
+        self.assertEqual(getattr(app, "mdutil_normal_scroll_offset")(), 0)
+        self.assertEqual(getattr(app, "mdutil_normal_scroll_percent")(), 0)
+        self.assertEqual(event.app.invalidations, 2)
 
     def test_prompt_toolkit_app_binds_help_modal_keys(self):
         with create_pipe_input() as pipe_input:
