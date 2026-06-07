@@ -98,12 +98,16 @@ The first editor slice now has explicit Ctrl-S save, dirty indicators, and dirty
 The v2.0 editing foundation and save/write hardening are now clear enough that
 viewer and rendering quality can move into the next incremental backlog slice.
 
-- [ ] Improve inline rendering beyond current lightweight handling of links and simple `<strong>`, `<em>`, and `<code>` tags; cover nested spans, mixed emphasis/code, escapes, and punctuation edge cases.
-- [ ] Add more representative golden Markdown fixtures.
-- [ ] Review table rendering for alignment, wide Unicode, combining characters, and ANSI-width edge cases.
-- [ ] Add a normal-mode scroll percentage to the status bar beside the document name, based on the rendered preview scroll offset.
-- [ ] Bind Home/End in normal mode to jump to the top/bottom of the document.
-- [ ] Expand large-document performance coverage if scrolling/rendering regresses; include cache reuse, representative fixture sizes, and an explicit budget or benchmark for interactive scroll latency.
+- [x] Improve inline rendering beyond current lightweight handling of links and simple `<strong>`, `<em>`, and `<code>` tags; cover nested spans, mixed emphasis/code, escapes, and punctuation edge cases.
+  - Added recursive inline parsing coverage for nested strong/emphasis/code, escaped Markdown punctuation, inline-code shielding, and link labels with nested inline markup.
+- [x] Add more representative golden Markdown fixtures.
+  - Added inline-quality and Unicode-table fixture pairs, and generalized golden fixture discovery so every `.md` fixture with a matching `.golden` is checked through both direct rendering and the CLI.
+- [x] Review table rendering for alignment, wide Unicode, combining characters, and ANSI-width edge cases.
+  - Added terminal-display-width table padding for wide East Asian characters and combining marks, with regression coverage.
+- [x] Add a normal-mode scroll percentage to the status bar beside the document name, based on the rendered preview scroll offset.
+- [x] Bind Home/End in normal mode to jump to the top/bottom of the document.
+- [x] Expand large-document performance coverage if scrolling/rendering regresses; include cache reuse, representative fixture sizes, and an explicit budget or benchmark for interactive scroll latency.
+  - Added an explicit cached-scroll latency budget test and limited visible preview text to the active viewport slice.
 
 ### 6. Proposed roadmap reconciliation with `mdutil-specification.md`
 
