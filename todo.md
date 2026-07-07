@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-07
 Current branch: `feature/v2.2-editing`
-Current package version: `2.2.0`
+Current package version: `2.2.1`
 Baseline verification at update time: `python -m pytest -q` -> 118 passed, 12 subtests passed in 2.99s
 
 ## Current state
@@ -125,6 +125,7 @@ Keep this section aligned with the roadmap table in `mdutil-specification.md`.
   - [x] Add distinct normal/edit status-bar colors.
   - [x] Add normal/edit status-bar color keys to built-in themes and custom theme files, then expose config defaults for selecting or overriding them.
   - [x] Add search in normal and edit modes: `/` in normal mode, Ctrl-/ while editing, `n`/`N` navigation, highlighted matches, F1 help, and mode-aware status-bar hints.
+- [x] v2.2.1: Bug fixing
 - [ ] v2.3: Expose all Pygments syntax highlighting styles.
 - [ ] v2.4: Cycle through styles and save the last used style on exit.
 - [ ] v3.0: render/export to PDF/HTML.

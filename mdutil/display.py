@@ -186,8 +186,48 @@ def build_status_bar_text(
         dirty_text = "modified" if dirty else "unmodified"
         return f"INSERT  •  {name}  •  {dirty_text}  •  Ctrl-/ Search  •  Esc Normal"
     if dirty:
-        return f"F1 Help  •  {document_segment}  •  modified  •  Ctrl-S Save  •  !q Discard"
-    return f"F1 Help  •  {document_segment}  •  q Quit"
+        return (
+            f"NORMAL  •  {document_segment}  •  modified  •  Ctrl-S Save  •  "
+            "!q Discard  •  / Search  •  n/N Next"
+        )
+    return (
+        f"NORMAL  •  {document_segment}  •  q Quit  •  i Edit  •  "
+        "/ Search  •  n/N Next  •  F1 Help"
+    )
+
+
+def build_status_bar_style(
+    theme: str = DEFAULT_THEME,
+    theme_file: str | None = None,
+    *,
+    mode: EditingMode = EditingMode.NORMAL,
+    dirty: bool = False,
+    save_error: str | None = None,
+    normal_override: str | None = None,
+    insert_override: str | None = None,
+) -> str:
+    """Return the prompt-toolkit style string for the current status bar state."""
+    if save_error:
+        state = "error"
+    elif dirty:
+        state = "dirty"
+    elif mode is EditingMode.INSERT:
+        state = "insert"
+    else:
+        state = "normal"
+
+    if state == "normal" and normal_override:
+        return normal_override
+    if state == "insert" and insert_override:
+        return insert_override
+
+    selected_theme = load_theme(theme, theme_file)
+    status_styles = selected_theme.get("status_bar", {})
+    if isinstance(status_styles, dict):
+        style = status_styles.get(state)
+        if isinstance(style, str) and style.strip():
+            return style
+    return "reverse"
 
 
 @dataclass
@@ -365,7 +405,7 @@ def build_interactive_app(
     def visible_rendered_editor_text() -> str:
         start = normal_scroll_offset["value"]
         end = start + normal_view_height()
-        return "\n".join(rendered_editor_lines()[start:end])
+        return "\n".join(rendered_editor_text().splitlines()[start:end])
 
     def clamp_normal_scroll_offset() -> None:
         normal_scroll_offset["value"] = min(
@@ -378,6 +418,20 @@ def build_interactive_app(
             0,
             min(max_normal_scroll_offset(), normal_scroll_offset["value"] + amount),
         )
+
+    def line_offset_for_character(character_index: int) -> int:
+        sync_state_from_editor()
+        return editor_state.text.count("\n", 0, max(0, character_index))
+
+    def jump_to_search_match() -> None:
+        if not search_state.matches:
+            return
+        current_match = search_state.matches[search_state.current_index]
+        normal_scroll_offset["value"] = min(
+            max_normal_scroll_offset(),
+            line_offset_for_character(current_match),
+        )
+        editor.buffer.cursor_position = current_match
 
     def jump_normal_view_to_top() -> None:
         normal_scroll_offset["value"] = 0
