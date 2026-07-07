@@ -1,8 +1,8 @@
 # Markdown Viewer CLI – Program Specification
 
 **Author:** _Jan Henkins_  
-**Version:** 2.1.0 (source of truth: `mdutil/version.py`)  
-**Last‑Updated:** 2026‑06‑07  
+**Version:** 2.2.0 (source of truth: `mdutil/version.py`)  
+**Last‑Updated:** 2026‑07‑07  
 **License:** MIT  
 **Repository:** <https://github.com/jhenkins/mdutil>
 
@@ -54,6 +54,7 @@ The focus is on a clean, fast, and fully‑featured viewer that can later evolve
 | **Line Numbers** | Toggle line numbers for code blocks. | `--line-numbers` |
 | **Scroll** | Arrow keys or `j/k` to scroll up/down; `q` to quit. | – |
 | **Editing** | Vim-like normal commands with prompt-toolkit insert editing. Normal/viewer mode renders Markdown preview output; insert/editing mode shows and edits raw Markdown. Shortcuts include `i`, Escape, `dd`, `cw`, `yc`, `yw`, `yy`, Ctrl-V paste, explicit Ctrl-S save, dirty-buffer status, dirty quit blocking, and `!q` discard-and-quit. | – |
+| **Search** | Search from normal mode with `/`, navigate matches with `n` and `N`, search while editing with Ctrl-/ so literal `/` remains editable text, and highlight visible matches in the rendered preview. | – |
 | **Safe File Writes** | File-backed interactive sessions write through atomic same-directory temporary files and preserve the original file on failed saves. | – |
 | **Status Bar** | Distinct normal/edit/dirty/error status-bar text and colors, with theme keys and optional configuration overrides. | `status_bar_normal`, `status_bar_insert` |
 | **Help** | Show command-line usage. | `--help` |
@@ -112,7 +113,9 @@ Ctrl-S, track dirty state, block accidental dirty quits, and write atomically vi
 same-directory temporary files before replacing the target path. The bottom status
 bar identifies normal/insert state, save/dirty state, and the relevant safe action;
 its normal and insert colors can be supplied by the active theme or overridden from
-the configuration file.
+the configuration file. Search keys are mode-aware and appear in the bottom status
+bar: normal mode advertises `/` plus `n/N`, while insert/editing mode advertises
+Ctrl-/ so `/` remains normal text input.
 
 ```
 ┌───────────────────────┐
@@ -159,7 +162,7 @@ the configuration file.
 | **Unit Tests**             | Each component (`Renderer`, `Highlighter`) gets pure‑function tests.                                                  |
 | **Integration Tests**      | Run `mdutil` against a set of sample Markdown files (covering tables, code fences, footnotes).                        |
 | **Configuration Tests**    | Verify default config paths, config generation, comments/default values, alternate `--config`, and CLI precedence.    |
-| **Interactive Editor Tests** | Verify normal/insert mode transitions, `i`, Escape, `dd`, `cw`, explicit Ctrl-S save, dirty indicators, dirty quit blocking, discard quit, failed-save preservation, and atomic-write cleanup. |
+| **Interactive Editor Tests** | Verify normal/insert mode transitions, `i`, Escape, `dd`, `cw`, explicit Ctrl-S save, dirty indicators, dirty quit blocking, discard quit, failed-save preservation, atomic-write cleanup, mode-aware search keys, status-bar search hints, and highlighted search matches. |
 | **End‑to‑End (CLI)**       | Use `assert_cmd` to spawn `mdutil` with various flags and verify output length / presence of expected ANSI sequences. |
 | **Cross‑Platform CI**      | GitHub Actions matrix: ubuntu, macos, windows.                                                                        |
 | **Performance Benchmarks** | Measure rendering time on large docs (10k lines).                                                                     |
@@ -187,7 +190,7 @@ the configuration file.
 | **v1.5** | _Viewing_      | Bottom status bar: F1 help, document name               | Done   |
 | **v2.0** | _Editing_      | In-place editing foundation: `i`, Escape, `dd`, `cw`, explicit Ctrl-S save, dirty protection, and atomic writes. | Done   |
 | **v2.1** | _Performance_  | Improve interactive performance on large documents.     | Done   |
-| **v2.2** | _Editing_      | Enhance and normalize editor functionality: raw Markdown editing, copy/paste, command model, clearer status bars, status colors, and theme/config color settings. | Done   |
+| **v2.2** | _Editing_      | Enhance and normalize editor functionality: raw Markdown editing, copy/paste, command model, search in normal/edit modes, highlighted matches, clearer status bars, status colors, and theme/config color settings. | Done   |
 | **v2.3** | _Highlighting_ | Expose all Pygments syntax highlighting styles.         | Todo   |
 | **v2.4** | _Highlighting_ | Cycle through styles and save last used style on exit.  | Todo   |
 | **v3.0** | _Export_       | Render to PDF/HTML using `pulldown-cmark` + `printpdf`. | Todo   |

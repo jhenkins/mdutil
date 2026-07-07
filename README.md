@@ -17,6 +17,7 @@ The following tools and LLM's were used so far (more might be used as time goes 
 
 * Hermes Agent (https://github.com/NousResearch/hermes-agent)
 * GPT 5.5 (via openai-codex)
+* Gemma 4 12B (via self-hosted inference server running llama.cpp)
 
 The intention behind this project wasn't neccessarily to create a functional piece of software (although I 
 dare say that it is already pretty functional as a Markdown reader), but to learn about doing functional 
@@ -33,17 +34,31 @@ as good). I am working at using llama.cpp instead, but that's an adventure for a
 
 ## Where we are today
 
-We currently have a functional Markdown reader with syntax highlighting and a few themes. There are no
-editing functions at the moment, that is planned for later versions. We also have a very simple ini-style 
-configuration file that you can edit to make your choice of theme and a few other things permanent. The
-(very) rough roadmap is visible in the mdutil-specification.md document.
+We currently have a functional Markdown reader and editor with syntax highlighting, themes, and a prompt-toolkit
+interactive view. File-backed sessions support raw Markdown editing, explicit saves, dirty-buffer protection,
+copy/paste helpers, and mode-aware search. We also have a very simple ini-style configuration file that you can
+edit to make your choice of theme and a few other things permanent. The (very) rough roadmap is visible in the
+mdutil-specification.md document.
 
 ## Quick Overview
 
 - Read markdown documents with syntax highlighting
+- Edit file-backed Markdown interactively with normal/insert modes
+- Search in normal mode with `/`, then navigate matches with `n` and `N`
+- Search while editing with `Ctrl-/`; literal `/` remains text input in insert mode
+- Highlight visible search matches in the rendered preview
 - Multiple theme support (default, dracula, one-dark, etc.)
 - ANSI color output for terminal
 - Supports file input or stdin
+
+## Interactive controls
+
+When stdout is a TTY and a file path is provided, `mdutil` opens the interactive viewer/editor.
+
+- Normal mode renders the Markdown preview. Use `i` to enter insert/edit mode, `q` to quit when unmodified, and `!q` to discard unsaved changes.
+- Insert/edit mode edits the raw Markdown buffer. Use Escape to return to normal mode and Ctrl-S to save file-backed changes explicitly.
+- Search keys are mode-aware and shown in the bottom status bar: `/` searches from normal mode, `Ctrl-/` searches while editing, and `n` / `N` move between matches.
+- Search matches are highlighted in the rendered preview.
 
 ---
 

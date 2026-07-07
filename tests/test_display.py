@@ -56,6 +56,9 @@ class ViewerStateTests(unittest.TestCase):
         self.assertIn("yy", help_text)
         self.assertIn("Ctrl-V", help_text)
         self.assertIn("Ctrl-S", help_text)
+        self.assertIn("/", help_text)
+        self.assertIn("Ctrl-/", help_text)
+        self.assertIn("n", help_text)
         self.assertIn("!q", help_text)
         self.assertIn("Escape", help_text)
         self.assertIn("q", help_text)
@@ -92,23 +95,29 @@ class ViewerStateTests(unittest.TestCase):
     def test_status_bar_text_is_short_and_includes_document_name(self):
         status_text = build_status_bar_text("guide.md")
 
-        self.assertEqual(status_text, "NORMAL  •  guide.md  •  q Quit  •  i Edit  •  F1 Help")
+        self.assertEqual(
+            status_text,
+            "NORMAL  •  guide.md  •  q Quit  •  i Edit  •  / Search  •  n/N Next  •  F1 Help",
+        )
         self.assertNotIn("j/k", status_text)
         self.assertNotIn("PgUp", status_text)
 
     def test_status_bar_text_uses_stdin_when_document_name_is_missing(self):
-        self.assertEqual(build_status_bar_text(None), "NORMAL  •  stdin  •  q Quit  •  i Edit  •  F1 Help")
+        self.assertEqual(
+            build_status_bar_text(None),
+            "NORMAL  •  stdin  •  q Quit  •  i Edit  •  / Search  •  n/N Next  •  F1 Help",
+        )
 
     def test_status_bar_text_shows_prompt_toolkit_insert_mode(self):
         self.assertEqual(
             build_status_bar_text("guide.md", mode=EditingMode.INSERT, dirty=True),
-            "INSERT  •  guide.md  •  modified  •  Esc Normal",
+            "INSERT  •  guide.md  •  modified  •  Ctrl-/ Search  •  Esc Normal",
         )
 
     def test_status_bar_text_shows_dirty_normal_mode_safe_quit_hint(self):
         self.assertEqual(
             build_status_bar_text("guide.md", dirty=True),
-            "NORMAL  •  guide.md  •  modified  •  Ctrl-S Save  •  !q Discard",
+            "NORMAL  •  guide.md  •  modified  •  Ctrl-S Save  •  !q Discard  •  / Search  •  n/N Next",
         )
 
     def test_status_bar_text_reports_save_failures(self):
@@ -391,6 +400,191 @@ class ScrollBufferTests(unittest.TestCase):
         }
         self.assertIn("Keys.F1", bound_keys)
         self.assertIn("Keys.Escape", bound_keys)
+
+    def test_prompt_toolkit_app_binds_search_keys(self):
+        with create_pipe_input() as pipe_input:
+            app = build_interactive_app(["alpha", "beta"], input=pipe_input, output=DummyOutput())
+
+        self.assertIsNotNone(app.key_bindings)
+        key_bindings = cast(Any, app.key_bindings)
+        bound_sequences = {
+            tuple(str(key) for key in binding.keys)
+            for binding in key_bindings.bindings
+        }
+        self.assertIn(("/",), bound_sequences)
+        self.assertIn(("Keys.ControlUnderscore",), bound_sequences)
+        self.assertIn(("n",), bound_sequences)
+        self.assertIn(("N",), bound_sequences)
+
+    def test_prompt_toolkit_ctrl_slash_opens_search_in_insert_mode(self):
+        with create_pipe_input() as pipe_input:
+            app = build_interactive_app(
+                ["alpha", "beta target"],
+                input=pipe_input,
+                output=DummyOutput(),
+            )
+
+        key_bindings = cast(Any, app.key_bindings)
+        ctrl_slash_binding = next(
+            binding
+            for binding in key_bindings.bindings
+            if tuple(str(key) for key in binding.keys) == ("Keys.ControlUnderscore",)
+        )
+        enter_insert_binding = next(
+            binding
+            for binding in key_bindings.bindings
+            if tuple(str(key) for key in binding.keys) == ("i",)
+        )
+
+        class FakeApp:
+            def __init__(self):
+                self.invalidations = 0
+                self.focused = None
+                self.layout = self
+
+            def focus(self, control):
+                self.focused = control
+
+            def invalidate(self):
+                self.invalidations += 1
+
+        class FakeEvent:
+            def __init__(self):
+                self.app = FakeApp()
+
+        event = FakeEvent()
+        enter_insert_binding.handler(cast(Any, event))
+        self.assertEqual(str(getattr(app, "mdutil_editing_mode")()), "EditingMode.INSERT")
+
+        search_field = getattr(app, "mdutil_search_field")
+        ctrl_slash_binding.handler(cast(Any, event))
+
+        self.assertTrue(getattr(app, "mdutil_viewer_state").search_prompt_visible)
+        self.assertIs(event.app.focused, search_field)
+        self.assertEqual(getattr(app, "mdutil_editor").text, "alpha\nbeta target")
+
+    def test_prompt_toolkit_search_prompt_finds_and_navigates_matches(self):
+        with create_pipe_input() as pipe_input:
+            app = build_interactive_app(
+                [
+                    *[f"- before {number}" for number in range(42)],
+                    "- target one",
+                    *[f"- middle {number}" for number in range(37)],
+                    "- target two",
+                    *[f"- after {number}" for number in range(42)],
+                ],
+                input=pipe_input,
+                output=DummyOutput(),
+            )
+
+        self.assertIsNotNone(app.key_bindings)
+        key_bindings = cast(Any, app.key_bindings)
+        open_search_binding = next(
+            binding
+            for binding in key_bindings.bindings
+            if tuple(str(key) for key in binding.keys) == ("/",)
+        )
+        apply_search_binding = next(
+            binding
+            for binding in key_bindings.bindings
+            if any(str(key) == "Keys.ControlM" for key in binding.keys)
+        )
+        next_search_binding = next(
+            binding
+            for binding in key_bindings.bindings
+            if tuple(str(key) for key in binding.keys) == ("n",)
+        )
+        previous_search_binding = next(
+            binding
+            for binding in key_bindings.bindings
+            if tuple(str(key) for key in binding.keys) == ("N",)
+        )
+
+        class FakeApp:
+            def __init__(self):
+                self.invalidations = 0
+                self.focused = None
+                self.layout = self
+
+            def focus(self, control):
+                self.focused = control
+
+            def invalidate(self):
+                self.invalidations += 1
+
+        class FakeEvent:
+            def __init__(self):
+                self.app = FakeApp()
+
+        event = FakeEvent()
+        search_field = getattr(app, "mdutil_search_field")
+        open_search_binding.handler(cast(Any, event))
+        self.assertTrue(getattr(app, "mdutil_viewer_state").search_prompt_visible)
+        self.assertIs(event.app.focused, search_field)
+
+        search_field.text = "target"
+        apply_search_binding.handler(cast(Any, event))
+
+        search_state = getattr(app, "mdutil_search_state")()
+        self.assertEqual(search_state.query, "target")
+        self.assertEqual(len(search_state.matches), 2)
+        self.assertFalse(getattr(app, "mdutil_viewer_state").search_prompt_visible)
+        self.assertEqual(getattr(app, "mdutil_normal_scroll_offset")(), 42)
+
+        next_search_binding.handler(cast(Any, event))
+        self.assertEqual(getattr(app, "mdutil_search_state")().current_index, 1)
+        self.assertEqual(getattr(app, "mdutil_normal_scroll_offset")(), 80)
+
+        previous_search_binding.handler(cast(Any, event))
+        self.assertEqual(getattr(app, "mdutil_search_state")().current_index, 0)
+        self.assertEqual(getattr(app, "mdutil_normal_scroll_offset")(), 42)
+
+    def test_prompt_toolkit_search_highlights_matching_words(self):
+        with create_pipe_input() as pipe_input:
+            app = build_interactive_app(
+                ["alpha target", "beta target"],
+                input=pipe_input,
+                output=DummyOutput(),
+            )
+
+        key_bindings = cast(Any, app.key_bindings)
+        open_search_binding = next(
+            binding
+            for binding in key_bindings.bindings
+            if tuple(str(key) for key in binding.keys) == ("/",)
+        )
+        apply_search_binding = next(
+            binding
+            for binding in key_bindings.bindings
+            if any(str(key) == "Keys.ControlM" for key in binding.keys)
+        )
+
+        class FakeApp:
+            def __init__(self):
+                self.invalidations = 0
+                self.focused = None
+                self.layout = self
+
+            def focus(self, control):
+                self.focused = control
+
+            def invalidate(self):
+                self.invalidations += 1
+
+        class FakeEvent:
+            def __init__(self):
+                self.app = FakeApp()
+
+        event = FakeEvent()
+        search_field = getattr(app, "mdutil_search_field")
+        open_search_binding.handler(cast(Any, event))
+        search_field.text = "target"
+        apply_search_binding.handler(cast(Any, event))
+
+        visible_text = getattr(app, "mdutil_visible_rendered_text")()
+
+        self.assertEqual(strip_ansi(visible_text), "alpha target\nbeta target")
+        self.assertEqual(visible_text.count("\033[7mtarget\033[27m"), 2)
 
     def test_prompt_toolkit_app_exposes_viewer_state_for_help_modal(self):
         with create_pipe_input() as pipe_input:

@@ -1,9 +1,9 @@
 # mdutil TODO
 
-Last updated: 2026-06-07
-Current branch: `housekeeping`
-Current package version: `2.1.0`
-Baseline verification at update time: `python -m pytest -q` -> 112 passed, 12 subtests passed in 2.93s
+Last updated: 2026-07-07
+Current branch: `feature/v2.2-editing`
+Current package version: `2.2.0`
+Baseline verification at update time: `python -m pytest -q` -> 118 passed, 12 subtests passed in 2.99s
 
 ## Current state
 
@@ -20,21 +20,23 @@ Baseline verification at update time: `python -m pytest -q` -> 112 passed, 12 su
   - Linux/macOS: `~/.mdutilcfg`
   - Windows: `%USERPROFILE%\mdutil.ini`
 - CLI flags for `--theme`, `--theme-file`, `--config`, `--generate-config`, `--line-numbers`, `--quiet`, and `--version`.
-- Prompt-toolkit interactive file editor for real file output when stdout is a TTY.
+- Prompt-toolkit interactive file viewer/editor for real file output when stdout is a TTY.
 - Interactive scrolling with `j`, `k`, arrow keys, `PageDown`, and `PageUp`.
 - Interactive line-number toggle with `l`.
 - Interactive editing mode with `i`, Escape back to normal mode, `dd` current-line deletion, and `cw` word-change.
 - Explicit Ctrl-S file save for file-backed interactive sessions, dirty-buffer status, dirty quit blocking, and `!q` discard-and-quit.
-- Compact bottom status bar showing F1 help, document name, and quit hint.
+- Compact bottom status bar showing mode, document name, dirty/save state, and mode-aware search hints.
 - F1 help modal with title, proper prompt-toolkit shadow, Escape close behavior, and no manual full-height shadow artifact.
 - Long-line wrapping in the interactive viewer.
 - Cached normal-mode rendered previews and plain-text code-fence fast paths for large documents.
+- Mode-aware interactive search: `/` in normal mode, Ctrl-/ in insert/edit mode, `n`/`N` match navigation, and highlighted rendered-preview matches.
 - SemVer version source of truth in `mdutil/version.py`, dynamically consumed by `pyproject.toml` and `mdutil --version`.
 
 ## Recently completed
 
 - v2.0.0 release version bump.
 - v2.1.0 performance release version bump.
+- v2.2.0 editing/search release version bump.
 - Issue #19 large-document performance improvements.
 - Issue #6 visual cleanup for the F1 modal:
   - Added titled modal border: `F1 - Help`.
@@ -118,6 +120,7 @@ Keep this section aligned with the roadmap table in `mdutil-specification.md`.
   - [x] Improve status-bar text in normal and editing modes.
   - [x] Add distinct normal/edit status-bar colors.
   - [x] Add normal/edit status-bar color keys to built-in themes and custom theme files, then expose config defaults for selecting or overriding them.
+  - [x] Add search in normal and edit modes: `/` in normal mode, Ctrl-/ while editing, `n`/`N` navigation, highlighted matches, F1 help, and mode-aware status-bar hints.
 - [ ] v2.3: Expose all Pygments syntax highlighting styles.
 - [ ] v2.4: Cycle through styles and save the last used style on exit.
 - [ ] v3.0: render/export to PDF/HTML.
