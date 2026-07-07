@@ -210,33 +210,89 @@ def _extract_list(lines: list[str], start_index: int) -> tuple[Token | None, int
 
 
 def _parse_inline(text: str) -> dict[str, Any]:
+    """Parse lightweight inline Markdown into renderable markup and span metadata."""
+    content, spans = _parse_inline_segment(text)
+    return {"content": content, "spans": spans}
+
+
+def _parse_inline_segment(text: str) -> tuple[str, list[dict[str, str]]]:
+    output: list[str] = []
     spans: list[dict[str, str]] = []
-    span_re = re.compile(
-        r"(?P<strong>\*\*(?P<strong_text>.+?)\*\*)"
-        r"|(?P<em>\*(?P<em_text>[^*]+?)\*)"
-        r"|(?P<code>`(?P<code_text>[^`]+?)`)"
-        r"|(?P<link>\[(?P<link_text>[^\]]+?)\]\((?P<href>[^)]+?)\))"
-    )
+    index = 0
 
-    def replace(match: re.Match[str]) -> str:
-        if match.group("strong"):
-            strong_text = match.group("strong_text")
-            spans.append({"type": "strong", "text": strong_text})
-            return f"<strong>{strong_text}</strong>"
-        if match.group("em"):
-            em_text = match.group("em_text")
-            spans.append({"type": "emphasis", "text": em_text})
-            return f"<em>{em_text}</em>"
-        if match.group("code"):
-            code_text = match.group("code_text")
-            spans.append({"type": "inline_code", "text": code_text})
-            return f"<code>{code_text}</code>"
-        link_text = match.group("link_text")
-        href = match.group("href")
-        spans.append({"type": "link", "text": link_text, "href": href})
-        return f'<a href="{href}">{link_text}</a>'
+    while index < len(text):
+        char = text[index]
 
-    return {"content": span_re.sub(replace, text), "spans": spans}
+        if char == "\\" and index + 1 < len(text):
+            output.append(text[index + 1])
+            index += 2
+            continue
+
+        if char == "`":
+            end = _find_unescaped(text, "`", index + 1)
+            if end != -1:
+                code_text = text[index + 1 : end]
+                spans.append({"type": "inline_code", "text": code_text})
+                output.append(f"<code>{code_text}</code>")
+                index = end + 1
+                continue
+
+        if text.startswith("**", index):
+            end = _find_unescaped(text, "**", index + 2)
+            if end != -1:
+                inner_content, inner_spans = _parse_inline_segment(text[index + 2 : end])
+                spans.extend(inner_spans)
+                strong_text = _visible_inline_text(inner_content)
+                spans.append({"type": "strong", "text": strong_text})
+                output.append(f"<strong>{inner_content}</strong>")
+                index = end + 2
+                continue
+
+        if char == "*":
+            end = _find_unescaped(text, "*", index + 1)
+            if end != -1:
+                inner_content, inner_spans = _parse_inline_segment(text[index + 1 : end])
+                spans.extend(inner_spans)
+                emphasis_text = _visible_inline_text(inner_content)
+                spans.append({"type": "emphasis", "text": emphasis_text})
+                output.append(f"<em>{inner_content}</em>")
+                index = end + 1
+                continue
+
+        if char == "[":
+            close_label = _find_unescaped(text, "]", index + 1)
+            if close_label != -1 and close_label + 1 < len(text) and text[close_label + 1] == "(":
+                close_href = _find_unescaped(text, ")", close_label + 2)
+                if close_href != -1:
+                    link_content, link_spans = _parse_inline_segment(text[index + 1 : close_label])
+                    href = text[close_label + 2 : close_href]
+                    spans.extend(link_spans)
+                    spans.append({"type": "link", "text": _visible_inline_text(link_content), "href": href})
+                    output.append(f'<a href="{href}">{link_content}</a>')
+                    index = close_href + 1
+                    continue
+
+        output.append(char)
+        index += 1
+
+    return "".join(output), spans
+
+
+def _find_unescaped(text: str, marker: str, start: int) -> int:
+    index = start
+    while index < len(text):
+        if text[index] == "\\":
+            index += 2
+            continue
+        if text.startswith(marker, index):
+            return index
+        index += 1
+    return -1
+
+
+def _visible_inline_text(text: str) -> str:
+    text = re.sub(r"<a\s+href=\"[^\"]*\">(.*?)</a>", r"\1", text)
+    return re.sub(r"</?(?:strong|em|code)>", "", text)
 
 
 def _is_table_separator(line: str) -> bool:

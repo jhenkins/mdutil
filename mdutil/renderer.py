@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import Any
 
 from .syntax_highlighter import highlight_code
@@ -115,7 +116,7 @@ def _render_table(token: dict[str, Any]) -> list[str]:
     for row in table_rows:
         for idx in range(column_count):
             cell = row[idx] if idx < len(row) else ""
-            widths[idx] = max(widths[idx], len(cell))
+            widths[idx] = max(widths[idx], _display_width(cell))
 
     alignments: list[str | None] = list(token.get("alignments") or [None] * column_count)
     rendered = [_format_table_row(table_rows[0], widths, alignments)]
@@ -131,12 +132,38 @@ def _format_table_row(row: list[str], widths: list[int], alignments: list[str | 
         cell = row[idx] if idx < len(row) else ""
         alignment = alignments[idx] if idx < len(alignments) else None
         if alignment == "right":
-            cells.append(cell.rjust(width))
+            cells.append(_rjust_display(cell, width))
         elif alignment == "center":
-            cells.append(cell.center(width))
+            cells.append(_center_display(cell, width))
         else:
-            cells.append(cell.ljust(width))
+            cells.append(_ljust_display(cell, width))
     return " | ".join(cells)
+
+
+def _ljust_display(text: str, width: int) -> str:
+    return text + " " * max(0, width - _display_width(text))
+
+
+def _rjust_display(text: str, width: int) -> str:
+    return " " * max(0, width - _display_width(text)) + text
+
+
+def _center_display(text: str, width: int) -> str:
+    padding = max(0, width - _display_width(text))
+    left = padding // 2
+    right = padding - left
+    return " " * left + text + " " * right
+
+
+def _display_width(text: str) -> int:
+    """Return terminal display width, ignoring ANSI codes and combining marks."""
+    visible = re.sub(r"\033\[[0-9;]*m", "", text)
+    width = 0
+    for char in visible:
+        if unicodedata.combining(char):
+            continue
+        width += 2 if unicodedata.east_asian_width(char) in {"F", "W"} else 1
+    return width
 
 
 def _style(text: str, theme: dict[str, Any], markdown_key: str, *, bold: bool = False) -> str:
@@ -167,9 +194,13 @@ def _ansi_color(color: Any) -> str:
 
 def _strip_inline_tags(text: str, theme: dict[str, Any] | None = None) -> str:
     """Collapse the parser's lightweight HTML-like inline markup to visible text."""
+    def render_link(match: re.Match[str]) -> str:
+        label = re.sub(r"</?(?:strong|em|code)>", "", match.group(2))
+        return _style(f"{label} ({match.group(1)})", theme or {}, "link")
+
     text = re.sub(
-        r"<a\s+href=\"([^\"]+)\">([^<]+)</a>",
-        lambda match: _style(f"{match.group(2)} ({match.group(1)})", theme or {}, "link"),
+        r"<a\s+href=\"([^\"]+)\">(.*?)</a>",
+        render_link,
         text,
     )
     text = re.sub(r"</?(?:strong|em|code)>", "", text)

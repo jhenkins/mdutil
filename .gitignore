@@ -28,3 +28,7 @@ htmlcov/
 # Local agent/session artifacts
 .hermes/
 pi-session*.*
+
+# Other
+# VI/M swap files
+.*.swp

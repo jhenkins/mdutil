@@ -20,6 +20,19 @@ class RendererTests(unittest.TestCase):
 
         self.assertEqual(output, "Use mdutil now")
 
+    def test_render_nested_inline_markup_inside_links_to_visible_text(self):
+        output = render(parse_markdown("See [*docs* `api`](https://example.com), please."))
+
+        self.assertEqual(strip_ansi(output), "See docs api (https://example.com), please.")
+        self.assertNotIn("<a", output)
+        self.assertNotIn("<em>", output)
+        self.assertNotIn("<code>", output)
+
+    def test_render_escaped_inline_punctuation_as_literal_text(self):
+        output = render(parse_markdown(r"Literal \*stars\* and \[label](url)."))
+
+        self.assertEqual(output, "Literal *stars* and [label](url).")
+
     def test_render_horizontal_rule_as_rule_text(self):
         output = render(parse_markdown("Before\n---\nAfter"))
 
@@ -72,6 +85,23 @@ class RendererTests(unittest.TestCase):
         self.assertIn("--- | --", output)
         self.assertIn("1   | 22", output)
         self.assertIn("333 |  4", output)
+
+    def test_table_width_uses_terminal_display_width_for_unicode(self):
+        output = render(
+            [
+                {
+                    "type": "table",
+                    "headers": ["Item", "Value"],
+                    "alignments": ["left", "right"],
+                    "rows": [["猫", "10"], ["e\u0301", "200"], ["plain", "3"]],
+                }
+            ]
+        )
+
+        self.assertEqual(
+            strip_ansi(output),
+            "Item  | Value\n----- | -----\n猫    |    10\ne\u0301     |   200\nplain |     3",
+        )
 
     def test_ansi_styling_comes_from_selected_theme(self):
         output = render(

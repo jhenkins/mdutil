@@ -175,51 +175,19 @@ def build_status_bar_text(
     mode: EditingMode = EditingMode.NORMAL,
     dirty: bool = False,
     save_error: str | None = None,
+    scroll_percent: int | None = None,
 ) -> str:
     """Return the compact bottom status bar text."""
     name = document_name or "stdin"
+    document_segment = name if scroll_percent is None else f"{name}  •  {scroll_percent}%"
     if save_error:
         return f"F1 Help  •  {name}  •  save failed: {save_error}"
     if mode is EditingMode.INSERT:
         dirty_text = "modified" if dirty else "unmodified"
         return f"INSERT  •  {name}  •  {dirty_text}  •  Ctrl-/ Search  •  Esc Normal"
     if dirty:
-        return f"NORMAL  •  {name}  •  modified  •  Ctrl-S Save  •  !q Discard  •  / Search  •  n/N Next"
-    return f"NORMAL  •  {name}  •  q Quit  •  i Edit  •  / Search  •  n/N Next  •  F1 Help"
-
-
-def build_status_bar_style(
-    theme: str = DEFAULT_THEME,
-    theme_file: str | None = None,
-    *,
-    mode: EditingMode = EditingMode.NORMAL,
-    dirty: bool = False,
-    save_error: str | None = None,
-    normal_override: str | None = None,
-    insert_override: str | None = None,
-) -> str:
-    """Return the prompt-toolkit style string for the current status bar state."""
-    if save_error:
-        state = "error"
-    elif dirty:
-        state = "dirty"
-    elif mode is EditingMode.INSERT:
-        state = "insert"
-    else:
-        state = "normal"
-
-    if state == "normal" and normal_override:
-        return normal_override
-    if state == "insert" and insert_override:
-        return insert_override
-
-    selected_theme = load_theme(theme, theme_file)
-    status_styles = selected_theme.get("status_bar", {})
-    if isinstance(status_styles, dict):
-        style = status_styles.get(state)
-        if isinstance(style, str) and style.strip():
-            return style
-    return "reverse"
+        return f"F1 Help  •  {document_segment}  •  modified  •  Ctrl-S Save  •  !q Discard"
+    return f"F1 Help  •  {document_segment}  •  q Quit"
 
 
 @dataclass
@@ -378,8 +346,9 @@ def build_interactive_app(
 
     def normal_view_height() -> int:
         try:
+            active_output = output if output is not None else get_app().output
             # Leave room for the one-line status bar.
-            return max(1, get_app().output.get_size().rows - 1)
+            return max(1, active_output.get_size().rows - 1)
         except Exception:
             return 24
 
@@ -387,8 +356,16 @@ def build_interactive_app(
         line_count = len(rendered_editor_lines())
         return max(0, line_count - normal_view_height())
 
+    def normal_scroll_percent() -> int:
+        max_offset = max_normal_scroll_offset()
+        if max_offset == 0:
+            return 100
+        return round((normal_scroll_offset["value"] / max_offset) * 100)
+
     def visible_rendered_editor_text() -> str:
-        return "\n".join(rendered_editor_text().splitlines()[normal_scroll_offset["value"]:])
+        start = normal_scroll_offset["value"]
+        end = start + normal_view_height()
+        return "\n".join(rendered_editor_lines()[start:end])
 
     def clamp_normal_scroll_offset() -> None:
         normal_scroll_offset["value"] = min(
@@ -402,19 +379,11 @@ def build_interactive_app(
             min(max_normal_scroll_offset(), normal_scroll_offset["value"] + amount),
         )
 
-    def line_offset_for_character(character_index: int) -> int:
-        sync_state_from_editor()
-        return editor_state.text.count("\n", 0, max(0, character_index))
+    def jump_normal_view_to_top() -> None:
+        normal_scroll_offset["value"] = 0
 
-    def jump_to_search_match() -> None:
-        if not search_state.matches:
-            return
-        current_match = search_state.matches[search_state.current_index]
-        normal_scroll_offset["value"] = min(
-            max_normal_scroll_offset(),
-            line_offset_for_character(current_match),
-        )
-        editor.buffer.cursor_position = current_match
+    def jump_normal_view_to_bottom() -> None:
+        normal_scroll_offset["value"] = max_normal_scroll_offset()
 
     editor = TextArea(
         text=original_text,
@@ -525,7 +494,19 @@ def build_interactive_app(
         scroll_normal_view(-normal_view_height())
         event.app.invalidate()
 
-    @key_bindings.add("f1", filter=command_mode)
+    @key_bindings.add("home", filter=normal_mode)
+    def _jump_to_top(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
+        editor.buffer.cursor_position = 0
+        jump_normal_view_to_top()
+        event.app.invalidate()
+
+    @key_bindings.add("end", filter=normal_mode)
+    def _jump_to_bottom(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
+        editor.buffer.cursor_position = len(editor.text)
+        jump_normal_view_to_bottom()
+        event.app.invalidate()
+
+    @key_bindings.add("f1", filter=normal_mode)
     def _toggle_help(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
         viewer_state.toggle_help()
         event.app.invalidate()
@@ -627,6 +608,7 @@ def build_interactive_app(
                 mode=editor_state.mode,
                 dirty=is_dirty(),
                 save_error=viewer_state.save_error,
+                scroll_percent=normal_scroll_percent() if editor_state.mode is EditingMode.NORMAL else None,
             )
         ),
         style=lambda: build_status_bar_style(
@@ -697,6 +679,7 @@ def build_interactive_app(
     setattr(app, "mdutil_rendered_text", rendered_editor_text)
     setattr(app, "mdutil_visible_rendered_text", visible_rendered_editor_text)
     setattr(app, "mdutil_normal_scroll_offset", lambda: normal_scroll_offset["value"])
+    setattr(app, "mdutil_normal_scroll_percent", normal_scroll_percent)
     setattr(app, "mdutil_editor_state", editor_state)
     setattr(app, "mdutil_editing_mode", lambda: editor_state.mode)
     setattr(app, "mdutil_line_numbers_enabled", lambda: line_numbers_enabled["value"])
