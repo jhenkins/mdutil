@@ -129,12 +129,39 @@ class ViewerStateTests(unittest.TestCase):
     def test_status_bar_text_can_include_normal_scroll_percentage(self):
         self.assertEqual(
             build_status_bar_text("guide.md", scroll_percent=37),
-            "F1 Help  •  guide.md  •  37%  •  q Quit",
+            "NORMAL  •  guide.md  •  37%  •  q Quit  •  i Edit  •  / Search  •  n/N Next  •  F1 Help",
         )
 
         self.assertEqual(
             build_status_bar_text("guide.md", dirty=True, scroll_percent=37),
-            "F1 Help  •  guide.md  •  37%  •  modified  •  Ctrl-S Save  •  !q Discard",
+            "NORMAL  •  guide.md  •  37%  •  modified  •  Ctrl-S Save  •  !q Discard  •  / Search  •  n/N Next",
+        )
+
+    def test_status_bar_style_uses_theme_state_colors_and_config_overrides(self):
+        self.assertEqual(build_status_bar_style("colored"), "fg:#ffffff bg:#303030")
+        self.assertEqual(
+            build_status_bar_style("colored", mode=EditingMode.INSERT),
+            "fg:#111111 bg:#f4d35e",
+        )
+        self.assertEqual(
+            build_status_bar_style("colored", dirty=True),
+            "fg:#ffffff bg:#8a5a00",
+        )
+        self.assertEqual(
+            build_status_bar_style("colored", save_error="disk full"),
+            "fg:#ffffff bg:#8b0000",
+        )
+        self.assertEqual(
+            build_status_bar_style("colored", normal_override="fg:#010203 bg:#040506"),
+            "fg:#010203 bg:#040506",
+        )
+        self.assertEqual(
+            build_status_bar_style(
+                "colored",
+                mode=EditingMode.INSERT,
+                insert_override="fg:#111111 bg:#222222",
+            ),
+            "fg:#111111 bg:#222222",
         )
 
 
