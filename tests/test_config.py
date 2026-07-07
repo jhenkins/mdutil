@@ -30,6 +30,8 @@ class ConfigTests(unittest.TestCase):
             self.assertIn("# Available built-in themes:", text)
             self.assertIn("theme = colored", text)
             self.assertIn("line_numbers = false", text)
+            self.assertIn("status_bar_normal =", text)
+            self.assertIn("status_bar_insert =", text)
             self.assertEqual(load_config(path), DEFAULTS)
 
     def test_existing_config_file_is_not_overwritten_and_values_are_loaded(self):
@@ -40,7 +42,9 @@ class ConfigTests(unittest.TestCase):
                 "theme = dracula\n"
                 "theme_file = /tmp/theme.json\n"
                 "line_numbers = true\n"
-                "quiet = true\n",
+                "quiet = true\n"
+                "status_bar_normal = fg:#010203 bg:#040506\n"
+                "status_bar_insert = fg:#111111 bg:#222222\n",
                 encoding="utf-8",
             )
 
@@ -52,6 +56,8 @@ class ConfigTests(unittest.TestCase):
             self.assertEqual(loaded["theme_file"], "/tmp/theme.json")
             self.assertTrue(loaded["line_numbers"])
             self.assertTrue(loaded["quiet"])
+            self.assertEqual(loaded["status_bar_normal"], "fg:#010203 bg:#040506")
+            self.assertEqual(loaded["status_bar_insert"], "fg:#111111 bg:#222222")
 
 
 if __name__ == "__main__":

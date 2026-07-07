@@ -24,12 +24,14 @@ class ThemeTests(unittest.TestCase):
         self.assertEqual(theme["code"]["string"], "#040506")
         self.assertIn("h2", theme["markdown"])
         self.assertIn("keyword", theme["code"])
+        self.assertIn("normal", theme["status_bar"])
+        self.assertIn("insert", theme["status_bar"])
 
     def test_load_toml_custom_theme_merges_over_default_theme(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "theme.toml"
             path.write_text(
-                '[markdown]\nh1 = "#0a0b0c"\n\n[code]\nkeyword = "#0d0e0f"\n',
+                '[markdown]\nh1 = "#0a0b0c"\n\n[code]\nkeyword = "#0d0e0f"\n\n[status_bar]\ninsert = "fg:#101010 bg:#eeeeee"\n',
                 encoding="utf-8",
             )
 
@@ -37,8 +39,10 @@ class ThemeTests(unittest.TestCase):
 
         self.assertEqual(theme["markdown"]["h1"], "#0a0b0c")
         self.assertEqual(theme["code"]["keyword"], "#0d0e0f")
+        self.assertEqual(theme["status_bar"]["insert"], "fg:#101010 bg:#eeeeee")
         self.assertIn("h2", theme["markdown"])
         self.assertIn("string", theme["code"])
+        self.assertIn("normal", theme["status_bar"])
 
 
 if __name__ == "__main__":

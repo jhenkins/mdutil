@@ -6,13 +6,14 @@ from dataclasses import dataclass
 from enum import Enum
 import re
 
+from .search import SearchState
 
 class EditingMode(Enum):
     """High-level editor mode."""
 
     NORMAL = "normal"
     INSERT = "insert"
-
+    SEARCH = "search"
 
 @dataclass
 class FileEditorState:
@@ -21,6 +22,7 @@ class FileEditorState:
     text: str
     saved_text: str | None = None
     mode: EditingMode = EditingMode.NORMAL
+    search_state: SearchState | None = None
 
     def __post_init__(self) -> None:
         if self.saved_text is None:
@@ -34,10 +36,20 @@ class FileEditorState:
     def enter_insert_mode(self) -> None:
         """Switch to insert mode."""
         self.mode = EditingMode.INSERT
+        if self.search_state:
+            self.search_state = None
+
+    def enter_search_mode(self) -> None:
+        """Switch to search mode."""
+        self.mode = EditingMode.SEARCH
+        if self.search_state:
+            self.search_state = None
 
     def return_to_normal_mode(self) -> None:
         """Switch back to normal mode."""
         self.mode = EditingMode.NORMAL
+        if self.search_state:
+            self.search_state = None
 
     def mark_saved(self) -> None:
         """Record the current text as saved."""
@@ -53,7 +65,6 @@ class FileEditorState:
         self.text, cursor_position = change_word(self.text, cursor_position)
         self.enter_insert_mode()
         return self.text, cursor_position
-
 
 def delete_current_line(text: str, cursor_position: int) -> tuple[str, int]:
     """Return text with the current line removed and cursor placed safely."""
@@ -73,7 +84,6 @@ def delete_current_line(text: str, cursor_position: int) -> tuple[str, int]:
     new_text = text[:line_start] + text[next_newline + 1 :]
     return new_text, min(line_start, len(new_text))
 
-
 def change_word(text: str, cursor_position: int) -> tuple[str, int]:
     """Delete the word at or after cursor_position and return text plus cursor."""
     if text == "":
@@ -87,7 +97,6 @@ def change_word(text: str, cursor_position: int) -> tuple[str, int]:
     start = cursor_position + match.start()
     end = cursor_position + match.end()
     return text[:start] + text[end:], start
-
 
 def _clamp_cursor(text: str, cursor_position: int) -> int:
     return max(0, min(cursor_position, len(text)))

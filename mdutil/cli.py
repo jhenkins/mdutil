@@ -23,6 +23,8 @@ class RuntimeOptions(TypedDict):
     theme_file: str | None
     line_numbers: bool
     quiet: bool
+    status_bar_normal: str | None
+    status_bar_insert: str | None
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -130,6 +132,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                     save_path=file_path,
                     theme=runtime["theme"],
                     theme_file=runtime["theme_file"],
+                    status_bar_normal=runtime["status_bar_normal"],
+                    status_bar_insert=runtime["status_bar_insert"],
                 )
             elif not runtime["quiet"] and output:
                 print(output)
@@ -161,12 +165,16 @@ def _resolve_runtime_options(
         args.line_numbers if args.line_numbers is not None else config["line_numbers"],
     )
     quiet = cast(bool, args.quiet if args.quiet is not None else config["quiet"])
+    status_bar_normal = cast(str | None, config["status_bar_normal"])
+    status_bar_insert = cast(str | None, config["status_bar_insert"])
 
     return {
         "theme": theme,
         "theme_file": theme_file,
         "line_numbers": line_numbers,
         "quiet": quiet,
+        "status_bar_normal": status_bar_normal,
+        "status_bar_insert": status_bar_insert,
     }
 
 
