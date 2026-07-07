@@ -32,10 +32,18 @@ CODE_COLORS: dict[str, str] = {
     "punctuation": "#330033",
 }
 
+STATUS_BAR_COLORS: dict[str, str] = {
+    "normal": "fg:#ffffff bg:#303030",
+    "insert": "fg:#111111 bg:#f4d35e",
+    "dirty": "fg:#ffffff bg:#8a5a00",
+    "error": "fg:#ffffff bg:#8b0000",
+}
+
 COLORED: dict[str, Any] = {
     "name": "colored",
     "markdown": MARKDOWN_COLORS.copy(),
     "code": CODE_COLORS.copy(),
+    "status_bar": STATUS_BAR_COLORS.copy(),
 }
 
 DRACULA: dict[str, Any] = {
@@ -61,6 +69,12 @@ DRACULA: dict[str, Any] = {
         "number": "#bd93f9",
         "operator": "#6272a4",
         "punctuation": "#6272a4",
+    },
+    "status_bar": {
+        "normal": "fg:#f8f8f2 bg:#44475a",
+        "insert": "fg:#282a36 bg:#50fa7b",
+        "dirty": "fg:#282a36 bg:#f1fa8c",
+        "error": "fg:#f8f8f2 bg:#ff5555",
     },
 }
 
@@ -88,6 +102,12 @@ HIGH_CONTRAST: dict[str, Any] = {
         "operator": "#00ffff",
         "punctuation": "#00ffff",
     },
+    "status_bar": {
+        "normal": "fg:#ffffff bg:#000000",
+        "insert": "fg:#000000 bg:#ffff00",
+        "dirty": "fg:#000000 bg:#00ffff",
+        "error": "fg:#ffffff bg:#ff0000",
+    },
 }
 
 ONE_DARK: dict[str, Any] = {
@@ -113,6 +133,12 @@ ONE_DARK: dict[str, Any] = {
         "number": "#d19a66",
         "operator": "#56b6c2",
         "punctuation": "#56b6c2",
+    },
+    "status_bar": {
+        "normal": "fg:#abb2bf bg:#282c34",
+        "insert": "fg:#282c34 bg:#98c379",
+        "dirty": "fg:#282c34 bg:#e5c07b",
+        "error": "fg:#ffffff bg:#e06c75",
     },
 }
 

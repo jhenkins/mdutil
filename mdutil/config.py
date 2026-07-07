@@ -14,6 +14,8 @@ DEFAULTS: dict[str, Any] = {
     "theme_file": None,
     "line_numbers": False,
     "quiet": False,
+    "status_bar_normal": None,
+    "status_bar_insert": None,
 }
 
 SECTION = "mdutil"
@@ -70,6 +72,11 @@ def load_config(path: Path) -> dict[str, Any]:
             "quiet",
             fallback=DEFAULTS["quiet"],
         )
+    for key in ("status_bar_normal", "status_bar_insert"):
+        if key in section:
+            raw_style = section.get(key, fallback="") or ""
+            style = raw_style.strip()
+            loaded[key] = style or None
     return loaded
 
 
@@ -100,4 +107,10 @@ line_numbers = false
 # Suppress rendered output by default when --quiet is not supplied.
 # Accepted values: true, false, yes, no, on, off, 1, 0
 quiet = false
+
+# Optional prompt-toolkit style overrides for the bottom status bar.
+# Leave empty to use the selected theme's status_bar.normal and status_bar.insert colors.
+# Example: fg:#ffffff bg:#303030
+status_bar_normal =
+status_bar_insert =
 """

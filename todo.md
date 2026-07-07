@@ -111,13 +111,13 @@ Keep this section aligned with the roadmap table in `mdutil-specification.md`.
 
 - [x] v2.0: Editing foundation: in-place editing, key bindings (`i`, `dd`, `cw`), explicit Ctrl-S save, dirty indicators, dirty quit blocking, and atomic file writes.
 - [x] v2.1: Deal with performance issues with large documents.
-- [ ] v2.2: Enhance and normalise editor functionality:
-  - [ ] Ensure insert/editing mode shows raw Markdown only; normal/viewer mode remains responsible for rendered preview output.
-  - [ ] Add copy/paste support for characters, words, and whole lines.
-  - [ ] Choose and document the command model: Nano-like, Vim-like, or an explicit hybrid.
-  - [ ] Improve status-bar text in normal and editing modes.
-  - [ ] Add distinct normal/edit status-bar colors.
-  - [ ] Add normal/edit status-bar color keys to built-in themes and custom theme files, then expose config defaults for selecting or overriding them.
+- [x] v2.2: Enhance and normalise editor functionality:
+  - [x] Ensure insert/editing mode shows raw Markdown only; normal/viewer mode remains responsible for rendered preview output.
+  - [x] Add copy/paste support for characters, words, and whole lines.
+  - [x] Choose and document the command model: Vim-like normal commands with prompt-toolkit insert editing.
+  - [x] Improve status-bar text in normal and editing modes.
+  - [x] Add distinct normal/edit status-bar colors.
+  - [x] Add normal/edit status-bar color keys to built-in themes and custom theme files, then expose config defaults for selecting or overriding them.
 - [ ] v2.3: Expose all Pygments syntax highlighting styles.
 - [ ] v2.4: Cycle through styles and save the last used style on exit.
 - [ ] v3.0: render/export to PDF/HTML.

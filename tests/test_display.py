@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, cast
 from unittest.mock import patch
 
+from prompt_toolkit.clipboard import ClipboardData, InMemoryClipboard
 from prompt_toolkit.input.defaults import create_pipe_input
 from prompt_toolkit.output import DummyOutput
 from prompt_toolkit.widgets import TextArea
@@ -19,6 +20,7 @@ from mdutil.display import (
     build_help_modal_overlay,
     build_help_modal_text,
     build_interactive_app,
+    build_status_bar_style,
     build_status_bar_text,
 )
 
@@ -49,6 +51,10 @@ class ViewerStateTests(unittest.TestCase):
         self.assertIn("PageUp", help_text)
         self.assertIn("l", help_text)
         self.assertIn("i", help_text)
+        self.assertIn("yc", help_text)
+        self.assertIn("yw", help_text)
+        self.assertIn("yy", help_text)
+        self.assertIn("Ctrl-V", help_text)
         self.assertIn("Ctrl-S", help_text)
         self.assertIn("!q", help_text)
         self.assertIn("Escape", help_text)
@@ -86,12 +92,12 @@ class ViewerStateTests(unittest.TestCase):
     def test_status_bar_text_is_short_and_includes_document_name(self):
         status_text = build_status_bar_text("guide.md")
 
-        self.assertEqual(status_text, "F1 Help  •  guide.md  •  q Quit")
+        self.assertEqual(status_text, "NORMAL  •  guide.md  •  q Quit  •  i Edit  •  F1 Help")
         self.assertNotIn("j/k", status_text)
         self.assertNotIn("PgUp", status_text)
 
     def test_status_bar_text_uses_stdin_when_document_name_is_missing(self):
-        self.assertEqual(build_status_bar_text(None), "F1 Help  •  stdin  •  q Quit")
+        self.assertEqual(build_status_bar_text(None), "NORMAL  •  stdin  •  q Quit  •  i Edit  •  F1 Help")
 
     def test_status_bar_text_shows_prompt_toolkit_insert_mode(self):
         self.assertEqual(
@@ -102,13 +108,40 @@ class ViewerStateTests(unittest.TestCase):
     def test_status_bar_text_shows_dirty_normal_mode_safe_quit_hint(self):
         self.assertEqual(
             build_status_bar_text("guide.md", dirty=True),
-            "F1 Help  •  guide.md  •  modified  •  Ctrl-S Save  •  !q Discard",
+            "NORMAL  •  guide.md  •  modified  •  Ctrl-S Save  •  !q Discard",
         )
 
     def test_status_bar_text_reports_save_failures(self):
         self.assertEqual(
             build_status_bar_text("guide.md", dirty=True, save_error="PermissionError: denied"),
             "F1 Help  •  guide.md  •  save failed: PermissionError: denied",
+        )
+
+    def test_status_bar_style_uses_theme_state_colors_and_config_overrides(self):
+        self.assertEqual(build_status_bar_style("colored"), "fg:#ffffff bg:#303030")
+        self.assertEqual(
+            build_status_bar_style("colored", mode=EditingMode.INSERT),
+            "fg:#111111 bg:#f4d35e",
+        )
+        self.assertEqual(
+            build_status_bar_style("colored", dirty=True),
+            "fg:#ffffff bg:#8a5a00",
+        )
+        self.assertEqual(
+            build_status_bar_style("colored", save_error="disk full"),
+            "fg:#ffffff bg:#8b0000",
+        )
+        self.assertEqual(
+            build_status_bar_style("colored", normal_override="fg:#010203 bg:#040506"),
+            "fg:#010203 bg:#040506",
+        )
+        self.assertEqual(
+            build_status_bar_style(
+                "colored",
+                mode=EditingMode.INSERT,
+                insert_override="fg:#111111 bg:#222222",
+            ),
+            "fg:#111111 bg:#222222",
         )
 
 
@@ -424,6 +457,8 @@ class ScrollBufferTests(unittest.TestCase):
             save_path=None,
             theme="colored",
             theme_file=None,
+            status_bar_normal=None,
+            status_bar_insert=None,
         )
         self.assertTrue(fake_app.ran)
 
@@ -639,6 +674,68 @@ class ScrollBufferTests(unittest.TestCase):
 
         self.assertTrue(getattr(app, "mdutil_line_numbers_enabled")())
         self.assertEqual(event.app.invalidations, 1)
+
+    def test_copy_character_word_line_and_paste_in_true_file_editor(self):
+        with create_pipe_input() as pipe_input:
+            app = build_interactive_app(["alpha beta", "gamma"], input=pipe_input, output=DummyOutput())
+
+        editor = getattr(app, "mdutil_editor")
+        clipboard = InMemoryClipboard()
+        self.assertIsNotNone(app.key_bindings)
+        key_bindings = cast(Any, app.key_bindings)
+        copy_char_binding = next(
+            binding
+            for binding in key_bindings.bindings
+            if tuple(str(key) for key in binding.keys) == ("y", "c")
+        )
+        copy_word_binding = next(
+            binding
+            for binding in key_bindings.bindings
+            if tuple(str(key) for key in binding.keys) == ("y", "w")
+        )
+        copy_line_binding = next(
+            binding
+            for binding in key_bindings.bindings
+            if tuple(str(key) for key in binding.keys) == ("y", "y")
+        )
+        paste_binding = next(
+            binding
+            for binding in key_bindings.bindings
+            if any(str(key) == "Keys.ControlV" for key in binding.keys)
+        )
+
+        class FakeApp:
+            def __init__(self):
+                self.clipboard = clipboard
+                self.invalidations = 0
+
+            def invalidate(self):
+                self.invalidations += 1
+
+        class FakeEvent:
+            def __init__(self):
+                self.app = FakeApp()
+
+        event = FakeEvent()
+        editor.buffer.cursor_position = len("al")
+        copy_char_binding.handler(cast(Any, event))
+        self.assertEqual(clipboard.get_data().text, "p")
+
+        editor.buffer.cursor_position = len("alpha ")
+        copy_word_binding.handler(cast(Any, event))
+        self.assertEqual(clipboard.get_data().text, "beta")
+
+        editor.buffer.cursor_position = len("alpha beta\ng")
+        copy_line_binding.handler(cast(Any, event))
+        self.assertEqual(clipboard.get_data().text, "gamma")
+
+        clipboard.set_data(ClipboardData("!"))
+        editor.buffer.cursor_position = len("alpha")
+        paste_binding.handler(cast(Any, event))
+        self.assertEqual(editor.text, "alpha! beta\ngamma")
+        self.assertEqual(editor.buffer.cursor_position, len("alpha!"))
+        self.assertTrue(getattr(app, "mdutil_is_dirty")())
+        self.assertEqual(event.app.invalidations, 4)
 
     def test_ctrl_s_saves_file_backed_editor_and_clears_dirty_state(self):
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -11,6 +11,7 @@ from typing import Any
 
 from prompt_toolkit import Application
 from prompt_toolkit.application.current import get_app
+from prompt_toolkit.clipboard import ClipboardData
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.formatted_text import ANSI
 from prompt_toolkit.key_binding import KeyBindings
@@ -23,7 +24,7 @@ from prompt_toolkit.widgets import Shadow, TextArea
 from .editor import EditingMode, FileEditorState, change_word, delete_current_line
 from .parser import parse_markdown
 from .renderer import render
-from .themes import DEFAULT_THEME
+from .themes import DEFAULT_THEME, load_theme
 
 
 @dataclass
@@ -52,6 +53,8 @@ def build_help_modal_text() -> str:
         [
             "mdutil help",
             "",
+            "Command model: Vim-like normal commands with prompt-toolkit insert editing",
+            "",
             "F1: toggle this help",
             "j / Down: scroll down",
             "k / Up: scroll up",
@@ -59,6 +62,10 @@ def build_help_modal_text() -> str:
             "PageUp: page up",
             "l: toggle line numbers",
             "i: insert mode",
+            "yc: copy character under cursor",
+            "yw: copy word under cursor",
+            "yy: copy current line",
+            "Ctrl-V: paste clipboard at cursor",
             "Ctrl-S: save explicitly when a file target is available",
             "!q: discard unsaved changes and quit",
             "Escape: close help / leave insert mode",
@@ -119,8 +126,42 @@ def build_status_bar_text(
         dirty_text = "modified" if dirty else "unmodified"
         return f"INSERT  •  {name}  •  {dirty_text}  •  Esc Normal"
     if dirty:
-        return f"F1 Help  •  {name}  •  modified  •  Ctrl-S Save  •  !q Discard"
-    return f"F1 Help  •  {name}  •  q Quit"
+        return f"NORMAL  •  {name}  •  modified  •  Ctrl-S Save  •  !q Discard"
+    return f"NORMAL  •  {name}  •  q Quit  •  i Edit  •  F1 Help"
+
+
+def build_status_bar_style(
+    theme: str = DEFAULT_THEME,
+    theme_file: str | None = None,
+    *,
+    mode: EditingMode = EditingMode.NORMAL,
+    dirty: bool = False,
+    save_error: str | None = None,
+    normal_override: str | None = None,
+    insert_override: str | None = None,
+) -> str:
+    """Return the prompt-toolkit style string for the current status bar state."""
+    if save_error:
+        state = "error"
+    elif dirty:
+        state = "dirty"
+    elif mode is EditingMode.INSERT:
+        state = "insert"
+    else:
+        state = "normal"
+
+    if state == "normal" and normal_override:
+        return normal_override
+    if state == "insert" and insert_override:
+        return insert_override
+
+    selected_theme = load_theme(theme, theme_file)
+    status_styles = selected_theme.get("status_bar", {})
+    if isinstance(status_styles, dict):
+        style = status_styles.get(state)
+        if isinstance(style, str) and style.strip():
+            return style
+    return "reverse"
 
 
 @dataclass
@@ -214,6 +255,8 @@ def build_interactive_app(
     save_path: str | None = None,
     theme: str = DEFAULT_THEME,
     theme_file: str | None = None,
+    status_bar_normal: str | None = None,
+    status_bar_insert: str | None = None,
     input: Any | None = None,
     output: Any | None = None,
 ) -> Application:
@@ -330,6 +373,22 @@ def build_interactive_app(
         editor.buffer.cursor_position = new_cursor
         editor_state.enter_insert_mode()
 
+    def copy_to_clipboard(event: Any, text: str) -> None:
+        event.app.clipboard.set_data(ClipboardData(text))
+        event.app.invalidate()
+
+    def paste_from_clipboard(event: Any) -> None:
+        text = event.app.clipboard.get_data().text
+        if not text:
+            event.app.invalidate()
+            return
+        cursor = editor.buffer.cursor_position
+        sync_state_from_editor()
+        editor_state.text = editor_state.text[:cursor] + text + editor_state.text[cursor:]
+        editor.text = editor_state.text
+        editor.buffer.cursor_position = cursor + len(text)
+        event.app.invalidate()
+
     @key_bindings.add("q", filter=normal_mode)
     @key_bindings.add("c-c")
     def _quit(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
@@ -418,6 +477,28 @@ def build_interactive_app(
         event.app.layout.focus(editor)
         event.app.invalidate()
 
+    @key_bindings.add("y", "c", filter=normal_mode)
+    def _copy_character(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
+        sync_state_from_editor()
+        cursor = editor.buffer.cursor_position
+        if cursor < len(editor_state.text):
+            copy_to_clipboard(event, editor_state.text[cursor])
+        else:
+            copy_to_clipboard(event, "")
+
+    @key_bindings.add("y", "w", filter=normal_mode)
+    def _copy_word(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
+        word = editor.buffer.document.get_word_under_cursor() or ""
+        copy_to_clipboard(event, word)
+
+    @key_bindings.add("y", "y", filter=normal_mode)
+    def _copy_line(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
+        copy_to_clipboard(event, editor.buffer.document.current_line)
+
+    @key_bindings.add("c-v", filter=normal_mode)
+    def _paste(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
+        paste_from_clipboard(event)
+
     help_line = Window(
         height=1,
         content=FormattedTextControl(
@@ -428,7 +509,15 @@ def build_interactive_app(
                 save_error=viewer_state.save_error,
             )
         ),
-        style="reverse",
+        style=lambda: build_status_bar_style(
+            theme,
+            theme_file,
+            mode=editor_state.mode,
+            dirty=is_dirty(),
+            save_error=viewer_state.save_error,
+            normal_override=status_bar_normal,
+            insert_override=status_bar_insert,
+        ),
         always_hide_cursor=True,
     )
 
@@ -499,6 +588,8 @@ def run_interactive_viewer(
     save_path: str | None = None,
     theme: str = DEFAULT_THEME,
     theme_file: str | None = None,
+    status_bar_normal: str | None = None,
+    status_bar_insert: str | None = None,
 ) -> None:
     """Run the interactive prompt-toolkit Markdown viewer."""
     build_interactive_app(
@@ -508,4 +599,6 @@ def run_interactive_viewer(
         save_path=save_path,
         theme=theme,
         theme_file=theme_file,
+        status_bar_normal=status_bar_normal,
+        status_bar_insert=status_bar_insert,
     ).run()

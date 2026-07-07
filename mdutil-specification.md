@@ -53,8 +53,9 @@ The focus is on a clean, fast, and fully‑featured viewer that can later evolve
 | **Configuration File** | Load user defaults from an editable configuration file. | `--config <path>` and `--generate-config` |
 | **Line Numbers** | Toggle line numbers for code blocks. | `--line-numbers` |
 | **Scroll** | Arrow keys or `j/k` to scroll up/down; `q` to quit. | – |
-| **Editing Foundation** | In-place editing with normal/insert modes, `i`, `dd`, `cw`, Escape back to normal mode, explicit Ctrl-S save, dirty-buffer status, dirty quit blocking, and `!q` discard-and-quit. | – |
+| **Editing** | Vim-like normal commands with prompt-toolkit insert editing. Normal/viewer mode renders Markdown preview output; insert/editing mode shows and edits raw Markdown. Shortcuts include `i`, Escape, `dd`, `cw`, `yc`, `yw`, `yy`, Ctrl-V paste, explicit Ctrl-S save, dirty-buffer status, dirty quit blocking, and `!q` discard-and-quit. | – |
 | **Safe File Writes** | File-backed interactive sessions write through atomic same-directory temporary files and preserve the original file on failed saves. | – |
+| **Status Bar** | Distinct normal/edit/dirty/error status-bar text and colors, with theme keys and optional configuration overrides. | `status_bar_normal`, `status_bar_insert` |
 | **Help** | Show command-line usage. | `--help` |
 | **Version** | Print version. | `--version` |
 
@@ -102,9 +103,16 @@ The CLI parser loads built-in defaults, merges any user configuration file, then
 Interactive terminal output has two coordinated modes. Normal/viewer mode renders
 the current Markdown buffer through the parser, renderer, syntax highlighter, and
 terminal display pipeline. Insert/editing mode exposes the raw Markdown buffer for
-text changes. File-backed sessions save explicitly with Ctrl-S, track dirty state,
-block accidental dirty quits, and write atomically via same-directory temporary
-files before replacing the target path.
+text changes. The command model is an explicit hybrid: Vim-like normal commands
+for navigation and structural editing, plus prompt-toolkit text editing while in
+insert mode. Normal-mode copy/paste commands are `yc` for the character under the
+cursor, `yw` for the word under the cursor, `yy` for the current line, and Ctrl-V
+to paste clipboard text at the cursor. File-backed sessions save explicitly with
+Ctrl-S, track dirty state, block accidental dirty quits, and write atomically via
+same-directory temporary files before replacing the target path. The bottom status
+bar identifies normal/insert state, save/dirty state, and the relevant safe action;
+its normal and insert colors can be supplied by the active theme or overridden from
+the configuration file.
 
 ```
 ┌───────────────────────┐
@@ -179,7 +187,7 @@ files before replacing the target path.
 | **v1.5** | _Viewing_      | Bottom status bar: F1 help, document name               | Done   |
 | **v2.0** | _Editing_      | In-place editing foundation: `i`, Escape, `dd`, `cw`, explicit Ctrl-S save, dirty protection, and atomic writes. | Done   |
 | **v2.1** | _Performance_  | Improve interactive performance on large documents.     | Done   |
-| **v2.2** | _Editing_      | Enhance and normalize editor functionality: raw Markdown editing, copy/paste, command model, clearer status bars, status colors, and theme/config color settings. | Todo   |
+| **v2.2** | _Editing_      | Enhance and normalize editor functionality: raw Markdown editing, copy/paste, command model, clearer status bars, status colors, and theme/config color settings. | Done   |
 | **v2.3** | _Highlighting_ | Expose all Pygments syntax highlighting styles.         | Todo   |
 | **v2.4** | _Highlighting_ | Cycle through styles and save last used style on exit.  | Todo   |
 | **v3.0** | _Export_       | Render to PDF/HTML using `pulldown-cmark` + `printpdf`. | Todo   |
