@@ -18,6 +18,7 @@ The following tools and LLM's were used so far (more might be used as time goes 
 * Hermes Agent (https://github.com/NousResearch/hermes-agent)
 * GPT 5.5 (via openai-codex)
 * Gemma 4 12B (via self-hosted inference server running llama.cpp)
+* Gemma 4 26B A4B (via self-hosted inference server running llama.cpp)
 
 The intention behind this project wasn't neccessarily to create a functional piece of software (although I 
 dare say that it is already pretty functional as a Markdown reader), but to learn about doing functional 
@@ -28,9 +29,8 @@ done with AI and the tools available at the moment.
 While I was playing with this project, I found that I had to use a cloud-based AI provider. The main reason 
 for this was that my local Ollama instance did not work so well, and constantly ran out of context space 
 causing agent timeouts and loads of time wasted. So, in order to at least get something done and learn the 
-ropes with Hermes, I decided to use my ChatGPT Plus account with the GPT 5.5 model. This worked  quite well, 
-and I hope to be able to set up a local LLM engine to work as well as this (I'll settle for 60%-80%
-as good). I am working at using llama.cpp instead, but that's an adventure for another day. 
+ropes with Hermes, I decided to use my ChatGPT Plus account with the GPT 5.5 model. My workflow is still 
+mostly using GPT 5.5 because of hardware constraints.
 
 ## Where we are today
 
