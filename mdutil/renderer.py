@@ -17,6 +17,7 @@ def render(
     parsed_content: list[dict[str, Any]],
     theme: str = DEFAULT_THEME,
     theme_file: str | None = None,
+    syntax_theme: str = "default",
     line_numbers: bool = False,
     quiet: bool = False,
 ) -> str:
@@ -28,14 +29,18 @@ def render(
     result_lines: list[str] = []
 
     for token in parsed_content:
-        result_lines.extend(_render_token(token, selected_theme))
+        result_lines.extend(_render_token(token, selected_theme, syntax_theme))
 
     if line_numbers:
         return "\n".join(f"{idx:4d} | {line}" for idx, line in enumerate(result_lines, 1))
     return "\n".join(result_lines)
 
 
-def _render_token(token: dict[str, Any], theme: dict[str, Any]) -> list[str]:
+def _render_token(
+    token: dict[str, Any],
+    theme: dict[str, Any],
+    syntax_theme: str = "default",
+) -> list[str]:
     ttype = token.get("type")
     if ttype == "heading":
         return [_render_heading(token, theme)]
@@ -44,7 +49,7 @@ def _render_token(token: dict[str, Any], theme: dict[str, Any]) -> list[str]:
     if ttype == "blank":
         return [""]
     if ttype == "code":
-        return _render_code(token, theme)
+        return _render_code(token, theme, syntax_theme)
     if ttype == "list":
         return _render_list(token)
     if ttype == "blockquote":
@@ -71,10 +76,10 @@ def _render_paragraph(token: dict[str, Any], theme: dict[str, Any] | None = None
     return _strip_inline_tags(str(token.get("content", token.get("text", ""))), theme)
 
 
-def _render_code(token: dict[str, Any], theme: dict[str, Any]) -> list[str]:
+def _render_code(token: dict[str, Any], theme: dict[str, Any], syntax_theme: str = "default") -> list[str]:
     code = str(token.get("content", ""))
     language = str(token.get("language") or "")
-    return highlight_code(code, language, theme).split("\n")
+    return highlight_code(code, language, theme, syntax_theme=syntax_theme).split("\n")
 
 
 def _render_list(token: dict[str, Any]) -> list[str]:

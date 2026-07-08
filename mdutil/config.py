@@ -7,11 +7,12 @@ import platform
 from pathlib import Path
 from typing import Any
 
-from .themes import DEFAULT_THEME, theme_names
+from .themes import DEFAULT_THEME, syntax_theme_names, theme_names
 
 DEFAULTS: dict[str, Any] = {
     "theme": DEFAULT_THEME,
     "theme_file": None,
+    "syntax_theme": "default",
     "line_numbers": False,
     "quiet": False,
     "status_bar_normal": None,
@@ -62,6 +63,13 @@ def load_config(path: Path) -> dict[str, Any]:
         raw_theme_file = section.get("theme_file", fallback="") or ""
         theme_file = raw_theme_file.strip()
         loaded["theme_file"] = theme_file or None
+    if "syntax_theme" in section:
+        raw_syntax_theme = section.get("syntax_theme", fallback="") or ""
+        syntax_theme = raw_syntax_theme.strip()
+        if syntax_theme not in syntax_theme_names():
+            valid = ", ".join(syntax_theme_names())
+            raise ValueError(f"invalid syntax theme in configuration: {syntax_theme!r} (choose from {valid})")
+        loaded["syntax_theme"] = syntax_theme or DEFAULTS["syntax_theme"]
     if "line_numbers" in section:
         loaded["line_numbers"] = section.getboolean(
             "line_numbers",
@@ -83,6 +91,7 @@ def load_config(path: Path) -> dict[str, Any]:
 def default_config_text() -> str:
     """Return the commented starter configuration with current runtime defaults."""
     themes = ", ".join(theme_names())
+    syntax_themes = ", ".join(syntax_theme_names())
     return f"""# mdutil configuration file
 #
 # This file is plain INI-style text and can be edited with any standard text
@@ -96,9 +105,13 @@ def default_config_text() -> str:
 # Available built-in themes: {themes}
 theme = {DEFAULTS['theme']}
 
+# Syntax theme for code highlighting (Pygments style name).
+# Available styles: {syntax_themes}
+syntax_theme = {DEFAULTS['syntax_theme']}
+
 # Optional path to a JSON or TOML custom theme file.
 # Leave empty to use only the selected built-in theme.
-theme_file = 
+theme_file =
 
 # Show line numbers by default when --line-numbers is not supplied.
 # Accepted values: true, false, yes, no, on, off, 1, 0
