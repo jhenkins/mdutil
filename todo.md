@@ -2,8 +2,8 @@
 
 Last updated: 2026-07-09
 Current branch: `feature/v2.3.1-navigational-enhancements`
-Current package version: `2.3.0`
-Baseline verification at update time: `python -m pytest -q` -> 129 passed, 18 subtests passed in 3.79s
+Current package version: `2.3.1`
+Baseline verification at update time: `python -m pytest -q` -> 131 passed, 18 subtests passed in 3.77s
 
 ## Current state
 

@@ -3,4 +3,4 @@
 The package version follows Semantic Versioning 2.0.0.
 """
 
-__version__ = "2.3.0"
+__version__ = "2.3.1"
