@@ -97,7 +97,7 @@ class ViewerStateTests(unittest.TestCase):
 
         self.assertEqual(
             status_text,
-            "NORMAL  •  guide.md  •  q Quit  •  i Edit  •  / Search  •  n/N Next  •  F1 Help",
+            "NORMAL  •  guide.md  •  q Quit  •  i Edit  •  / Search  •  n/N Next  •  F1 Help  •  g Bottom  •  G Top",
         )
         self.assertNotIn("j/k", status_text)
         self.assertNotIn("PgUp", status_text)
@@ -105,7 +105,7 @@ class ViewerStateTests(unittest.TestCase):
     def test_status_bar_text_uses_stdin_when_document_name_is_missing(self):
         self.assertEqual(
             build_status_bar_text(None),
-            "NORMAL  •  stdin  •  q Quit  •  i Edit  •  / Search  •  n/N Next  •  F1 Help",
+            "NORMAL  •  stdin  •  q Quit  •  i Edit  •  / Search  •  n/N Next  •  F1 Help  •  g Bottom  •  G Top",
         )
 
     def test_status_bar_text_shows_prompt_toolkit_insert_mode(self):
@@ -129,7 +129,7 @@ class ViewerStateTests(unittest.TestCase):
     def test_status_bar_text_can_include_normal_scroll_percentage(self):
         self.assertEqual(
             build_status_bar_text("guide.md", scroll_percent=37),
-            "NORMAL  •  guide.md  •  37%  •  q Quit  •  i Edit  •  / Search  •  n/N Next  •  F1 Help",
+            "NORMAL  •  guide.md  •  37%  •  q Quit  •  i Edit  •  / Search  •  n/N Next  •  F1 Help  •  g Bottom  •  G Top",
         )
 
         self.assertEqual(
@@ -460,6 +460,64 @@ class ScrollBufferTests(unittest.TestCase):
         }
         self.assertIn("Keys.PageDown", bound_keys)
         self.assertIn("Keys.PageUp", bound_keys)
+
+    def test_prompt_toolkit_app_binds_g_G_navigation_keys(self):
+        with create_pipe_input() as pipe_input:
+            app = build_interactive_app([f"- line {number}" for number in range(50)], input=pipe_input, output=DummyOutput())
+
+        self.assertIsNotNone(app.key_bindings)
+        bound_keys = {
+            str(key)
+            for binding in app.key_bindings.bindings
+            for key in binding.keys
+        }
+        self.assertIn("g", bound_keys)
+        self.assertIn("G", bound_keys)
+
+    def test_prompt_toolkit_g_jumps_to_bottom(self):
+        with create_pipe_input() as pipe_input:
+            app = build_interactive_app(
+                [f"- line {number}" for number in range(50)],
+                input=pipe_input,
+                output=DummyOutput(),
+            )
+
+        key_bindings = cast(Any, app.key_bindings)
+        g_binding = next(
+            binding
+            for binding in key_bindings.bindings
+            if tuple(str(key) for key in binding.keys) == ("g",)
+        )
+
+        class FakeApp:
+            def __init__(self):
+                self.invalidations = 0
+
+            def invalidate(self):
+                self.invalidations += 1
+
+        class FakeEvent:
+            def __init__(self):
+                self.app = FakeApp()
+
+        event = FakeEvent()
+        # Start at top
+        self.assertEqual(getattr(app, "mdutil_normal_scroll_offset")(), 0)
+        
+        # Press g to jump to bottom
+        g_binding.handler(cast(Any, event))
+        max_offset = getattr(app, "mdutil_normal_scroll_offset")()
+        self.assertGreater(max_offset, 0)
+        
+        # Press G to jump back to top
+        G_binding = next(
+            binding
+            for binding in key_bindings.bindings
+            if tuple(str(key) for key in binding.keys) == ("G",)
+        )
+        event.app = FakeApp()
+        G_binding.handler(cast(Any, event))
+        self.assertEqual(getattr(app, "mdutil_normal_scroll_offset")(), 0)
 
     def test_prompt_toolkit_app_binds_home_end_navigation_keys(self):
         with create_pipe_input() as pipe_input:

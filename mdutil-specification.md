@@ -1,8 +1,8 @@
 # Markdown Viewer CLI – Program Specification
 
 **Author:** _Jan Henkins_  
-**Version:** 2.3.0 (source of truth: `mdutil/version.py`)  
-**Last‑Updated:** 2026‑07‑07  
+**Version:** 2.3.1 (source of truth: `mdutil/version.py`)  
+**Last‑Updated:** 2026‑07‑09  
 **License:** MIT  
 **Repository:** <https://github.com/jhenkins/mdutil>
 
@@ -191,7 +191,7 @@ Ctrl-/ so `/` remains normal text input.
 | **v2.0** | _Editing_      | In-place editing foundation: `i`, Escape, `dd`, `cw`, explicit Ctrl-S save, dirty protection, and atomic writes. | Done   |
 | **v2.1** | _Performance_  | Improve interactive performance on large documents.     | Done   |
 | **v2.2** | _Editing_      | Enhance and normalize editor functionality: raw Markdown editing, copy/paste, command model, search in normal/edit modes, highlighted matches, clearer status bars, status colors, and theme/config color settings. | Done   |
-| **v2.3** | _Highlighting_ | Expose all Pygments syntax highlighting styles.         | Todo   |
+|| **v2.3** | _Highlighting + Navigation_ | Expose all Pygments syntax highlighting styles via `--syntax-theme`, config support, and per-theme defaults. Added `g`/`G` jump-to-top/bottom navigation. | Done   |
 | **v2.4** | _Highlighting_ | Cycle through styles and save last used style on exit.  | Todo   |
 | **v3.0** | _Export_       | Render to PDF/HTML using `pulldown-cmark` + `printpdf`. | Todo   |
 | **v3.5** | _Export_       | Support rendering of Mermaid diagrams.                  | Todo   |
