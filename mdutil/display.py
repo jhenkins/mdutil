@@ -84,6 +84,8 @@ def build_help_modal_text() -> str:
             "/: search",
             "Ctrl-/: search while editing",
             "n / N: next / previous search match",
+            "g: jump to bottom",
+            "G: jump to top",
             "!q: discard unsaved changes and quit",
             "Escape: close help / leave insert mode",
             "q: quit when buffer is unmodified",
@@ -192,7 +194,7 @@ def build_status_bar_text(
         )
     return (
         f"NORMAL  •  {document_segment}  •  q Quit  •  i Edit  •  "
-        "/ Search  •  n/N Next  •  F1 Help"
+        "/ Search  •  n/N Next  •  F1 Help  •  g Bottom  •  G Top"
     )
 
 
@@ -546,6 +548,18 @@ def build_interactive_app(
     def _page_up(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
         editor.buffer.cursor_up(count=10)
         scroll_normal_view(-normal_view_height())
+        event.app.invalidate()
+
+    @key_bindings.add("g", filter=normal_mode)
+    def _jump_to_bottom_g(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
+        editor.buffer.cursor_position = len(editor.text)
+        jump_normal_view_to_bottom()
+        event.app.invalidate()
+
+    @key_bindings.add("G", filter=normal_mode)
+    def _jump_to_top_G(event) -> None:  # pragma: no cover - exercised by prompt-toolkit runtime
+        editor.buffer.cursor_position = 0
+        jump_normal_view_to_top()
         event.app.invalidate()
 
     @key_bindings.add("home", filter=normal_mode)

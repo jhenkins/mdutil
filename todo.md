@@ -1,9 +1,9 @@
 # mdutil TODO
 
-Last updated: 2026-07-07
-Current branch: `feature/v2.2-editing`
+Last updated: 2026-07-09
+Current branch: `feature/v2.3.1-navigational-enhancements`
 Current package version: `2.3.0`
-Baseline verification at update time: `python -m pytest -q` -> 118 passed, 12 subtests passed in 2.99s
+Baseline verification at update time: `python -m pytest -q` -> 129 passed, 18 subtests passed in 3.79s
 
 ## Current state
 
@@ -37,6 +37,15 @@ Baseline verification at update time: `python -m pytest -q` -> 118 passed, 12 su
 - v2.0.0 release version bump.
 - v2.1.0 performance release version bump.
 - v2.2.0 editing/search release version bump.
+- v2.3.0 syntax themes release version bump:
+  - `--syntax-theme` flag with all Pygments styles (49 total).
+  - `syntax_theme` config option with validation.
+  - Per-theme syntax defaults (e.g., dracula→"dracula", high-contrast→"bw").
+- v2.3.1 navigational enhancements:
+  - `g` key binding to jump to bottom of document.
+  - `G` key binding to jump to top of document.
+  - Updated status bar with `g Bottom  •  G Top` hints.
+  - Updated F1 help modal with both jump bindings.
 - Issue #19 large-document performance improvements.
 - Issue #6 visual cleanup for the F1 modal:
   - Added titled modal border: `F1 - Help`.
@@ -125,8 +134,14 @@ Keep this section aligned with the roadmap table in `mdutil-specification.md`.
   - [x] Add distinct normal/edit status-bar colors.
   - [x] Add normal/edit status-bar color keys to built-in themes and custom theme files, then expose config defaults for selecting or overriding them.
   - [x] Add search in normal and edit modes: `/` in normal mode, Ctrl-/ while editing, `n`/`N` navigation, highlighted matches, F1 help, and mode-aware status-bar hints.
-- [x] v2.3.0: Bug fixing
-- [ ] v2.3: Expose all Pygments syntax highlighting styles.
+  - [x] v2.2.1: Bug fixing.
+- [x] v2.3: Expose all Pygments syntax highlighting styles.
+  - [x] v2.3.0: Full syntax theme implementation with `--syntax-theme`, config support, and per-theme defaults.
+  - [x] v2.3.1: Navigational enhancements (top/bottom jumps via `g`/`Shift+G`).
+    - [x] Added `g` key binding to jump to bottom of document.
+    - [x] Added `G` key binding to jump to top of document.
+    - [x] Updated status bar with `g Bottom  •  G Top` hints.
+    - [x] Updated F1 help modal with both jump bindings.
 - [ ] v2.4: Cycle through styles and save the last used style on exit.
 - [ ] v3.0: render/export to PDF/HTML.
 - [ ] v3.5: support rendering of Mermaid diagrams.
@@ -149,4 +164,3 @@ For changes touching interactive behavior, also add or update focused tests in `
 For changes touching docs/spec tables, read the edited section back from disk and verify Markdown table rows still have consistent cell counts.
 
 ---
-
