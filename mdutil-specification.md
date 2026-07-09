@@ -1,7 +1,7 @@
 # Markdown Viewer CLI – Program Specification
 
 **Author:** _Jan Henkins_  
-**Version:** 2.2.1 (source of truth: `mdutil/version.py`)  
+**Version:** 2.3.0 (source of truth: `mdutil/version.py`)  
 **Last‑Updated:** 2026‑07‑07  
 **License:** MIT  
 **Repository:** <https://github.com/jhenkins/mdutil>
@@ -143,7 +143,7 @@ Ctrl-/ so `/` remains normal text input.
        │    tokens
        │       │
 ┌──────▼───────┴────────┐
-│   Syntax Highlighter   │
+│   Syntax Highlighter  │
 └──────▲───────┬────────┘
        │       │
        │     ANSI

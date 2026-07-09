@@ -9,18 +9,60 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import TypedDict, cast
 
+
+class _AlignedHelpFormatter(argparse.RawDescriptionHelpFormatter):
+    """HelpFormatter that aligns option names in the options section."""
+
+    def __init__(self, prog: str, indent_increment: int = 2,
+                 max_help_position: int = 32):
+        super().__init__(prog, indent_increment, max_help_position)
+
+    def _metavar_formatter(self, action, default_metavar):
+        """Custom metavar formatter that returns tuples matching argparse's expectations."""
+        def formatter(nargs, flag_string=None):
+            if nargs == 0:
+                return ("",)
+            elif nargs == argparse.REMAINDER:
+                return ("...",)
+            elif nargs == "*":
+                return (default_metavar, default_metavar)
+            elif nargs == "+":
+                return (default_metavar, default_metavar)
+            elif nargs == "?":
+                return (default_metavar,)
+            elif isinstance(nargs, int):
+                return (default_metavar,) * nargs
+            else:
+                return (default_metavar,)
+        return formatter
+
+    def _format_args(self, action, default_metavar):
+        """Handle nargs==0 case and delegate to parent."""
+        if action.nargs == 0:
+            return ''
+        return super()._format_args(action, default_metavar)
+
+    def _fill_text(self, text, width, indent):
+        """Fill text, aligning continuation lines."""
+        lines = []
+        for paragraph in text.split("\n"):
+            lines.append(paragraph)
+        return super()._fill_text("\n".join(lines), width, indent)
+
+
 from . import __version__
 from .config import default_config_path, ensure_config_file, load_config
 from .display import run_interactive_viewer
 from .parser import parse_markdown
 from .reader import read_input
 from .renderer import render
-from .themes import theme_names
+from .themes import syntax_theme_names, theme_names
 
 
 class RuntimeOptions(TypedDict):
     theme: str
     theme_file: str | None
+    syntax_theme: str
     line_numbers: bool
     quiet: bool
     status_bar_normal: str | None
@@ -32,6 +74,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     arg_parser = argparse.ArgumentParser(
         prog="mdutil",
         description="Terminal Markdown viewer with ANSI rendering.",
+        formatter_class=_AlignedHelpFormatter,
     )
     arg_parser.add_argument(
         "files",
@@ -42,6 +85,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--list",
         action="store_true",
         help="List available markdown files in the current directory and exit",
+    )
+    arg_parser.add_argument(
+        "--syntax-theme",
+        choices=syntax_theme_names(),
+        help="Choose Pygments syntax style for code highlighting",
     )
     arg_parser.add_argument(
         "--theme",
@@ -121,6 +169,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 parsed,
                 theme=runtime["theme"],
                 theme_file=runtime["theme_file"],
+                syntax_theme=runtime["syntax_theme"],
                 line_numbers=runtime["line_numbers"] and not interactive,
                 quiet=runtime["quiet"],
             )
@@ -156,6 +205,14 @@ def _resolve_runtime_options(
         valid = ", ".join(theme_names())
         arg_parser.error(f"invalid theme in configuration: {theme!r} (choose from {valid})")
 
+    syntax_theme = cast(
+        str,
+        args.syntax_theme if args.syntax_theme is not None else config["syntax_theme"],
+    )
+    if syntax_theme not in syntax_theme_names():
+        valid = ", ".join(syntax_theme_names())
+        arg_parser.error(f"invalid syntax theme in configuration: {syntax_theme!r} (choose from {valid})")
+
     theme_file = cast(
         str | None,
         args.theme_file if args.theme_file is not None else config["theme_file"],
@@ -171,6 +228,7 @@ def _resolve_runtime_options(
     return {
         "theme": theme,
         "theme_file": theme_file,
+        "syntax_theme": syntax_theme,
         "line_numbers": line_numbers,
         "quiet": quiet,
         "status_bar_normal": status_bar_normal,

@@ -32,6 +32,20 @@ CODE_COLORS: dict[str, str] = {
     "punctuation": "#330033",
 }
 
+# Default Pygments syntax style — used when --syntax-theme is not specified
+SYNTAX_THEME_DEFAULT = "default"
+
+# Syntax themes per built-in theme — Pygments style names
+# These match the Pygments built-in styles and provide a reasonable default
+# for each visual theme. Users can override via --syntax-theme or config.
+THEME_SYNTAX_THEMES: dict[str, str] = {
+    "colored": "default",
+    "dracula": "dracula",
+    "high-contrast": "bw",
+    "one-dark": "one-dark",
+    "onedark": "one-dark",
+}
+
 STATUS_BAR_COLORS: dict[str, str] = {
     "normal": "fg:#ffffff bg:#303030",
     "insert": "fg:#111111 bg:#f4d35e",
@@ -43,6 +57,7 @@ COLORED: dict[str, Any] = {
     "name": "colored",
     "markdown": MARKDOWN_COLORS.copy(),
     "code": CODE_COLORS.copy(),
+    "syntax": "default",
     "status_bar": STATUS_BAR_COLORS.copy(),
 }
 
@@ -76,6 +91,7 @@ DRACULA: dict[str, Any] = {
         "dirty": "fg:#282a36 bg:#f1fa8c",
         "error": "fg:#f8f8f2 bg:#ff5555",
     },
+    "syntax": "default",
 }
 
 HIGH_CONTRAST: dict[str, Any] = {
@@ -108,6 +124,7 @@ HIGH_CONTRAST: dict[str, Any] = {
         "dirty": "fg:#000000 bg:#00ffff",
         "error": "fg:#ffffff bg:#ff0000",
     },
+    "syntax": "default",
 }
 
 ONE_DARK: dict[str, Any] = {
@@ -140,6 +157,7 @@ ONE_DARK: dict[str, Any] = {
         "dirty": "fg:#282c34 bg:#e5c07b",
         "error": "fg:#ffffff bg:#e06c75",
     },
+    "syntax": "default",
 }
 
 BUILT_IN_THEMES: dict[str, dict[str, Any]] = {
@@ -156,6 +174,13 @@ DEFAULT_THEME = "colored"
 def theme_names() -> list[str]:
     """Return valid built-in theme names for CLI validation/help."""
     return sorted(BUILT_IN_THEMES)
+
+
+def syntax_theme_names() -> list[str]:
+    """Return valid syntax (Pygments) style names for CLI validation/help."""
+    from pygments.styles import get_all_styles
+
+    return sorted(get_all_styles())
 
 
 def load_theme(theme: str = DEFAULT_THEME, theme_file: str | None = None) -> dict[str, Any]:
