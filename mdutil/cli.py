@@ -9,6 +9,47 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import TypedDict, cast
 
+
+class _AlignedHelpFormatter(argparse.RawDescriptionHelpFormatter):
+    """HelpFormatter that aligns option names in the options section."""
+
+    def __init__(self, prog: str, indent_increment: int = 2,
+                 max_help_position: int = 32):
+        super().__init__(prog, indent_increment, max_help_position)
+
+    def _metavar_formatter(self, action, default_metavar):
+        """Custom metavar formatter that returns tuples matching argparse's expectations."""
+        def formatter(nargs, flag_string=None):
+            if nargs == 0:
+                return ("",)
+            elif nargs == argparse.REMAINDER:
+                return ("...",)
+            elif nargs == "*":
+                return (default_metavar, default_metavar)
+            elif nargs == "+":
+                return (default_metavar, default_metavar)
+            elif nargs == "?":
+                return (default_metavar,)
+            elif isinstance(nargs, int):
+                return (default_metavar,) * nargs
+            else:
+                return (default_metavar,)
+        return formatter
+
+    def _format_args(self, action, default_metavar):
+        """Handle nargs==0 case and delegate to parent."""
+        if action.nargs == 0:
+            return ''
+        return super()._format_args(action, default_metavar)
+
+    def _fill_text(self, text, width, indent):
+        """Fill text, aligning continuation lines."""
+        lines = []
+        for paragraph in text.split("\n"):
+            lines.append(paragraph)
+        return super()._fill_text("\n".join(lines), width, indent)
+
+
 from . import __version__
 from .config import default_config_path, ensure_config_file, load_config
 from .display import run_interactive_viewer
@@ -33,6 +74,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     arg_parser = argparse.ArgumentParser(
         prog="mdutil",
         description="Terminal Markdown viewer with ANSI rendering.",
+        formatter_class=_AlignedHelpFormatter,
     )
     arg_parser.add_argument(
         "files",

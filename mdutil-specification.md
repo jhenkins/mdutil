@@ -143,7 +143,7 @@ Ctrl-/ so `/` remains normal text input.
        │    tokens
        │       │
 ┌──────▼───────┴────────┐
-│   Syntax Highlighter   │
+│   Syntax Highlighter  │
 └──────▲───────┬────────┘
        │       │
        │     ANSI
