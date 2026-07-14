@@ -1,7 +1,7 @@
 # mdutil TODO
 
-Last updated: 2026-07-09
-Current branch: `feature/v2.3.1-navigational-enhancements`
+Last updated: 2026-07-14
+Current branch: `main`
 Current package version: `2.3.1`
 Baseline verification at update time: `python -m pytest -q` -> 131 passed, 18 subtests passed in 3.77s
 
@@ -120,10 +120,12 @@ viewer and rendering quality can move into the next incremental backlog slice.
 - [x] Expand large-document performance coverage if scrolling/rendering regresses; include cache reuse, representative fixture sizes, and an explicit budget or benchmark for interactive scroll latency.
   - Added an explicit cached-scroll latency budget test and limited visible preview text to the active viewport slice.
 
-### 6. Proposed roadmap reconciliation with `mdutil-specification.md`
+### 6. Roadmap
 
-Keep this section aligned with the roadmap table in `mdutil-specification.md`.
-
+- [x] v1.0: Scroll with j/k and arrows, and page up/down.
+- [x] v1.0: Enable/disable line numbers while viewing with 'l'
+- [x] v1.5: Add F1 help modal popup to clean up status bar area
+- [x] v1.5: Bottom status bar: Fl help, document name
 - [x] v2.0: Editing foundation: in-place editing, key bindings (`i`, `dd`, `cw`), explicit Ctrl-S save, dirty indicators, dirty quit blocking, and atomic file writes.
 - [x] v2.1: Deal with performance issues with large documents.
 - [x] v2.2: Enhance and normalise editor functionality:
@@ -142,10 +144,8 @@ Keep this section aligned with the roadmap table in `mdutil-specification.md`.
     - [x] Added `G` key binding to jump to top of document.
     - [x] Updated status bar with `g Bottom  •  G Top` hints.
     - [x] Updated F1 help modal with both jump bindings.
-- [ ] v2.4: Cycle through styles and save the last used style on exit.
-- [ ] v3.0: render/export to PDF/HTML.
-- [ ] v3.5: support rendering of Mermaid diagrams.
-- [ ] v4.0: runtime loading of custom syntax highlighters.
+- [ ] v3.0: Render document to PDF and/or HTML
+- [ ] v4.0: Add Mermaid diagram rendering to PDF and/or HTML
 
 ## Verification checklist before committing changes
 

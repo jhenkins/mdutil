@@ -27,6 +27,7 @@ htmlcov/
 
 # Local agent/session artifacts
 .hermes/
+.kanban/
 pi-session*.*
 
 # Other

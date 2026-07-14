@@ -2,7 +2,7 @@
 
 **Author:** _Jan Henkins_  
 **Version:** 2.3.1 (source of truth: `mdutil/version.py`)  
-**Last‑Updated:** 2026‑07‑09  
+**Last‑Updated:** 2026‑07‑14  
 **License:** MIT  
 **Repository:** <https://github.com/jhenkins/mdutil>
 
@@ -182,17 +182,4 @@ Ctrl-/ so `/` remains normal text input.
 
 ## 8. Future Enhancements (Roadmap)
 
-| Phase    | Feature        | Description                                             | Status |
-| -------- | -------------- | ------------------------------------------------------- |--------|
-| **v1.0** | _Viewing_      | Scroll with j/k and arrows, and page up/down.           | Done   |
-| **v1.0** | _Viewing_      | Enable/disable line numbers while viewing with 'l'      | Done   |
-| **v1.5** | _Viewing_      | Add F1 help modal popup to clean up status bar area     | Done   |
-| **v1.5** | _Viewing_      | Bottom status bar: F1 help, document name               | Done   |
-| **v2.0** | _Editing_      | In-place editing foundation: `i`, Escape, `dd`, `cw`, explicit Ctrl-S save, dirty protection, and atomic writes. | Done   |
-| **v2.1** | _Performance_  | Improve interactive performance on large documents.     | Done   |
-| **v2.2** | _Editing_      | Enhance and normalize editor functionality: raw Markdown editing, copy/paste, command model, search in normal/edit modes, highlighted matches, clearer status bars, status colors, and theme/config color settings. | Done   |
-|| **v2.3** | _Highlighting + Navigation_ | Expose all Pygments syntax highlighting styles via `--syntax-theme`, config support, and per-theme defaults. Added `g`/`G` jump-to-top/bottom navigation. | Done   |
-| **v2.4** | _Highlighting_ | Cycle through styles and save last used style on exit.  | Todo   |
-| **v3.0** | _Export_       | Render to PDF/HTML using `pulldown-cmark` + `printpdf`. | Todo   |
-| **v3.5** | _Export_       | Support rendering of Mermaid diagrams.                  | Todo   |
-| **v4.0** | _Plugins_      | Runtime loading of custom syntax highlighters.          | Todo   |
+The project roadmap is maintained as a single source of truth in `todo.md` under the "Immediate priorities" section. This spec intentionally does not duplicate the roadmap table; consult `todo.md` for current priorities, backlog items, and the housekeeping/merge state of the branch.
