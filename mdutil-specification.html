@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mdutil export</title>
+    <style>
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #24292e;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    margin-top: 24px;
+    margin-bottom: 16px;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+h1 { font-size: 2em; border-bottom: 1px solid #dfe2e5; padding-bottom: 0.3em; }
+h2 { font-size: 1.5em; border-bottom: 1px solid #dfe2e5; padding-bottom: 0.3em; }
+h3 { font-size: 1.25em; }
+h4 { font-size: 1em; }
+h5 { font-size: 0.875em; }
+h6 { font-size: 0.85em; color: #6a737d; }
+
+p {
+    margin: 0 0 16px 0;
+}
+
+a {
+    color: #0366d6;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 14px;
+    background-color: #f6f8fa;
+    border-radius: 3px;
+    padding: 0.2em 0.4em;
+}
+
+pre {
+    padding: 16px;
+    overflow: auto;
+    font-size: 14px;
+    line-height: 1.45;
+    background-color: #f6f8fa;
+    border-radius: 3px;
+}
+
+pre code {
+    background-color: transparent;
+    padding: 0;
+    font-size: 100%;
+}
+
+blockquote {
+    padding: 0 1em;
+    color: #6a737d;
+    border-left: 0.25em solid #dfe2e5;
+    margin: 0 0 16px 0;
+}
+
+hr {
+    height: 0.25em;
+    padding: 0;
+    margin: 24px 0;
+    background-color: #dfe2e5;
+    border: 0;
+}
+
+table {
+    border-spacing: 0;
+    border-collapse: collapse;
+    margin: 0 0 16px 0;
+    width: auto;
+    max-width: 100%;
+    overflow: auto;
+    display: block;
+}
+
+th {
+    font-weight: 600;
+    padding: 6px 13px;
+    border: 1px solid #dfe2e5;
+    background-color: #f6f8fa;
+}
+
+td {
+    padding: 6px 13px;
+    border: 1px solid #dfe2e5;
+}
+
+tr:nth-child(2n) {
+    background-color: #f6f8fa;
+}
+
+ul, ol {
+    padding-left: 2em;
+    margin: 0 0 16px 0;
+}
+
+li + li {
+    margin-top: 0.25em;
+}
+
+li > ul, li > ol {
+    margin-top: 0.25em;
+}
+
+img {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+    </style>
+</head>
+<body>
+<h1>Markdown Viewer CLI – Program Specification</h1>
+
+<p></p>
+<p></p>
+<p></p>
+<p></p>
+<p></p>
+
+<hr>
+
+<h2>1. Introduction</h2>
+
+<p></p>
+<p>The focus is on a clean, fast, and fully‑featured viewer with a few light editing functions. The program is written in Python.</p>
+
+<p></p>
+
+<ul>
+<li>100 % terminal‑only (no GUI).</li>
+<li>Minimal dependencies – a single static binary.</li>
+<li>Cross‑platform: runs on **Linux, macOS, Windows** (native).</li>
+<li>Responsive UI: scrolling, line‑number toggling, and theming.</li>
+<li>**Extensible**: future editing features can plug into the same pipeline.</li>
+<li>**Export**: convert Markdown to PDF (`--export pdf`) or HTML (`--export html`) without external tools.</li>
+</ul>
+
+<hr>
+
+<h2>2. Scope & Use‑Cases</h2>
+
+<table>
+<thead><tr><th style="text-align: None">#</th><th style="text-align: None">Use‑Case</th><th style="text-align: None">Description</th></tr></thead>
+<tbody><tr><td style="text-align: None">1</td><td style="text-align: None">**View**</td><td style="text-align: None">Open any Markdown file, scroll, and read formatted text.</td></tr><tr><td style="text-align: None">2</td><td style="text-align: None">**Syntax Highlight**</td><td style="text-align: None">Code blocks are highlighted using the specified theme.</td></tr><tr><td style="text-align: None">3</td><td style="text-align: None">**Theming**</td><td style="text-align: None">User can choose from built‑in themes or provide a custom theme file.</td></tr><tr><td style="text-align: None">4</td><td style="text-align: None">**Line Numbers**</td><td style="text-align: None">Optional display of line numbers for code blocks and the main document.</td></tr><tr><td style="text-align: None">5</td><td style="text-align: None">**Edit**</td><td style="text-align: None">In-place Markdown editing with explicit save, dirty-state protection, and normal/insert modes.</td></tr><tr><td style="text-align: None">6</td><td style="text-align: None">**Export**</td><td style="text-align: None">Render Markdown to PDF (`--export pdf`) or HTML (`--export html`) with optional `--output` path.</td></tr></tbody>
+</table>
+
+<blockquote>
+**Out‑of‑Scope** (for v1.0.0)
+
+- Rich text editing, live preview, or file synchronization.
+- Interactive tables or forms.
+</blockquote>
+
+<hr>
+
+<h2>3. Functional Requirements</h2>
+
+<table>
+<thead><tr><th style="text-align: None">Feature</th><th style="text-align: None">Description</th><th style="text-align: None">CLI Option(s)</th></tr></thead>
+<tbody><tr><td style="text-align: None">**Load Markdown**</td><td style="text-align: None">Accept a file path or read from stdin.</td><td style="text-align: None">`mdutil <file.md>` or <code>cat file.md &#124; mdutil</code></td></tr><tr><td style="text-align: None">**Basic Rendering**</td><td style="text-align: None">Render headings, lists, blockquotes, emphasis, tables, etc.</td><td style="text-align: None">–</td></tr><tr><td style="text-align: None">**Code Syntax Highlighting**</td><td style="text-align: None">Detect language via fenced code block info strings such as <code>```python</code>; fallback to plain text.</td><td style="text-align: None">–</td></tr><tr><td style="text-align: None">**Theming**</td><td style="text-align: None">Choose a theme.</td><td style="text-align: None">`--theme <theme-name>`</td></tr><tr><td style="text-align: None">**Custom Theme**</td><td style="text-align: None">Load a custom theme file (JSON or TOML).</td><td style="text-align: None">`--theme-file <path>`</td></tr><tr><td style="text-align: None">**Configuration File**</td><td style="text-align: None">Load user defaults from an editable configuration file.</td><td style="text-align: None">`--config <path>` and `--generate-config`</td></tr><tr><td style="text-align: None">**Line Numbers**</td><td style="text-align: None">Toggle line numbers for code blocks.</td><td style="text-align: None">`--line-numbers`</td></tr><tr><td style="text-align: None">**Scroll**</td><td style="text-align: None">Arrow keys or `j/k` to scroll up/down; `q` to quit.</td><td style="text-align: None">–</td></tr><tr><td style="text-align: None">**Editing**</td><td style="text-align: None">Vim-like normal commands with prompt-toolkit insert editing. Normal/viewer mode renders Markdown preview output; insert/editing mode shows and edits raw Markdown. Shortcuts include `i`, Escape, `dd`, `cw`, `yc`, `yw`, `yy`, Ctrl-V paste, explicit Ctrl-S save, dirty-buffer status, dirty quit blocking, and `!q` discard-and-quit.</td><td style="text-align: None">–</td></tr><tr><td style="text-align: None">**Search**</td><td style="text-align: None">Search from normal mode with `/`, navigate matches with `n` and `N`, search while editing with Ctrl-/ so literal `/` remains editable text, and highlight visible matches in the rendered preview.</td><td style="text-align: None">–</td></tr><tr><td style="text-align: None">**Safe File Writes**</td><td style="text-align: None">File-backed interactive sessions write through atomic same-directory temporary files and preserve the original file on failed saves.</td><td style="text-align: None">–</td></tr><tr><td style="text-align: None">**Status Bar**</td><td style="text-align: None">Distinct normal/edit/dirty/error status-bar text and colors, with theme keys and optional configuration overrides.</td><td style="text-align: None">`status_bar_normal`, `status_bar_insert`</td></tr><tr><td style="text-align: None">**Help**</td><td style="text-align: None">Show command-line usage.</td><td style="text-align: None">`--help`</td></tr><tr><td style="text-align: None">**Version**</td><td style="text-align: None">Print version.</td><td style="text-align: None">`--version`</td></tr><tr><td style="text-align: None">**Export PDF**</td><td style="text-align: None">Export rendered Markdown to a PDF file using fpdf2 (headings, paragraphs, code blocks, tables, lists, blockquotes, horizontal rules).</td><td style="text-align: None">`--export pdf`</td></tr><tr><td style="text-align: None">**Export HTML**</td><td style="text-align: None">Export rendered Markdown to an HTML file with embedded CSS (same token coverage as PDF).</td><td style="text-align: None">`--export html`</td></tr><tr><td style="text-align: None">**Output Path**</td><td style="text-align: None">Write exported content to a specific file path.</td><td style="text-align: None">`--output <path>` or `-o <path>`</td></tr><tr><td style="text-align: None">**Output Directory**</td><td style="text-align: None">Write exported files into a directory, auto-named from source filename.</td><td style="text-align: None">`--output-dir <dir>`</td></tr><tr><td style="text-align: None">**Multi-Format**</td><td style="text-align: None">Export to both PDF and HTML in one pass.</td><td style="text-align: None">`--export pdf,html`</td></tr><tr><td style="text-align: None">**Custom CSS**</td><td style="text-align: None">Embed a user-supplied CSS file into HTML export output (appended after base theme CSS).</td><td style="text-align: None">`--custom-css <path>`</td></tr><tr><td style="text-align: None">**Configuration**</td><td style="text-align: None">Export defaults are read from the `[export]` section in `~/.mdutilcfg` (paper size, margins, etc.).</td><td style="text-align: None">`[export]` section</td></tr></tbody>
+</table>
+
+<blockquote>
+**User‑Interface Constraints**
+
+- Must be usable on terminals up to 256 color support.
+- Works in both UTF‑8 and legacy terminals (fallback to ASCII).
+
+**Interactive UI Library Decision**
+
+- v1 uses `prompt-toolkit` for the interactive viewer because it provides cross-platform keyboard handling, terminal resizing, fullscreen rendering, and future editing primitives while remaining lighter than a full widget framework.
+- `textual` remains a good albeit heavier alternative for the future if mdutil grows into a richer TUI with panels, widgets, command palettes, tabs, or split edit/preview layouts.
+
+**Configuration File**
+
+- `mdutil` supports a plain-text, standard-editor-editable user configuration file for runtime defaults.
+- On Linux and macOS, the default user configuration file is `~/.mdutilcfg`.
+- On Windows, the default user configuration file is `%USERPROFILE%\mdutil.ini`.
+- The configuration file is stored in the user's home folder using the path convention of the operating system.
+- The configuration format is INI-style text with comments. Generated files must include the current runtime defaults and helpful comments describing available options and accepted values.
+- If the configuration file does not exist, `mdutil` runs with built-in defaults. A user can create the file manually or generate a starter file with `--generate-config`.
+- Runtime precedence is: built-in defaults → user configuration file → explicit CLI options.
+- `--config <path>` may be used to load an alternate configuration file for a single invocation.
+- Configuration must not require network access and must be parsed offline.
+</blockquote>
+
+<hr>
+
+<h2>4. Non‑Functional Requirements</h2>
+
+<table>
+<thead><tr><th style="text-align: None">Category</th><th style="text-align: None">Requirement</th><th style="text-align: None">Rationale</th></tr></thead>
+<tbody><tr><td style="text-align: None">**Performance**</td><td style="text-align: None">Render < 1 ms per page load (≈ 1 k lines).</td><td style="text-align: None">Fast scrolling on large docs.</td></tr><tr><td style="text-align: None">**Memory**</td><td style="text-align: None">≤ 10 MB RAM usage on 10 k line file.</td><td style="text-align: None">Lightweight on low‑resource machines.</td></tr><tr><td style="text-align: None">**Portability**</td><td style="text-align: None">Build once, run on Linux, macOS, Windows (64‑bit).</td><td style="text-align: None">Simplifies distribution.</td></tr><tr><td style="text-align: None">**Accessibility**</td><td style="text-align: None">High‑contrast themes, `--theme high-contrast`.</td><td style="text-align: None">Meets accessibility standards.</td></tr><tr><td style="text-align: None">**Extensibility**</td><td style="text-align: None">Modular architecture: Parser → Renderer → Highlighter → Display.</td><td style="text-align: None">Easier to plug editing features later.</td></tr><tr><td style="text-align: None">**Security**</td><td style="text-align: None">No external network access; all parsing is offline.</td><td style="text-align: None">Reduces attack surface.</td></tr></tbody>
+</table>
+
+<hr>
+
+<h2>5. Architecture Overview</h2>
+
+<p>The CLI parser loads built-in defaults, merges any user configuration file, then applies explicit command-line options before passing resolved runtime settings through the rest of the pipeline.</p>
+
+<p>Interactive terminal output has two coordinated modes. Normal/viewer mode renders</p>
+<p>the current Markdown buffer through the parser, renderer, syntax highlighter, and</p>
+<p>terminal display pipeline. Insert/editing mode exposes the raw Markdown buffer for</p>
+<p>text changes. The command model is an explicit hybrid: Vim-like normal commands</p>
+<p>for navigation and structural editing, plus prompt-toolkit text editing while in</p>
+<p></p>
+<p></p>
+<p>to paste clipboard text at the cursor. File-backed sessions save explicitly with</p>
+<p>Ctrl-S, track dirty state, block accidental dirty quits, and write atomically via</p>
+<p>same-directory temporary files before replacing the target path. The bottom status</p>
+<p>bar identifies normal/insert state, save/dirty state, and the relevant safe action;</p>
+<p>its normal and insert colors can be supplied by the active theme or overridden from</p>
+<p>the configuration file. Search keys are mode-aware and appear in the bottom status</p>
+<p></p>
+<p></p>
+
+<pre><code>┌───────────────────────┐
+│      CLI Parser       │
+└──────▲───────┬────────┘
+       │       │
+       │      args
+       │       │
+┌──────▼───────┴────────┐
+│   Markdown Reader     │
+└──────▲───────┬────────┘
+       │       │
+       │      file
+       │       │
+┌──────▼───────┴────────┐
+│   Markdown Parser     │ 
+└──────▲───────┬────────┘
+       │       │
+       │     events
+       │       │
+┌──────▼───────┴────────┐
+│    Markdown Renderer  │
+└──────▲───────┬────────┘
+       │       │
+       │    tokens
+       │       │
+┌──────▼───────┴────────┐
+│   Syntax Highlighter  │
+└──────▲───────┬────────┘
+       │       │
+       │     ANSI / tokens
+       │       │
+       ├───────┴──────────────────┐
+       │                          │
+┌──────▼───────┐        ┌────────▼────────┐
+│  Terminal    │        │  Export         │
+│  Display     │        │  PdfExporter /  │
+│  (interactive│        │  HtmlExporter   │
+│   view/edit) │        │  → .pdf / .html │
+└──────────────┘        └─────────────────┘</code></pre>
+
+<hr>
+
+<h2>6. Testing Strategy</h2>
+
+<table>
+<thead><tr><th style="text-align: None">Test Type</th><th style="text-align: None">Description</th></tr></thead>
+<tbody><tr><td style="text-align: None">**Unit Tests**</td><td style="text-align: None">Each component (`Renderer`, `Highlighter`) gets pure‑function tests.</td></tr><tr><td style="text-align: None">**Integration Tests**</td><td style="text-align: None">Run `mdutil` against a set of sample Markdown files (covering tables, code fences, footnotes).</td></tr><tr><td style="text-align: None">**Configuration Tests**</td><td style="text-align: None">Verify default config paths, config generation, comments/default values, alternate `--config`, and CLI precedence.</td></tr><tr><td style="text-align: None">**Interactive Editor Tests**</td><td style="text-align: None">Verify normal/insert mode transitions, `i`, Escape, `dd`, `cw`, explicit Ctrl-S save, dirty indicators, dirty quit blocking, discard quit, failed-save preservation, atomic-write cleanup, mode-aware search keys, status-bar search hints, and highlighted search matches.</td></tr><tr><td style="text-align: None">**Export Tests**</td><td style="text-align: None">Verify PdfExporter (bytes, paper sizes, margins, headers/footers, bookmarks) and HtmlExporter (str, embedded CSS, custom CSS, all token types).</td></tr><tr><td style="text-align: None">**Cross‑Platform CI**</td><td style="text-align: None">GitHub Actions matrix: ubuntu, macos, windows.</td></tr><tr><td style="text-align: None">**Performance Benchmarks**</td><td style="text-align: None">Measure rendering time on large docs (10k lines).</td></tr></tbody>
+</table>
+
+<blockquote>
+**Coverage Goal**: ≥ 90 % code coverage.
+</blockquote>
+
+
+<hr>
+
+<h2>7. Maintenance & Contribution</h2>
+
+<ul>
+<li>**Issue Tracker**: Use GitHub issues.</li>
+<li>**Pull Requests**: Follow the template, run CI, ensure tests pass.</li>
+<li>**Release Process**: Semantic versioning; tag releases; publish binaries on GitHub Releases and, optionally, as a Homebrew/Cargo package.</li>
+</ul>
+
+<hr>
+
+<h2>8. Future Enhancements (Roadmap)</h2>
+
+<p></p>
+
+</body>
+</html>
