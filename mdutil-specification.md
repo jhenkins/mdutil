@@ -1,17 +1,17 @@
 # Markdown Viewer CLI – Program Specification
 
-**Author:** _Jan Henkins_  
-**Version:** 2.3.1 (source of truth: `mdutil/version.py`)  
-**Last‑Updated:** 2026‑07‑14  
-**License:** MIT  
+**Author:** _Jan Henkins_
+**Version:** 3.0.0 (source of truth: `mdutil/version.py`)
+**Last‑Updated:** 2026‑07‑27
+**License:** MIT
 **Repository:** <https://github.com/jhenkins/mdutil>
 
 ---
 
 ## 1. Introduction
 
-`mdutil` is a **cross‑platform, terminal‑based Markdown viewer** that renders Markdown files with syntax‑highlighted code blocks and basic styling (headings, lists, blockquotes, etc.).  
-The focus is on a clean, fast, and fully‑featured viewer that can later evolve into a light‑weight editor. The program is written in Python.
+`mdutil` is a **cross‑platform, terminal‑based Markdown viewer** that renders Markdown files with syntax‑highlighted code blocks and basic styling (headings, lists, blockquotes, etc.). It also supports exporting documents to PDF or HTML.  
+The focus is on a clean, fast, and fully‑featured viewer with a few light editing functions. The program is written in Python.
 
 **Key design goals**
 
@@ -19,7 +19,8 @@ The focus is on a clean, fast, and fully‑featured viewer that can later evolve
 - Minimal dependencies – a single static binary.
 - Cross‑platform: runs on **Linux, macOS, Windows** (native).
 - Responsive UI: scrolling, line‑number toggling, and theming.
-- Extensible: future editing features can plug into the same pipeline.
+- **Extensible**: future editing features can plug into the same pipeline.
+- **Export**: convert Markdown to PDF (`--export pdf`) or HTML (`--export html`) without external tools.
 
 ---
 
@@ -32,11 +33,11 @@ The focus is on a clean, fast, and fully‑featured viewer that can later evolve
 | 3   | **Theming**          | User can choose from built‑in themes or provide a custom theme file.                             |
 | 4   | **Line Numbers**     | Optional display of line numbers for code blocks and the main document.                          |
 | 5   | **Edit**             | In-place Markdown editing with explicit save, dirty-state protection, and normal/insert modes.   |
+| 6   | **Export**           | Render Markdown to PDF (`--export pdf`) or HTML (`--export html`) with optional `--output` path. |
 
 > **Out‑of‑Scope** (for v1.0.0)
 >
 > - Rich text editing, live preview, or file synchronization.
-> - Rendering Markdown to PDF/HTML.
 > - Interactive tables or forms.
 
 ---
@@ -57,8 +58,15 @@ The focus is on a clean, fast, and fully‑featured viewer that can later evolve
 | **Search** | Search from normal mode with `/`, navigate matches with `n` and `N`, search while editing with Ctrl-/ so literal `/` remains editable text, and highlight visible matches in the rendered preview. | – |
 | **Safe File Writes** | File-backed interactive sessions write through atomic same-directory temporary files and preserve the original file on failed saves. | – |
 | **Status Bar** | Distinct normal/edit/dirty/error status-bar text and colors, with theme keys and optional configuration overrides. | `status_bar_normal`, `status_bar_insert` |
-| **Help** | Show command-line usage. | `--help` |
-| **Version** | Print version. | `--version` |
+| **Help**             | Show command-line usage.                                                                           | `--help` |
+| **Version**          | Print version.                                                                                     | `--version` |
+| **Export PDF**       | Export rendered Markdown to a PDF file using fpdf2 (headings, paragraphs, code blocks, tables, lists, blockquotes, horizontal rules). | `--export pdf` |
+| **Export HTML**      | Export rendered Markdown to an HTML file with embedded CSS (same token coverage as PDF).           | `--export html` |
+| **Output Path**      | Write exported content to a specific file path.                                                     | `--output <path>` or `-o <path>` |
+| **Output Directory** | Write exported files into a directory, auto-named from source filename.                             | `--output-dir <dir>` |
+| **Multi-Format**     | Export to both PDF and HTML in one pass.                                                            | `--export pdf,html` |
+| **Custom CSS**       | Embed a user-supplied CSS file into HTML export output (appended after base theme CSS).              | `--custom-css <path>` |
+| **Configuration**    | Export defaults are read from the `[export]` section in `~/.mdutilcfg` (paper size, margins, etc.). | `[export]` section |
 
 > **User‑Interface Constraints**
 >
@@ -146,11 +154,16 @@ Ctrl-/ so `/` remains normal text input.
 │   Syntax Highlighter  │
 └──────▲───────┬────────┘
        │       │
-       │     ANSI
+       │     ANSI / tokens
        │       │
-┌──────▼───────┴────────┐
-│   Terminal Display    │
-└───────────────────────┘
+       ├───────┴──────────────────┐
+       │                          │
+┌──────▼───────┐        ┌────────▼────────┐
+│  Terminal    │        │  Export         │
+│  Display     │        │  PdfExporter /  │
+│  (interactive│        │  HtmlExporter   │
+│   view/edit) │        │  → .pdf / .html │
+└──────────────┘        └─────────────────┘
 ```
 
 ---
@@ -163,7 +176,7 @@ Ctrl-/ so `/` remains normal text input.
 | **Integration Tests**      | Run `mdutil` against a set of sample Markdown files (covering tables, code fences, footnotes).                        |
 | **Configuration Tests**    | Verify default config paths, config generation, comments/default values, alternate `--config`, and CLI precedence.    |
 | **Interactive Editor Tests** | Verify normal/insert mode transitions, `i`, Escape, `dd`, `cw`, explicit Ctrl-S save, dirty indicators, dirty quit blocking, discard quit, failed-save preservation, atomic-write cleanup, mode-aware search keys, status-bar search hints, and highlighted search matches. |
-| **End‑to‑End (CLI)**       | Use `assert_cmd` to spawn `mdutil` with various flags and verify output length / presence of expected ANSI sequences. |
+| **Export Tests**           | Verify PdfExporter (bytes, paper sizes, margins, headers/footers, bookmarks) and HtmlExporter (str, embedded CSS, custom CSS, all token types). |
 | **Cross‑Platform CI**      | GitHub Actions matrix: ubuntu, macos, windows.                                                                        |
 | **Performance Benchmarks** | Measure rendering time on large docs (10k lines).                                                                     |
 

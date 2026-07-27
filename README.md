@@ -43,8 +43,9 @@ document.
 
 ## Quick Overview
 
-- Read markdown documents with syntax highlighting
-- Edit file-backed Markdown interactively with normal/insert modes
+|- Read markdown documents with syntax highlighting
+|- Edit file-backed Markdown interactively with normal/insert modes
+|- Export documents to PDF or HTML with `--export pdf` / `--export html` and `--output`
 - Search in normal mode with `/`, then navigate matches with `n` and `N`
 - Search while editing with `Ctrl-/`; literal `/` remains text input in insert mode
 - Highlight visible search matches in the rendered preview
@@ -122,6 +123,37 @@ mdutil your_document.md  # Shows with colors
 mdutil your_document.md --quiet
 ```
 
+### Export to PDF
+
+```bash
+mdutil your_document.md --export pdf --output output.pdf
+```
+
+### Export to HTML
+
+```bash
+mdutil your_document.md --export html --output output.html
+```
+
+### Export both formats
+
+```bash
+mdutil your_document.md --export pdf,html --output-dir ./exports
+```
+
+### Export with custom CSS for HTML
+
+```bash
+mdutil your_document.md --export html --custom-css style.css --output-dir ./html
+```
+
+### Default output directory
+
+```bash
+# Writes to ./output.pdf (or ./output.html) in the current directory
+echo -e "# Hello\n\nWorld" | mdutil --export html
+```
+
 ---
 
 ## Demo
@@ -149,10 +181,7 @@ Use bold and code.
 
 ## Requirements
 - Python 3.11 or higher
-- Runtime dependencies are declared in `pyproject.toml`:
-  - `markdown>=3.0`
-  - `Pygments>=2.0`
-  - `prompt-toolkit>=3.0`
+- Please note that this project uses [fpdf2](https://github.com/akademic/fpdf2) as the sole external dependency for PDF export, beyond the core Python Markdown, Pygments, and prompt-toolkit libraries.
 
 ---
 

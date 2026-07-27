@@ -59,6 +59,55 @@ class ConfigTests(unittest.TestCase):
             self.assertEqual(loaded["status_bar_normal"], "fg:#010203 bg:#040506")
             self.assertEqual(loaded["status_bar_insert"], "fg:#111111 bg:#222222")
 
+    def test_generated_config_includes_export_section(self):
+        """The generated config file includes [export] section with defaults."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / ".mdutilcfg"
+
+            ensure_config_file(path)
+            text = path.read_text(encoding="utf-8")
+
+        self.assertIn("[export]", text)
+        self.assertIn("default_format = pdf", text)
+        self.assertIn("output_dir =", text)
+        self.assertIn("pdf_paper_size = A4", text)
+        self.assertIn("html_embed_css = true", text)
+
+    def test_export_section_defaults_loaded_correctly(self):
+        """[export] section values are loaded into config dict."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / ".mdutilcfg"
+            path.write_text(
+                "[export]\n"
+                "default_format = html\n"
+                "output_dir = /tmp/exports\n"
+                "pdf_paper_size = Letter\n"
+                "pdf_margin_top = 30\n"
+                "html_embed_css = false\n",
+                encoding="utf-8",
+            )
+
+            loaded = load_config(path)
+
+        self.assertEqual(loaded["export_format"], "html")
+        self.assertEqual(loaded["export_output_dir"], "/tmp/exports")
+        self.assertEqual(loaded["pdf_paper_size"], "Letter")
+        self.assertEqual(loaded["pdf_margin_top"], 30)
+        self.assertFalse(loaded["html_embed_css"])
+
+    def test_export_section_defaults_fall_back_to_builtins(self):
+        """Missing [export] section keeps built-in defaults."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / ".mdutilcfg"
+            path.write_text("[mdutil]\ntheme = dracula\n", encoding="utf-8")
+
+            loaded = load_config(path)
+
+        self.assertEqual(loaded["export_format"], "pdf")
+        self.assertIsNone(loaded["export_output_dir"])
+        self.assertEqual(loaded["pdf_paper_size"], "A4")
+        self.assertEqual(loaded["html_embed_css"], True)
+
 
 if __name__ == "__main__":
     unittest.main()

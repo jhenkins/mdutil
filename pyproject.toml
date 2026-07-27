@@ -15,10 +15,11 @@ authors = [
 dependencies = [
   "markdown>=3.0",
   "Pygments>=2.0",
-  "prompt-toolkit>=3.0"
+  "prompt-toolkit>=3.0",
+  "fpdf2>=2.8.0"
 ]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
