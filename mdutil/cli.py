@@ -53,6 +53,8 @@ class _AlignedHelpFormatter(argparse.RawDescriptionHelpFormatter):
 from . import __version__
 from .config import default_config_path, ensure_config_file, load_config
 from .display import run_interactive_viewer
+from .export.pdf import PdfExporter
+from .export.html import HtmlExporter
 from .parser import parse_markdown
 from .reader import read_input
 from .renderer import render
@@ -121,6 +123,16 @@ def build_arg_parser() -> argparse.ArgumentParser:
         version=f"mdutil {__version__}",
         help="Show version",
     )
+    arg_parser.add_argument(
+        "--export",
+        choices=["pdf", "html"],
+        help="Export format (pdf or html)",
+    )
+    arg_parser.add_argument(
+        "--output",
+        "-o",
+        help="Output file path for export (default: stdout)",
+    )
     return arg_parser
 
 
@@ -164,6 +176,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         try:
             content = read_input(file_path)
             parsed = parse_markdown(content)
+
+            if args.export:
+                return _handle_export(args, content, parsed, runtime)
+
             interactive = _should_run_interactive(file_path, runtime["quiet"])
             output = render(
                 parsed,
@@ -192,6 +208,32 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"Error: {exc}", file=sys.stderr)
             return 1
     return 0
+
+
+def _handle_export(args: argparse.Namespace, content: str, parsed: list[dict], runtime: RuntimeOptions) -> int:
+    """Handle export to PDF or HTML format."""
+    export_format = args.export
+    exporter = PdfExporter() if export_format == "pdf" else HtmlExporter()
+
+    if not exporter.supports(export_format):
+        print(f"Error: Unsupported export format: {export_format}", file=sys.stderr)
+        return 1
+
+    try:
+        export_output = exporter.render(parsed, theme={}, options={})
+
+        if args.output:
+            Path(args.output).write_bytes(export_output)
+            if not runtime["quiet"]:
+                print(f"Exported to: {args.output}", file=sys.stderr)
+        else:
+            sys.stdout.buffer.write(export_output)
+            sys.stdout.buffer.flush()
+
+        return 0
+    except Exception as exc:
+        print(f"Export error: {exc}", file=sys.stderr)
+        return 1
 
 
 def _resolve_runtime_options(
