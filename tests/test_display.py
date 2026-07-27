@@ -768,7 +768,9 @@ class ScrollBufferTests(unittest.TestCase):
 
         visible_text = getattr(app, "mdutil_visible_rendered_text")()
 
-        self.assertEqual(strip_ansi(visible_text), "alpha target\nbeta target")
+        # Two non-blank lines form a single Markdown paragraph, so the
+        # rendered text is one line with two highlighted matches.
+        self.assertEqual(strip_ansi(visible_text), "alpha target beta target")
         self.assertEqual(visible_text.count("\033[7mtarget\033[27m"), 2)
 
     def test_prompt_toolkit_app_exposes_viewer_state_for_help_modal(self):

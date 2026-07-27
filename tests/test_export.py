@@ -7,6 +7,7 @@ from mdutil.export import Exporter
 from mdutil.export.base import Exporter as BaseExporter
 from mdutil.export.pdf import PdfExporter
 from mdutil.export.html import HtmlExporter
+from mdutil.parser import parse_markdown
 
 
 class BaseExporterTests(unittest.TestCase):
@@ -240,6 +241,28 @@ class HtmlExporterTests(unittest.TestCase):
         tokens = [{"type": "paragraph", "text": "Test paragraph"}]
         result = self.exporter.render(tokens, {}, {})
         self.assertIn("<p>Test paragraph</p>", result)
+
+    def test_render_document_header_metadata_on_separate_lines(self):
+        """Document metadata header lines should not collapse into one visual line."""
+        tokens = parse_markdown(
+            "**Author:** _Jan Henkins_\n"
+            "**Version:** 3.0.0\n"
+            "**Last‑Updated:** 2026‑07‑27\n"
+            "**License:** MIT\n"
+            "**Repository:** <https://github.com/jhenkins/mdutil>"
+        )
+
+        result = self.exporter.render(tokens, {}, {})
+
+        self.assertIn(
+            "<p><strong>Author:</strong> <em>Jan Henkins</em><br>\n"
+            "<strong>Version:</strong> 3.0.0<br>\n"
+            "<strong>Last‑Updated:</strong> 2026‑07‑27<br>\n"
+            "<strong>License:</strong> MIT<br>\n"
+            '<strong>Repository:</strong> <a href="https://github.com/jhenkins/mdutil">'
+            "https://github.com/jhenkins/mdutil</a></p>",
+            result,
+        )
 
     def test_render_code_block(self):
         """Code blocks should render with pre/code tags."""

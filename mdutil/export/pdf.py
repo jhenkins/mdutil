@@ -295,7 +295,7 @@ class PdfExporter(Exporter):
 
     def _render_list(self, pdf: FPDF, token: dict) -> None:
         """Render an ordered or unordered list."""
-        items = token.get("items", [])
+        parsed_items = token.get("parsed_items", [])
         ordered = token.get("ordered", False)
         indent = 5
 
@@ -305,16 +305,29 @@ class PdfExporter(Exporter):
         left_x = pdf.l_margin
         pdf.set_x(left_x + indent)
 
-        for i, item in enumerate(items, 1):
+        if parsed_items:
+            items_to_render = parsed_items
+        else:
+            # Fallback for tokens without parsed_items (tests, legacy)
+            items_to_render = token.get("items", [])
+
+        for i, item in enumerate(items_to_render, 1):
             if ordered:
                 prefix = f"{i}. "
             else:
                 prefix = "- "
 
+            if isinstance(item, dict):
+                content = item.get("content", item.get("text", ""))
+            else:
+                content = str(item)
+            # Strip HTML inline tags for PDF (fpdf2 can't render HTML)
+            content = re.sub(r"</?(?:strong|em|code|a[^>]*)>", "", content)
+
             pdf.set_x(left_x + indent)
             effective_w = pdf.w - left_x - pdf.r_margin - indent
             if effective_w < 10:
                 effective_w = 50  # fallback for very narrow layouts
-            pdf.multi_cell(effective_w, 5, f"{prefix}{item}", align="L")
+            pdf.multi_cell(effective_w, 5, f"{prefix}{content}", align="L")
 
         pdf.ln(3)

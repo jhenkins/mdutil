@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from mdutil.export.base import Exporter
+from mdutil.parser import _parse_inline
 
 
 class HtmlExporter(Exporter):
     """Export Markdown to HTML with embedded CSS."""
+
+    _DOCUMENT_HEADER_LINE_RE = re.compile(
+        r"^\*\*(?:author|version|last[-‑]updated|license|repository):\*\*\s+",
+        re.IGNORECASE,
+    )
 
     DEFAULT_FONT_SIZE = 16  # 1em
     DEFAULT_LINE_HEIGHT = 1.6
@@ -223,10 +230,12 @@ img {{
         return "\n".join(output)
 
     def _render_heading(self, token: dict) -> str:
-        """Render a heading."""
+        """Render a heading with inline formatting."""
         level = token.get("level", 1)
         text = token.get("text", "")
-        return f"<h{level}>{text}</h{level}>"
+        inline = _parse_inline(text)
+        content = inline["content"]
+        return f"<h{level}>{content}</h{level}>"
 
     def _render_paragraph(self, token: dict) -> str:
         """Render a paragraph.
@@ -235,6 +244,9 @@ img {{
         (<strong>, <em>, <code>, <a>) — use it directly so that bold,
         italic, code, and links render correctly in the browser.
         """
+        if self._is_document_header_metadata(token):
+            return "<p>" + "<br>\n".join(token["content_lines"]) + "</p>"
+
         content = token.get("content", "")
         if content:
             return f"<p>{content}</p>"
@@ -246,12 +258,23 @@ img {{
             text = token.get("text", "")
         return f"<p>{text}</p>"
 
+    def _is_document_header_metadata(self, token: dict) -> bool:
+        """Return True when a paragraph is the spec-style document metadata header."""
+        source_lines = token.get("source_lines", [])
+        content_lines = token.get("content_lines", [])
+        if len(source_lines) < 2 or len(source_lines) != len(content_lines):
+            return False
+        return all(
+            isinstance(line, str) and self._DOCUMENT_HEADER_LINE_RE.match(line)
+            for line in source_lines
+        )
+
     def _render_spans(self, spans: list[dict]) -> str:
         """Render inline spans with formatting."""
         output = []
         for span in spans:
             span_type = span.get("type", "text")
-            content = span.get("content", "")
+            content = span.get("content", span.get("text", ""))
 
             if span_type == "text":
                 output.append(content)
@@ -259,7 +282,7 @@ img {{
                 output.append(f"<strong>{content}</strong>")
             elif span_type in ("italic", "emphasis"):
                 output.append(f"<em>{content}</em>")
-            elif span_type == "code":
+            elif span_type in ("code", "inline_code"):
                 output.append(f"<code>{content}</code>")
             elif span_type == "link":
                 href = span.get("href", "#")
@@ -290,11 +313,23 @@ img {{
         if not headers:
             return ""
 
+        # Helper to parse inline formatting in a cell.
+        def cell_html(text: str) -> str:
+            if isinstance(text, str):
+                inline = _parse_inline(text)
+                return inline["content"]
+            return str(text)
+
+        def cell_align(i: int) -> str:
+            if i < len(alignments) and alignments[i]:
+                return alignments[i]
+            return "left"
+
         # Build header row
         header_cells = []
         for i, header in enumerate(headers):
-            align = alignments[i] if i < len(alignments) else "left"
-            header_cells.append(f"<th style=\"text-align: {align}\">{header}</th>")
+            align = cell_align(i)
+            header_cells.append(f"<th style=\"text-align: {align}\">{cell_html(header)}</th>")
         header_row = "<tr>" + "".join(header_cells) + "</tr>"
 
         # Build body rows
@@ -302,8 +337,8 @@ img {{
         for row in rows:
             cells = []
             for i, cell in enumerate(row):
-                align = alignments[i] if i < len(alignments) else "left"
-                cells.append(f"<td style=\"text-align: {align}\">{cell}</td>")
+                align = cell_align(i)
+                cells.append(f"<td style=\"text-align: {align}\">{cell_html(cell)}</td>")
             body_rows.append("<tr>" + "".join(cells) + "</tr>")
 
         body = "<tbody>" + "".join(body_rows) + "</tbody>"
@@ -311,22 +346,45 @@ img {{
         return f"<table>\n<thead>{header_row}</thead>\n{body}\n</table>"
 
     def _render_blockquote(self, token: dict) -> str:
-        """Render a blockquote."""
+        """Render a blockquote.
+
+        Strips leading ``>`` markers, parses inline formatting, and
+        renders nested lists as proper HTML.
+        """
         content = token.get("content", "")
-        # Remove leading > from each line
         lines = content.split("\n")
-        cleaned_lines = [line.lstrip(">").strip() for line in lines]
-        text = "\n".join(cleaned_lines)
-        return f"<blockquote>\n{text}\n</blockquote>"
+        cleaned_lines = []
+        for line in lines:
+            stripped = line.lstrip(">").strip()
+            cleaned_lines.append(stripped)
+        raw_text = "\n".join(cleaned_lines)
+
+        # Re-parse the blockquote content so inline formatting and nested
+        # lists are rendered correctly.
+        from mdutil.parser import parse_markdown
+        sub_tokens = parse_markdown(raw_text)
+        inner_html = self._render_tokens(sub_tokens)
+        return f"<blockquote>\n{inner_html}\n</blockquote>"
 
     def _render_list(self, token: dict) -> str:
         """Render an ordered or unordered list."""
-        items = token.get("items", [])
+        parsed_items = token.get("parsed_items", [])
         ordered = token.get("ordered", False)
         list_type = "ol" if ordered else "ul"
 
         list_items = []
-        for item in items:
-            list_items.append(f"<li>{item}</li>")
+        if parsed_items:
+            for item in parsed_items:
+                content = item.get("content", item.get("text", ""))
+                list_items.append(f"<li>{content}</li>")
+        else:
+            # Fallback for tokens without parsed_items (tests, legacy)
+            items = token.get("items", [])
+            for item in items:
+                if isinstance(item, dict):
+                    content = item.get("content", item.get("text", ""))
+                else:
+                    content = str(item)
+                list_items.append(f"<li>{content}</li>")
 
         return f"<{list_type}>\n" + "\n".join(list_items) + f"\n</{list_type}>"
