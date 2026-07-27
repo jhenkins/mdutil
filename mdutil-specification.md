@@ -60,8 +60,8 @@ The focus is on a clean, fast, and fully‑featured viewer with a few light edit
 | **Status Bar** | Distinct normal/edit/dirty/error status-bar text and colors, with theme keys and optional configuration overrides. | `status_bar_normal`, `status_bar_insert` |
 | **Help**             | Show command-line usage.                                                                           | `--help` |
 | **Version**          | Print version.                                                                                     | `--version` |
-| **Export PDF**       | Export rendered Markdown to a PDF file using fpdf2 (headings, paragraphs, code blocks, tables, lists, blockquotes, horizontal rules). | `--export pdf` |
-| **Export HTML**      | Export rendered Markdown to an HTML file with embedded CSS (same token coverage as PDF).           | `--export html` |
+| **Export PDF**       | Export rendered Markdown to a PDF file using fpdf2 (scaled headings, paragraphs with inline bold/emphasis/code/link rendering, wrapped tables, lists, blockquote blocks, horizontal rules). | `--export pdf` |
+| **Export HTML**      | Export rendered Markdown to an HTML file with embedded CSS (same token coverage as PDF, including line-preserved document metadata headers). | `--export html` |
 | **Output Path**      | Write exported content to a specific file path.                                                     | `--output <path>` or `-o <path>` |
 | **Output Directory** | Write exported files into a directory, auto-named from source filename.                             | `--output-dir <dir>` |
 | **Multi-Format**     | Export to both PDF and HTML in one pass.                                                            | `--export pdf,html` |

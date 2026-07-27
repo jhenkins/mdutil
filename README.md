@@ -43,9 +43,10 @@ document.
 
 ## Quick Overview
 
-|- Read markdown documents with syntax highlighting
-|- Edit file-backed Markdown interactively with normal/insert modes
-|- Export documents to PDF or HTML with `--export pdf` / `--export html` and `--output`
+- Read markdown documents with syntax highlighting
+- Edit file-backed Markdown interactively with normal/insert modes
+- Export documents to PDF or HTML with `--export pdf` / `--export html` and `--output`
+- PDF export renders Markdown headings, inline bold/emphasis/code, clickable links, wrapped tables, and blockquote blocks
 - Search in normal mode with `/`, then navigate matches with `n` and `N`
 - Search while editing with `Ctrl-/`; literal `/` remains text input in insert mode
 - Highlight visible search matches in the rendered preview
@@ -129,11 +130,15 @@ mdutil your_document.md --quiet
 mdutil your_document.md --export pdf --output output.pdf
 ```
 
+PDF output includes headings, paragraphs, lists, code blocks, tables with wrapped cell text, blockquotes, horizontal rules, and inline formatting such as bold, emphasis, inline code, and clickable links. Specification-style document metadata headers (`Author`, `Version`, `Last-Updated`, `License`, `Repository`) are preserved as separate lines.
+
 ### Export to HTML
 
 ```bash
 mdutil your_document.md --export html --output output.html
 ```
+
+HTML output includes embedded CSS and preserves inline Markdown formatting, links, tables, lists, blockquotes, code blocks, and the same line-preserved document metadata header handling as PDF export.
 
 ### Export both formats
 
