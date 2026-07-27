@@ -153,7 +153,7 @@ viewer and rendering quality can move into the next incremental backlog slice.
   - [x] Bugfix: Removed stdout export path (terminal security risk). Export now always writes a file, defaulting to cwd.
   - [x] Phase 5: Advanced Features (PDF headers/footers, A4/Letter/Legal paper, configurable margins, bookmarks for h1-h3, HTML custom CSS via --custom-css, improved table rendering, PermissionError handling)
   - [x] Phase 6: Testing & Documentation (coverage 93%, README, spec updates, QA verified)
-  - [x] Phase 7: Release Preparation (version 3.0.0, committed, push/PR manual)
+  - [x] Phase 7: Release Preparation (version 3.0.0, committed, pushed/PR handled manually, PDF/HTML rendering bugfixes completed)
   - Detailed checklist: `todo-v3.0.md`
 - [ ] v4.0: Add Mermaid diagram rendering to PDF and/or HTML
 

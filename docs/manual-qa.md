@@ -283,7 +283,8 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor i
 | 5.1a | `python -m mdutil --export pdf --output /tmp/test.pdf /tmp/qa-test.md` | Prints "Exported to: /tmp/test.pdf" to stderr. |
 | 5.1b | `head -c 5 /tmp/test.pdf` | Output starts with `%PDF-`. |
 | 5.1c | `file /tmp/test.pdf` | Returns "PDF document" (or similar). |
-| 5.1d | Open `/tmp/test.pdf` in a PDF reader (Evince, Chrome, Acrobat). | All content rendered: headings, lists, code blocks (with background fill), tables (bordered, alternating rows), blockquotes (grey), horizontal rules. |
+| 5.1d | Open `/tmp/test.pdf` in a PDF reader (Evince, Chrome, Acrobat). | All content rendered: scaled headings, paragraphs with bold/emphasis/inline-code formatting, clickable links, lists, code blocks (with background fill), tables (bordered, alternating rows, wrapped cell text), blockquote blocks with a vertical rule, horizontal rules. |
+| 5.1e | Export `mdutil-specification.md` and inspect the first page. | The document metadata header entries (`Author`, `Version`, `Last-Updated`, `License`, `Repository`) are separate lines, not one collapsed line. |
 
 ### 5.2 PDF bookmarks
 
@@ -492,5 +493,5 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor i
 
 ---
 
-**Test summary:** ___ / 60 tests passed  (___ / 60 attempted)  
+**Test summary:** ___ / 61 tests passed  (___ / 61 attempted)  
 **Overflow failures:** ___ (link to bug tracker issue(s))

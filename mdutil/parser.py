@@ -11,6 +11,7 @@ Token = dict[str, Any]
 _CODE_FENCE_RE = re.compile(r"^(?P<indent> {0,3})(?P<fence>`{3,}|~{3,})[ \t]*(?P<info>.*)$")
 _HEADING_RE = re.compile(r"^ {0,3}(?P<marks>#{1,6})(?:[ \t]+(?P<text>.*)|[ \t]*)$")
 _LIST_RE = re.compile(r"^(?P<indent> {0,3})(?:(?P<unordered>[-+*])|(?P<ordered>\d{1,9}[.)]))[ \t]+(?P<item>.*)$")
+_AUTOLINK_RE = re.compile(r"<((?:https?|ftp)://[^>]+)>")
 
 
 def parse_markdown(content: str) -> list[Token]:
@@ -89,17 +90,115 @@ def parse_markdown(content: str) -> list[Token]:
             i = end_pos
             continue
 
-        text = line.strip()
-        inline = _parse_inline(text)
+        # Multi-line paragraph: consecutive non-blank, non-block lines
+        # are joined into a single paragraph token. However, we must first
+        # check if the first line is itself a block element (heading, hr,
+        # code fence, table, blockquote, list).
+        skip_paragraph = False
+
+        code_block, end_pos = extract_code_block(lines, i)
+        if code_block:
+            content_text = code_block["content"] or ""
+            tokens.append(
+                {
+                    "type": "code",
+                    "content": content_text,
+                    "language": code_block["language"],
+                    "text": content_text,
+                }
+            )
+            i = end_pos
+            continue
+
+        heading = _parse_heading(line)
+        if heading:
+            tokens.append(heading)
+            i += 1
+            continue
+
+        if _is_horizontal_rule(line):
+            text = line.strip()
+            tokens.append({"type": "horizontal_rule", "content": text, "text": text})
+            i += 1
+            continue
+
+        table, end_pos = extract_table(lines, i)
+        if table:
+            tokens.append(
+                {
+                    "type": "table",
+                    "content": table["content"],
+                    "text": table["content"],
+                    "headers": table["headers"],
+                    "alignments": table["alignments"],
+                    "rows": table["rows"],
+                }
+            )
+            i = end_pos
+            continue
+
+        if line.strip().startswith(">"):
+            blockquote_lines = [line]
+            i += 1
+            while i < len(lines) and lines[i].strip().startswith(">"):
+                blockquote_lines.append(lines[i])
+                i += 1
+            tokens.append(
+                {
+                    "type": "blockquote",
+                    "content": "\n".join(blockquote_lines),
+                    "text": "\n".join(blockquote_lines),
+                }
+            )
+            continue
+
+        list_token, end_pos = _extract_list(lines, i)
+        if list_token:
+            tokens.append(list_token)
+            i = end_pos
+            continue
+
+        # Multi-line paragraph: consecutive non-blank, non-block lines
+        # are joined into a single paragraph token (soft breaks become spaces).
+        paragraph_lines = [line]
+        paragraph_inline = [_parse_inline(line.strip())]
+        i += 1
+        while i < len(lines):
+            nxt = lines[i]
+            if not nxt.strip():
+                break
+            if (_CODE_FENCE_RE.match(nxt) or _parse_heading(nxt)
+                    or _is_horizontal_rule(nxt)
+                    or _LIST_RE.match(nxt)
+                    or nxt.strip().startswith(">")
+                    or (i + 1 < len(lines)
+                        and "|" in nxt and "|" in lines[i + 1]
+                        and _is_table_separator(lines[i + 1].strip()))):
+                break
+            paragraph_lines.append(nxt)
+            paragraph_inline.append(_parse_inline(nxt.strip()))
+            i += 1
+
+        # Join multi-line paragraphs with a single space (Markdown soft break).
+        if len(paragraph_inline) == 1:
+            para_content = paragraph_inline[0]["content"]
+            para_spans = paragraph_inline[0]["spans"]
+        else:
+            para_content = " ".join(pi["content"] for pi in paragraph_inline)
+            para_spans = []
+            for pi in paragraph_inline:
+                para_spans.extend(pi["spans"])
+        para_text = " ".join(pl.strip() for pl in paragraph_lines)
         tokens.append(
             {
                 "type": "paragraph",
-                "content": inline["content"],
-                "text": text,
-                "spans": inline["spans"],
+                "content": para_content,
+                "text": para_text,
+                "spans": para_spans,
+                "source_lines": [pl.strip() for pl in paragraph_lines],
+                "content_lines": [pi["content"] for pi in paragraph_inline],
             }
         )
-        i += 1
 
     return tokens
 
@@ -194,7 +293,7 @@ def _extract_list(lines: list[str], start_index: int) -> tuple[Token | None, int
 
     ordered = first.group("ordered") is not None
     list_lines = [lines[start_index]]
-    items = [first.group("item")]
+    raw_items = [first.group("item")]
     i = start_index + 1
 
     while i < len(lines):
@@ -202,11 +301,34 @@ def _extract_list(lines: list[str], start_index: int) -> tuple[Token | None, int
         if not match or (match.group("ordered") is not None) != ordered:
             break
         list_lines.append(lines[i])
-        items.append(match.group("item"))
+        raw_items.append(match.group("item"))
         i += 1
 
     text = "\n".join(list_lines)
-    return {"type": "list", "content": text, "text": text, "ordered": ordered, "items": items}, i
+
+    # Parse inline formatting for each list item.
+    # ``items`` is a list of dicts with ``text``, ``content``, ``spans`` keys
+    # for exporters; the renderer and tests still expect plain strings, so
+    # we also provide ``item_texts`` with the raw strings.
+    parsed_items: list[dict[str, Any]] = []
+    item_texts: list[str] = []
+    for raw_item in raw_items:
+        inline = _parse_inline(raw_item)
+        parsed_items.append({
+            "text": raw_item,
+            "content": inline["content"],
+            "spans": inline["spans"],
+        })
+        item_texts.append(raw_item)
+
+    return {
+        "type": "list",
+        "content": text,
+        "text": text,
+        "ordered": ordered,
+        "items": item_texts,
+        "parsed_items": parsed_items,
+    }, i
 
 
 def _parse_inline(text: str) -> dict[str, Any]:
@@ -248,9 +370,21 @@ def _parse_inline_segment(text: str) -> tuple[str, list[dict[str, str]]]:
                 index = end + 2
                 continue
 
-        if char == "*":
+        if char == "*" :
             end = _find_unescaped(text, "*", index + 1)
             if end != -1:
+                inner_content, inner_spans = _parse_inline_segment(text[index + 1 : end])
+                spans.extend(inner_spans)
+                emphasis_text = _visible_inline_text(inner_content)
+                spans.append({"type": "emphasis", "text": emphasis_text})
+                output.append(f"<em>{inner_content}</em>")
+                index = end + 1
+                continue
+
+        # Underscore-style emphasis: _text_
+        if char == "_" and index + 1 < len(text):
+            end = _find_unescaped(text, "_", index + 1)
+            if end != -1 and end > index + 1:
                 inner_content, inner_spans = _parse_inline_segment(text[index + 1 : end])
                 spans.extend(inner_spans)
                 emphasis_text = _visible_inline_text(inner_content)
@@ -271,6 +405,16 @@ def _parse_inline_segment(text: str) -> tuple[str, list[dict[str, str]]]:
                     output.append(f'<a href="{href}">{link_content}</a>')
                     index = close_href + 1
                     continue
+
+        # Autolinks: <https://example.com>
+        if char == "<":
+            autolink_match = _AUTOLINK_RE.match(text, index)
+            if autolink_match:
+                url = autolink_match.group(1)
+                spans.append({"type": "link", "text": url, "href": url})
+                output.append(f'<a href="{url}">{url}</a>')
+                index = autolink_match.end()
+                continue
 
         output.append(char)
         index += 1
