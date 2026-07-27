@@ -1,6 +1,7 @@
 """Tests for the mdutil export module (v3.0 Phase 1)."""
 
 import unittest
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 from mdutil.export import Exporter
@@ -114,6 +115,218 @@ class PdfExporterTests(unittest.TestCase):
             "pdf_footer": "Page footer",
         })
         self.assertTrue(result.startswith(b"%PDF"))
+
+    def test_heading_font_sizes_are_scaled_down(self):
+        """PDF Markdown heading sizes are reduced from the original oversized values."""
+
+        class FakePdf:
+            page = 1
+
+            def __init__(self):
+                self.font_calls = []
+
+            def set_font(self, family, style="", size=0):
+                self.font_calls.append((family, style, size))
+
+            def cell(self, *args, **kwargs):
+                pass
+
+            def ln(self, *args, **kwargs):
+                pass
+
+        fake_pdf = FakePdf()
+        self.exporter._use_unicode = False
+        self.exporter._heading_sections = []
+
+        self.exporter._render_heading(cast(Any, fake_pdf), {"type": "heading", "text": "Title", "level": 1})
+
+        self.assertAlmostEqual(fake_pdf.font_calls[0][2], 13.2)
+
+    def test_pdf_document_header_metadata_renders_one_entry_per_line(self):
+        """Spec metadata header lines should not collapse into one PDF line."""
+
+        class FakePdf:
+            l_margin = 20
+
+            def __init__(self):
+                self.writes = []
+                self.line_breaks = []
+
+            def set_x(self, x):
+                pass
+
+            def set_font(self, *args, **kwargs):
+                pass
+
+            def set_text_color(self, *args, **kwargs):
+                pass
+
+            def write(self, h, text, link=""):
+                self.writes.append((text, link))
+
+            def ln(self, amount=0):
+                self.line_breaks.append(amount)
+
+        tokens = parse_markdown(
+            "**Author:** _Jan Henkins_\n"
+            "**Version:** 3.0.0\n"
+            "**Last‑Updated:** 2026‑07‑27\n"
+            "**License:** MIT\n"
+            "**Repository:** <https://github.com/jhenkins/mdutil>"
+        )
+        fake_pdf = FakePdf()
+        self.exporter._use_unicode = False
+
+        self.exporter._render_paragraph(cast(Any, fake_pdf), tokens[0])
+
+        rendered_lines = "\n".join(text for text, _link in fake_pdf.writes)
+        self.assertIn("Author:", rendered_lines)
+        self.assertIn("Version:", rendered_lines)
+        self.assertGreaterEqual(fake_pdf.line_breaks.count(5), 5)
+
+    def test_pdf_inline_markdown_uses_fonts_and_link_annotations(self):
+        """PDF paragraphs preserve inline strong/em/code styles and URL links."""
+
+        class FakePdf:
+            l_margin = 20
+
+            def __init__(self):
+                self.font_calls = []
+                self.writes = []
+
+            def set_x(self, x):
+                pass
+
+            def set_font(self, family, style="", size=0):
+                self.font_calls.append((family, style, size))
+
+            def set_text_color(self, *args, **kwargs):
+                pass
+
+            def write(self, h, text, link=""):
+                self.writes.append((text, link))
+
+            def ln(self, amount=0):
+                pass
+
+        token = parse_markdown("Paragraph with **bold**, *emphasis*, `code`, and [link](https://example.com).")
+        fake_pdf = FakePdf()
+        self.exporter._use_unicode = False
+
+        self.exporter._render_paragraph(cast(Any, fake_pdf), token[0])
+
+        styles = [style for _family, style, _size in fake_pdf.font_calls]
+        writes = fake_pdf.writes
+        self.assertIn("B", styles)
+        self.assertIn("I", styles)
+        self.assertTrue(any(family == "Courier" for family, _style, _size in fake_pdf.font_calls))
+        self.assertIn(("link", "https://example.com"), writes)
+
+    def test_render_table_wraps_text_inside_cells(self):
+        """PDF table cells use multi_cell wrapping instead of single-line cells."""
+
+        class FakePdf:
+            w = 210
+            h = 297
+            l_margin = 20
+            r_margin = 20
+            b_margin = 20
+
+            def __init__(self):
+                self.y = 20
+                self.multi_cell_calls = []
+                self.cell_calls = []
+
+            def set_font(self, *args, **kwargs):
+                pass
+
+            def set_fill_color(self, *args, **kwargs):
+                pass
+
+            def get_y(self):
+                return self.y
+
+            def set_xy(self, x, y):
+                self.y = y
+
+            def rect(self, *args, **kwargs):
+                pass
+
+            def add_page(self):
+                self.y = 20
+
+            def multi_cell(self, w, h, text, **kwargs):
+                self.multi_cell_calls.append((w, h, text, kwargs))
+                if kwargs.get("dry_run"):
+                    return ["wrapped", "text"] if "long" in text else [text]
+                return None
+
+            def cell(self, *args, **kwargs):
+                self.cell_calls.append((args, kwargs))
+
+            def ln(self, amount=0):
+                self.y += amount
+
+        fake_pdf = FakePdf()
+        tokens = [{
+            "type": "table",
+            "headers": ["Name", "Description"],
+            "rows": [["mdutil", "long text that should wrap in the cell"]],
+            "alignments": ["left", "left"],
+        }]
+        self.exporter._use_unicode = False
+
+        self.exporter._render_table(cast(Any, fake_pdf), tokens[0])
+
+        self.assertTrue(any(call[3].get("dry_run") for call in fake_pdf.multi_cell_calls))
+        self.assertTrue(any(not call[3].get("dry_run") for call in fake_pdf.multi_cell_calls))
+        self.assertEqual(fake_pdf.cell_calls, [])
+
+    def test_render_blockquote_draws_block_and_drops_marker_prefix(self):
+        """PDF blockquotes render as an indented block instead of literal > lines."""
+
+        class FakePdf:
+            w = 210
+            l_margin = 20
+            r_margin = 20
+
+            def __init__(self):
+                self.y = 20
+                self.writes = []
+                self.lines = []
+
+            def set_font(self, *args, **kwargs):
+                pass
+
+            def set_text_color(self, *args, **kwargs):
+                pass
+
+            def set_draw_color(self, *args, **kwargs):
+                pass
+
+            def get_y(self):
+                return self.y
+
+            def set_x(self, x):
+                pass
+
+            def write(self, h, text, link=""):
+                self.writes.append(text)
+
+            def ln(self, amount=0):
+                self.y += amount
+
+            def line(self, *args):
+                self.lines.append(args)
+
+        fake_pdf = FakePdf()
+        self.exporter._use_unicode = False
+
+        self.exporter._render_blockquote(cast(Any, fake_pdf), {"type": "blockquote", "content": "> **Quote** text"})
+
+        self.assertIn("Quote", "".join(fake_pdf.writes))
+        self.assertTrue(all(not text.startswith(">") for text in fake_pdf.writes))
+        self.assertTrue(fake_pdf.lines)
 
     def test_render_pdf_bookmarks_disabled(self):
         """PDF output has no outlines when bookmarks disabled."""
