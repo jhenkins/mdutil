@@ -35,7 +35,7 @@ dev = [
 mdutil = "mdutil.cli:main"
 
 [tool.setuptools]
-packages = ["mdutil"]
+packages = ["mdutil", "mdutil.export"]
 
 [tool.setuptools.dynamic]
 version = { attr = "mdutil.version.__version__" }
