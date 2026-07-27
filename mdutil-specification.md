@@ -68,27 +68,27 @@ The focus is on a clean, fast, and fully‑featured viewer with a few light edit
 | **Custom CSS**       | Embed a user-supplied CSS file into HTML export output (appended after base theme CSS).              | `--custom-css <path>` |
 | **Configuration**    | Export defaults are read from the `[export]` section in `~/.mdutilcfg` (paper size, margins, etc.). | `[export]` section |
 
-> **User‑Interface Constraints**
->
-> - Must be usable on terminals up to 256 color support.
-> - Works in both UTF‑8 and legacy terminals (fallback to ASCII).
->
-> **Interactive UI Library Decision**
->
-> - v1 uses `prompt-toolkit` for the interactive viewer because it provides cross-platform keyboard handling, terminal resizing, fullscreen rendering, and future editing primitives while remaining lighter than a full widget framework.
-> - `textual` remains a good albeit heavier alternative for the future if mdutil grows into a richer TUI with panels, widgets, command palettes, tabs, or split edit/preview layouts.
->
-> **Configuration File**
->
-> - `mdutil` supports a plain-text, standard-editor-editable user configuration file for runtime defaults.
-> - On Linux and macOS, the default user configuration file is `~/.mdutilcfg`.
-> - On Windows, the default user configuration file is `%USERPROFILE%\mdutil.ini`.
-> - The configuration file is stored in the user's home folder using the path convention of the operating system.
-> - The configuration format is INI-style text with comments. Generated files must include the current runtime defaults and helpful comments describing available options and accepted values.
-> - If the configuration file does not exist, `mdutil` runs with built-in defaults. A user can create the file manually or generate a starter file with `--generate-config`.
-> - Runtime precedence is: built-in defaults → user configuration file → explicit CLI options.
-> - `--config <path>` may be used to load an alternate configuration file for a single invocation.
-> - Configuration must not require network access and must be parsed offline.
+**User‑Interface Constraints**
+
+- Must be usable on terminals up to 256 color support.
+- Works in both UTF‑8 and legacy terminals (fallback to ASCII).
+
+**Interactive UI Library Decision**
+
+- v1 uses `prompt-toolkit` for the interactive viewer because it provides cross-platform keyboard handling, terminal resizing, fullscreen rendering, and future editing primitives while remaining lighter than a full widget framework.
+- `textual` remains a good albeit heavier alternative for the future if mdutil grows into a richer TUI with panels, widgets, command palettes, tabs, or split edit/preview layouts.
+
+**Configuration File**
+
+- `mdutil` supports a plain-text, standard-editor-editable user configuration file for runtime defaults.
+- On Linux and macOS, the default user configuration file is `~/.mdutilcfg`.
+- On Windows, the default user configuration file is `%USERPROFILE%\mdutil.ini`.
+- The configuration file is stored in the user's home folder using the path convention of the operating system.
+- The configuration format is INI-style text with comments. Generated files must include the current runtime defaults and helpful comments describing available options and accepted values.
+- If the configuration file does not exist, `mdutil` runs with built-in defaults. A user can create the file manually or generate a starter file with `--generate-config`.
+- Runtime precedence is: built-in defaults → user configuration file → explicit CLI options.
+- `--config <path>` may be used to load an alternate configuration file for a single invocation.
+- Configuration must not require network access and must be parsed offline.
 
 ---
 
@@ -158,12 +158,12 @@ Ctrl-/ so `/` remains normal text input.
        │       │
        ├───────┴──────────────────┐
        │                          │
-┌──────▼───────┐        ┌────────▼────────┐
-│  Terminal    │        │  Export         │
-│  Display     │        │  PdfExporter /  │
-│  (interactive│        │  HtmlExporter   │
-│   view/edit) │        │  → .pdf / .html │
-└──────────────┘        └─────────────────┘
+┌──────▼───────┐         ┌────────▼────────┐
+│  Terminal    │         │  Export         │
+│  Display     │         │  PdfExporter /  │
+│  (interactive│         │  HtmlExporter   │
+│   view/edit) │         │  → .pdf / .html │
+└──────────────┘         └─────────────────┘
 ```
 
 ---
