@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from fpdf import FPDF
@@ -206,7 +207,9 @@ class PdfExporter(Exporter):
 
     def _render_paragraph(self, pdf: FPDF, token: dict) -> None:
         """Render a paragraph token."""
-        text = token.get("text", "")
+        text = token.get("content", "") or token.get("text", "")
+        # Strip HTML inline tags that the parser produces in content
+        text = re.sub(r"</?(?:strong|em|code|a[^>]*)>", "", text)
 
         pdf.set_font(self._font_for("regular"), size=self.FONT_SIZE)
         pdf.multi_cell(0, 5, text, align="L")

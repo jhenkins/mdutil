@@ -229,7 +229,16 @@ img {{
         return f"<h{level}>{text}</h{level}>"
 
     def _render_paragraph(self, token: dict) -> str:
-        """Render a paragraph."""
+        """Render a paragraph.
+
+        The parser's ``content`` field already contains HTML inline tags
+        (<strong>, <em>, <code>, <a>) — use it directly so that bold,
+        italic, code, and links render correctly in the browser.
+        """
+        content = token.get("content", "")
+        if content:
+            return f"<p>{content}</p>"
+        # Fallback for tokens without inline-parsed content
         spans = token.get("spans", [])
         if spans:
             text = self._render_spans(spans)
@@ -246,9 +255,9 @@ img {{
 
             if span_type == "text":
                 output.append(content)
-            elif span_type == "bold":
+            elif span_type in ("bold", "strong"):
                 output.append(f"<strong>{content}</strong>")
-            elif span_type == "italic":
+            elif span_type in ("italic", "emphasis"):
                 output.append(f"<em>{content}</em>")
             elif span_type == "code":
                 output.append(f"<code>{content}</code>")

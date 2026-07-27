@@ -212,6 +212,15 @@ v3.0 adds document export functionality to mdutil, enabling users to render Mark
 - [x] **7.4** Committed: `c63ed9a feat(v3.0.0): add PDF and HTML export` (15 files, +1289 lines)
 - [ ] **7.5** Push feature branch and open PR *(manual step)*
 - [ ] **7.6** Merge PR after approval *(manual step)*
+- [ ] **7.7** PDF rendering bug fixes
+  - [x] Bold (**text**) and italic (*text*) inline rendering broken for PDF
+    - Root cause: `_render_paragraph` was reading `token["text"]` (raw Markdown like `**bold**`) instead of `token["content"]` (already-parsed HTML like `<strong>bold</strong>`)
+    - Fix: Use `token.get("content", "")` first, then strip HTML tags with `re.sub()` for PDF output since fpdf2 doesn't render HTML
+- [ ] **7.8** HTML rendering bug fixes
+  - [x] Bold (**text**) and italic (*text*) inline rendering broken for HTML
+    - Root cause: `_render_paragraph` was using `_render_spans()` from the `spans[]` list, but the parser's `spans[]` uses types like `"strong"` and `"emphasis"` while the span renderer only checked for `"bold"` and `"italic"`
+    - Fix: Updated `_render_spans` to accept both aliases (`"bold"/"strong"`, `"italic"/"emphasis"`)
+    - Fix: Switched `_render_paragraph` to use `token["content"]` directly (already contains `<strong>`/`<em>` tags) with fallback to `_render_spans`
 
 ---
 
