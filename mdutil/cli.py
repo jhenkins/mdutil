@@ -223,12 +223,18 @@ def _handle_export(args: argparse.Namespace, content: str, parsed: list[dict], r
         export_output = exporter.render(parsed, theme={}, options={})
 
         if args.output:
-            Path(args.output).write_bytes(export_output)
+            if export_format == "html":
+                Path(args.output).write_text(export_output)  # type: ignore[arg-type]
+            else:
+                Path(args.output).write_bytes(export_output)  # type: ignore[arg-type]
             if not runtime["quiet"]:
                 print(f"Exported to: {args.output}", file=sys.stderr)
         else:
-            sys.stdout.buffer.write(export_output)
-            sys.stdout.buffer.flush()
+            if export_format == "html":
+                sys.stdout.write(export_output)  # type: ignore[arg-type]
+            else:
+                sys.stdout.buffer.write(export_output)  # type: ignore[arg-type]
+            sys.stdout.flush()
 
         return 0
     except Exception as exc:

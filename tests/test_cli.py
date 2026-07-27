@@ -245,6 +245,61 @@ class CliTests(unittest.TestCase):
         self.assertRegex(result.stdout, r"^mdutil \d+\.\d+\.\d+\n$")
         self.assertEqual(result.stderr, "")
 
+    def test_export_pdf_writes_valid_file(self):
+        """--export pdf with --output writes a valid PDF file."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            doc = Path(tmpdir) / "doc.md"
+            doc.write_text("# Test Title\n\nParagraph.\n", encoding="utf-8")
+            out = Path(tmpdir) / "out.pdf"
+
+            result = self.run_mdutil("--export", "pdf", "--output", str(out), str(doc))
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(out.exists())
+            self.assertIn(out.name, result.stderr)
+            self.assertGreater(out.stat().st_size, 10)
+
+    def test_export_pdf_stdout_returns_pdf_bytes(self):
+        """--export pdf without --output sends PDF bytes to stdout."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = os.environ.copy()
+            env["HOME"] = tmpdir
+            result = subprocess.run(
+                [sys.executable, "-m", "mdutil", "--export", "pdf"],
+                input=b"# Title\n\nBody.\n",
+                capture_output=True,
+                check=False,
+                env=env,
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(result.stdout.startswith(b"%PDF"))
+
+    def test_export_html_writes_valid_file(self):
+        """--export html with --output writes a valid HTML file."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            doc = Path(tmpdir) / "doc.md"
+            doc.write_text("# Title\n\nBody.\n", encoding="utf-8")
+            out = Path(tmpdir) / "out.html"
+
+            result = self.run_mdutil("--export", "html", "--output", str(out), str(doc))
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(out.exists())
+            self.assertIn(out.name, result.stderr)
+            html = out.read_text(encoding="utf-8")
+            self.assertIn("<!DOCTYPE html>", html)
+            self.assertIn("<h1>Title</h1>", html)
+
+    def test_export_html_stdout_returns_valid_html(self):
+        """--export html without --output sends HTML to stdout."""
+        result = self.run_mdutil("--export", "html", input_text="# Title\n\nBody.\n")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("<!DOCTYPE html>", result.stdout)
+        self.assertIn("<h1>Title</h1>", result.stdout)
+        self.assertIn("</html>", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

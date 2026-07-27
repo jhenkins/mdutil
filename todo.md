@@ -145,6 +145,15 @@ viewer and rendering quality can move into the next incremental backlog slice.
     - [x] Updated status bar with `g Bottom  •  G Top` hints.
     - [x] Updated F1 help modal with both jump bindings.
 - [ ] v3.0: Render document to PDF and/or HTML
+  - [x] Phase 1: Foundation & Setup (fpdf2 dependency, export module structure, base Exporter class)
+  - [x] Phase 2: PDF Export Core (PdfExporter with fpdf2, CLI `--export pdf` and `--output` flags)
+  - [x] Phase 3: HTML Export (HtmlExporter with embedded CSS, CLI `--export html` flag)
+  - [x] Bugfix: `_handle_export` format-aware output (str vs bytes) with 4 new CLI integration tests
+  - [ ] Phase 4: CLI & Configuration (multi-format, `--output-dir`, config defaults)
+  - [ ] Phase 5: Advanced Features (headers/footers, bookmarks, custom CSS)
+  - [ ] Phase 6: Testing & Documentation (coverage, README, spec updates)
+  - [ ] Phase 7: Release Preparation (version bump, PR, merge)
+  - Detailed checklist: `todo-v3.0.md`
 - [ ] v4.0: Add Mermaid diagram rendering to PDF and/or HTML
 
 ## Verification checklist before committing changes

