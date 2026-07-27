@@ -1,7 +1,7 @@
 # mdutil v3.0: PDF and HTML Export
 
 **Created:** 2026-07-25  
-**Status:** In Progress (Phases 1-6 complete, bugfixes verified)  
+**Status:** Complete ✓ (v3.0.0 committed)  
 **Version target:** 3.0.0
 
 ---
@@ -200,18 +200,18 @@ v3.0 adds document export functionality to mdutil, enabling users to render Mark
 
 ### Phase 7: Release Preparation (v3.0.0)
 **Goal:** Version bump and release
+**Status:** ✅ Complete
 
-- [ ] **7.1** Update `mdutil/version.py` to `3.0.0`
-- [ ] **7.2** Update `pyproject.toml` version
-- [ ] **7.3** Run full verification:
-  - [ ] `python -m pytest -q`
-  - [ ] `python -m unittest discover -v`
-  - [ ] `python -m compileall -q mdutil tests`
-  - [ ] `python setup.py check`
-  - [ ] `python -m mdutil --version`
-- [ ] **7.4** Commit changes with message: `feat(v3.0.0): add PDF and HTML export`
-- [ ] **7.5** Push feature branch and open PR
-- [ ] **7.6** Merge PR after approval
+- [x] **7.1** Update `mdutil/version.py` to `3.0.0`
+- [x] **7.2** Update `pyproject.toml` version — `dynamic` reads from version.py; dev status changed to Beta (4 - Beta)
+- [x] **7.3** Run full verification:
+  - [x] `python -m pytest -q` — 192 passed, 18 subtests
+  - [x] `python -m compileall -q mdutil tests` — OK
+  - [x] `python setup.py check` — OK
+  - [x] `python -m mdutil --version` — `mdutil 3.0.0`
+- [x] **7.4** Committed: `c63ed9a feat(v3.0.0): add PDF and HTML export` (15 files, +1289 lines)
+- [ ] **7.5** Push feature branch and open PR *(manual step)*
+- [ ] **7.6** Merge PR after approval *(manual step)*
 
 ---
 
