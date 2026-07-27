@@ -135,9 +135,22 @@ mdutil your_document.md --export pdf --output output.pdf
 mdutil your_document.md --export html --output output.html
 ```
 
-### Export to stdout
+### Export both formats
 
 ```bash
+mdutil your_document.md --export pdf,html --output-dir ./exports
+```
+
+### Export with custom CSS for HTML
+
+```bash
+mdutil your_document.md --export html --custom-css style.css --output-dir ./html
+```
+
+### Default output directory
+
+```bash
+# Writes to ./output.pdf (or ./output.html) in the current directory
 echo -e "# Hello\n\nWorld" | mdutil --export html
 ```
 
@@ -168,10 +181,7 @@ Use bold and code.
 
 ## Requirements
 - Python 3.11 or higher
-- Runtime dependencies are declared in `pyproject.toml`:
-  - `markdown>=3.0`
-  - `Pygments>=2.0`
-  - `prompt-toolkit>=3.0`
+- Please note that this project uses [fpdf2](https://github.com/akademic/fpdf2) as the sole external dependency for PDF export, beyond the core Python Markdown, Pygments, and prompt-toolkit libraries.
 
 ---
 

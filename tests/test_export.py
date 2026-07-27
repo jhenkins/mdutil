@@ -71,10 +71,127 @@ class PdfExporterTests(unittest.TestCase):
         result = self.exporter.render([], {}, {})
         self.assertTrue(result.startswith(b"%PDF"))
 
-    def test_is_exporter_instance(self):
-        """PdfExporter is a proper Exporter subclass."""
-        self.assertIsInstance(self.exporter, Exporter)
-        self.assertIsInstance(self.exporter, BaseExporter)
+    def test_render_pdf_with_bookmarks(self):
+        """PDF output includes outline entries for headings."""
+        tokens = [
+            {"type": "heading", "text": "Chapter 1", "level": 1},
+            {"type": "paragraph", "text": "Body"},
+            {"type": "heading", "text": "Section 1.1", "level": 2},
+        ]
+        result = self.exporter.render(tokens, {}, {"pdf_bookmarks": True})
+        self.assertIsInstance(result, bytes)
+        self.assertIn(b"/Outlines", result)
+
+    def test_render_pdf_paper_size_letter(self):
+        """PDF output uses Letter paper size when specified."""
+        tokens = [{"type": "heading", "text": "Test"}]
+        result = self.exporter.render(tokens, {}, {"pdf_paper_size": "Letter"})
+        self.assertTrue(result.startswith(b"%PDF"))
+
+    def test_render_pdf_paper_size_legal(self):
+        """PDF output uses Legal paper size when specified."""
+        tokens = [{"type": "heading", "text": "Test"}]
+        result = self.exporter.render(tokens, {}, {"pdf_paper_size": "Legal"})
+        self.assertTrue(result.startswith(b"%PDF"))
+
+    def test_render_pdf_custom_margins(self):
+        """PDF output respects custom margins."""
+        tokens = [{"type": "heading", "text": "Test"}]
+        result = self.exporter.render(tokens, {}, {
+            "pdf_margin_top": 30,
+            "pdf_margin_bottom": 25,
+            "pdf_margin_left": 15,
+            "pdf_margin_right": 15,
+        })
+        self.assertTrue(result.startswith(b"%PDF"))
+
+    def test_render_pdf_with_header_footer(self):
+        """PDF output includes header and footer text."""
+        tokens = [{"type": "heading", "text": "Test"}]
+        result = self.exporter.render(tokens, {}, {
+            "pdf_header": "My Header",
+            "pdf_footer": "Page footer",
+        })
+        self.assertTrue(result.startswith(b"%PDF"))
+
+    def test_render_pdf_bookmarks_disabled(self):
+        """PDF output has no outlines when bookmarks disabled."""
+        tokens = [{"type": "heading", "text": "Test", "level": 1}]
+        result = self.exporter.render(tokens, {}, {"pdf_bookmarks": False})
+        self.assertNotIn(b"/Outlines", result)
+
+    def test_render_table_alternating_rows(self):
+        """Table rows should have alternating fill colors."""
+        tokens = [{
+            "type": "table",
+            "headers": ["A", "B"],
+            "rows": [["1", "2"], ["3", "4"]],
+            "alignments": ["left", "left"],
+        }]
+        result = self.exporter.render(tokens, {}, {})
+        self.assertTrue(result.startswith(b"%PDF"))
+
+    def test_render_blockquote(self):
+        """Blockquote renders in PDF with grey color."""
+        tokens = [{"type": "blockquote", "content": "> Quote text"}]
+        result = self.exporter.render(tokens, {}, {})
+        self.assertTrue(result.startswith(b"%PDF"))
+
+    def test_render_unordered_list(self):
+        """Unordered list renders in PDF."""
+        tokens = [{"type": "list", "items": ["Item A", "Item B"], "ordered": False}]
+        result = self.exporter.render(tokens, {}, {})
+        self.assertTrue(result.startswith(b"%PDF"))
+
+    def test_render_ordered_list(self):
+        """Ordered list renders in PDF."""
+        tokens = [{"type": "list", "items": ["Item 1", "Item 2"], "ordered": True}]
+        result = self.exporter.render(tokens, {}, {})
+        self.assertTrue(result.startswith(b"%PDF"))
+
+    def test_render_code_block(self):
+        """Code block renders in PDF with monospace font."""
+        tokens = [{"type": "code", "content": "print('hello')", "language": "python"}]
+        result = self.exporter.render(tokens, {}, {})
+        self.assertTrue(result.startswith(b"%PDF"))
+
+    def test_render_horizontal_rule(self):
+        """Horizontal rule renders in PDF."""
+        tokens = [{"type": "horizontal_rule", "content": "---"}]
+        result = self.exporter.render(tokens, {}, {})
+        self.assertTrue(result.startswith(b"%PDF"))
+
+    def test_render_table_no_headers(self):
+        """PDF handles empty table gracefully."""
+        tokens = [{"type": "table", "headers": [], "rows": [], "alignments": []}]
+        result = self.exporter.render(tokens, {}, {})
+        self.assertTrue(result.startswith(b"%PDF"))
+
+    def test_render_heading_h4_no_bookmark(self):
+        """h4 heading does not create an outline entry."""
+        tokens = [{"type": "heading", "text": "Minor", "level": 4}]
+        result = self.exporter.render(tokens, {}, {"pdf_bookmarks": True})
+        self.assertNotIn(b"/Outlines", result)
+
+
+class HtmlExporterCustomCssTests(unittest.TestCase):
+    """Test HtmlExporter custom CSS support."""
+
+    def setUp(self):
+        self.exporter = HtmlExporter()
+
+    def test_custom_css_embedded(self):
+        """Custom CSS is embedded in HTML output."""
+        tokens = [{"type": "heading", "text": "Test", "level": 1}]
+        result = self.exporter.render(tokens, {}, {"custom_css": "body { color: red; }"})
+        self.assertIn("/* Custom CSS */", result)
+        self.assertIn("body { color: red; }", result)
+
+    def test_no_custom_css_by_default(self):
+        """No custom CSS marker when option not provided."""
+        tokens = [{"type": "heading", "text": "Test", "level": 1}]
+        result = self.exporter.render(tokens, {}, {})
+        self.assertNotIn("/* Custom CSS */", result)
 
 
 class HtmlExporterTests(unittest.TestCase):

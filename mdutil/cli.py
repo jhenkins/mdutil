@@ -58,7 +58,8 @@ from .export.html import HtmlExporter
 from .parser import parse_markdown
 from .reader import read_input
 from .renderer import render
-from .themes import syntax_theme_names, theme_names
+from .themes import load_theme, syntax_theme_names, theme_names
+from typing import Any
 
 
 class RuntimeOptions(TypedDict):
@@ -69,6 +70,13 @@ class RuntimeOptions(TypedDict):
     quiet: bool
     status_bar_normal: str | None
     status_bar_insert: str | None
+    export_format: str
+    export_output_dir: str | None
+    pdf_paper_size: str
+    pdf_margin_top: int
+    pdf_margin_bottom: int
+    pdf_margin_left: int
+    pdf_margin_right: int
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -125,13 +133,20 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     arg_parser.add_argument(
         "--export",
-        choices=["pdf", "html"],
-        help="Export format (pdf or html)",
+        help="Export format(s): pdf, html, or comma-separated list (e.g. pdf,html)",
     )
     arg_parser.add_argument(
         "--output",
         "-o",
         help="Output file path for export (default: stdout)",
+    )
+    arg_parser.add_argument(
+        "--output-dir",
+        help="Output directory for export files (default: current directory)",
+    )
+    arg_parser.add_argument(
+        "--custom-css",
+        help="Path to a CSS file to embed in HTML export output",
     )
     return arg_parser
 
@@ -211,35 +226,96 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def _handle_export(args: argparse.Namespace, content: str, parsed: list[dict], runtime: RuntimeOptions) -> int:
-    """Handle export to PDF or HTML format."""
-    export_format = args.export
+    """Handle export to PDF and/or HTML format."""
+    formats = [f.strip() for f in args.export.split(",")]
+
+    exit_code = 0
+    for fmt in formats:
+        code = _export_single(fmt, args, parsed, runtime)
+        if code != 0:
+            exit_code = code
+
+    return exit_code
+
+
+def _export_single(export_format: str, args: argparse.Namespace, parsed: list[dict], runtime: RuntimeOptions) -> int:
+    """Export to a single format."""
+    if export_format not in ("pdf", "html"):
+        print(f"Error: Unsupported export format: {export_format!r} (choose from pdf, html)", file=sys.stderr)
+        return 1
+
     exporter = PdfExporter() if export_format == "pdf" else HtmlExporter()
 
-    if not exporter.supports(export_format):
-        print(f"Error: Unsupported export format: {export_format}", file=sys.stderr)
-        return 1
+    # Load theme for the exporter
+    theme = load_theme(runtime["theme"], runtime["theme_file"])
+
+    # Build export options from config defaults + CLI flags
+    options: dict[str, Any] = {}
+
+    if export_format == "pdf":
+        options["pdf_paper_size"] = runtime.get("pdf_paper_size", "A4")
+        options["pdf_margin_top"] = runtime.get("pdf_margin_top", 20)
+        options["pdf_margin_bottom"] = runtime.get("pdf_margin_bottom", 20)
+        options["pdf_margin_left"] = runtime.get("pdf_margin_left", 20)
+        options["pdf_margin_right"] = runtime.get("pdf_margin_right", 20)
+        options["pdf_bookmarks"] = True
+    elif export_format == "html":
+        custom_css = getattr(args, "custom_css", None)
+        if custom_css:
+            try:
+                options["custom_css"] = Path(custom_css).read_text(encoding="utf-8")
+            except OSError as exc:
+                print(f"Error reading custom CSS file: {exc}", file=sys.stderr)
+                return 1
 
     try:
-        export_output = exporter.render(parsed, theme={}, options={})
+        export_output = exporter.render(parsed, theme=theme, options=options)
 
-        if args.output:
-            if export_format == "html":
-                Path(args.output).write_text(export_output)  # type: ignore[arg-type]
-            else:
-                Path(args.output).write_bytes(export_output)  # type: ignore[arg-type]
-            if not runtime["quiet"]:
-                print(f"Exported to: {args.output}", file=sys.stderr)
+        output_path = _resolve_output_path(args, export_format)
+        if export_format == "html":
+            output_path.write_text(export_output)  # type: ignore[arg-type]
         else:
-            if export_format == "html":
-                sys.stdout.write(export_output)  # type: ignore[arg-type]
-            else:
-                sys.stdout.buffer.write(export_output)  # type: ignore[arg-type]
-            sys.stdout.flush()
+            output_path.write_bytes(export_output)  # type: ignore[arg-type]
+        if not runtime["quiet"]:
+            print(f"Exported to: {output_path}", file=sys.stderr)
 
         return 0
-    except Exception as exc:
-        print(f"Export error: {exc}", file=sys.stderr)
+    except PermissionError:
+        print(f"Export error ({export_format}): Permission denied — cannot write to {_resolve_output_path(args, export_format)}", file=sys.stderr)
         return 1
+    except OSError as exc:
+        print(f"Export error ({export_format}): {exc}", file=sys.stderr)
+        return 1
+    except Exception as exc:
+        print(f"Export error ({export_format}): {exc}", file=sys.stderr)
+        return 1
+
+
+def _resolve_output_path(args: argparse.Namespace, export_format: str) -> Path:
+    """Resolve the output path for a single export format.
+
+    Priority: --output > auto-name in --output-dir > auto-name in cwd.
+    Never returns None -- always writes to a file.
+    """
+    if args.output:
+        return Path(args.output)
+
+    output_dir = getattr(args, "output_dir", None)
+    if not output_dir:
+        output_dir = Path.cwd()
+    else:
+        output_dir = Path(output_dir)
+
+    ext = ".pdf" if export_format == "pdf" else ".html"
+    # Determine source filename for auto-naming
+    if args.files:
+        source = Path(args.files[0])
+        stem = source.stem
+    else:
+        stem = "output"
+    out = output_dir / f"{stem}{ext}"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    return out
 
 
 def _resolve_runtime_options(
@@ -281,6 +357,13 @@ def _resolve_runtime_options(
         "quiet": quiet,
         "status_bar_normal": status_bar_normal,
         "status_bar_insert": status_bar_insert,
+        "export_format": cast(str, config.get("export_format", "pdf")),
+        "export_output_dir": cast(str | None, config.get("export_output_dir")),
+        "pdf_paper_size": cast(str, config.get("pdf_paper_size", "A4")),
+        "pdf_margin_top": cast(int, config.get("pdf_margin_top", 20)),
+        "pdf_margin_bottom": cast(int, config.get("pdf_margin_bottom", 20)),
+        "pdf_margin_left": cast(int, config.get("pdf_margin_left", 20)),
+        "pdf_margin_right": cast(int, config.get("pdf_margin_right", 20)),
     }
 
 

@@ -1,7 +1,7 @@
 # Markdown Viewer CLI – Program Specification
 
 **Author:** _Jan Henkins_
-**Version:** 2.3.1 (source of truth: `mdutil/version.py`)
+**Version:** 3.0.0 (source of truth: `mdutil/version.py`)
 **Last‑Updated:** 2026‑07‑27
 **License:** MIT
 **Repository:** <https://github.com/jhenkins/mdutil>
@@ -63,6 +63,10 @@ The focus is on a clean, fast, and fully‑featured viewer with a few light edit
 | **Export PDF**       | Export rendered Markdown to a PDF file using fpdf2 (headings, paragraphs, code blocks, tables, lists, blockquotes, horizontal rules). | `--export pdf` |
 | **Export HTML**      | Export rendered Markdown to an HTML file with embedded CSS (same token coverage as PDF).           | `--export html` |
 | **Output Path**      | Write exported content to a specific file path.                                                     | `--output <path>` or `-o <path>` |
+| **Output Directory** | Write exported files into a directory, auto-named from source filename.                             | `--output-dir <dir>` |
+| **Multi-Format**     | Export to both PDF and HTML in one pass.                                                            | `--export pdf,html` |
+| **Custom CSS**       | Embed a user-supplied CSS file into HTML export output (appended after base theme CSS).              | `--custom-css <path>` |
+| **Configuration**    | Export defaults are read from the `[export]` section in `~/.mdutilcfg` (paper size, margins, etc.). | `[export]` section |
 
 > **User‑Interface Constraints**
 >
@@ -150,11 +154,16 @@ Ctrl-/ so `/` remains normal text input.
 │   Syntax Highlighter  │
 └──────▲───────┬────────┘
        │       │
-       │     ANSI
+       │     ANSI / tokens
        │       │
-┌──────▼───────┴────────┐
-│   Terminal Display    │
-└───────────────────────┘
+       ├───────┴──────────────────┐
+       │                          │
+┌──────▼───────┐        ┌────────▼────────┐
+│  Terminal    │        │  Export         │
+│  Display     │        │  PdfExporter /  │
+│  (interactive│        │  HtmlExporter   │
+│   view/edit) │        │  → .pdf / .html │
+└──────────────┘        └─────────────────┘
 ```
 
 ---
@@ -167,7 +176,7 @@ Ctrl-/ so `/` remains normal text input.
 | **Integration Tests**      | Run `mdutil` against a set of sample Markdown files (covering tables, code fences, footnotes).                        |
 | **Configuration Tests**    | Verify default config paths, config generation, comments/default values, alternate `--config`, and CLI precedence.    |
 | **Interactive Editor Tests** | Verify normal/insert mode transitions, `i`, Escape, `dd`, `cw`, explicit Ctrl-S save, dirty indicators, dirty quit blocking, discard quit, failed-save preservation, atomic-write cleanup, mode-aware search keys, status-bar search hints, and highlighted search matches. |
-| **End‑to‑End (CLI)**       | Use `assert_cmd` to spawn `mdutil` with various flags and verify output length / presence of expected ANSI sequences. |
+| **Export Tests**           | Verify PdfExporter (bytes, paper sizes, margins, headers/footers, bookmarks) and HtmlExporter (str, embedded CSS, custom CSS, all token types). |
 | **Cross‑Platform CI**      | GitHub Actions matrix: ubuntu, macos, windows.                                                                        |
 | **Performance Benchmarks** | Measure rendering time on large docs (10k lines).                                                                     |
 

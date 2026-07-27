@@ -30,7 +30,11 @@ class HtmlExporter(Exporter):
     def render(self, tokens: list[dict], theme: dict, options: dict) -> str:
         """Render tokens to HTML."""
         css = self._generate_css(theme)
+        custom_css = options.get("custom_css", "")
         body = self._render_tokens(tokens)
+        style_block = f"{css}"
+        if custom_css:
+            style_block += f"\n/* Custom CSS */\n{custom_css}\n"
         return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -38,7 +42,7 @@ class HtmlExporter(Exporter):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>mdutil export</title>
     <style>
-{css}
+{style_block}
     </style>
 </head>
 <body>
