@@ -196,6 +196,7 @@ class PdfExporter(Exporter):
 
     def render(self, tokens: list[dict], theme: dict, options: dict) -> bytes:
         """Render tokens to PDF bytes."""
+        self._options = options  # Store options for use in code block rendering
         paper_size = options.get("pdf_paper_size", "A4")
         orientation = options.get("pdf_orientation", "portrait")
 
@@ -344,16 +345,26 @@ class PdfExporter(Exporter):
         pdf.ln(3)
 
     def _render_code_block(self, pdf: FPDF, token: dict) -> None:
-        """Render a code block with background."""
+        """Render a code block with syntax highlighting."""
         content = token.get("content", "")
-        lines = content.split("\n")
-
+        language = token.get("language", "")
+        syntax_theme = self._options.get("syntax_theme", "default")
+        theme = self._options.get("theme", {})
+        
+        from mdutil.syntax_highlighter import highlight_code_pdf
+        segments = highlight_code_pdf(content, language, theme, syntax_theme)
+        
         pdf.set_font(self._font_for("mono"), size=9)
         pdf.set_fill_color(240, 240, 240)
-
-        for line in lines:
-            pdf.cell(0, 5, line, new_x="LMARGIN", new_y="NEXT", fill=True)
-
+        
+        for segment in segments:
+            rgb = segment.get("rgb")
+            if rgb:
+                pdf.set_text_color(rgb["r"], rgb["g"], rgb["b"])
+            else:
+                pdf.set_text_color(0, 0, 0)
+            pdf.cell(0, 5, segment["text"], new_x="LMARGIN", new_y="NEXT", fill=True)
+        
         pdf.ln(5)
 
     def _render_horizontal_rule(self, pdf: FPDF, token: dict) -> None:

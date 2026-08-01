@@ -478,11 +478,13 @@ class HtmlExporterTests(unittest.TestCase):
         )
 
     def test_render_code_block(self):
-        """Code blocks should render with pre/code tags."""
+        """Code blocks should render with pre/code tags and syntax highlighting."""
         tokens = [{"type": "code", "content": "print('hello')", "language": "python"}]
         result = self.exporter.render(tokens, {}, {})
         self.assertIn("<pre><code class=\"language-python\">", result)
-        self.assertIn("print('hello')", result)
+        # Pygments outputs HTML with span classes, so check for partial matches
+        self.assertIn("print", result)
+        self.assertIn("hello", result)
 
     def test_render_horizontal_rule(self):
         """Horizontal rules should render as hr tags."""

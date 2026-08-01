@@ -268,6 +268,10 @@ def _export_single(export_format: str, args: argparse.Namespace, parsed: list[di
                 print(f"Error reading custom CSS file: {exc}", file=sys.stderr)
                 return 1
 
+    # Forward syntax_theme and theme to exporters
+    options["syntax_theme"] = runtime["syntax_theme"]
+    options["theme"] = theme
+
     try:
         export_output = exporter.render(parsed, theme=theme, options=options)
 
