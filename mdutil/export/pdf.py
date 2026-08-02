@@ -413,30 +413,34 @@ class PdfExporter(Exporter):
 
     def _render_code_line(self, pdf: FPDF, line_segments: list[dict[str, Any]]) -> None:
         """Render a single line of code with syntax highlighting.
-        
-        Segments within a line are rendered with new_x='RIGHT' so they
-        appear on the same line, preserving indentation. The last segment
-        uses new_x='LMARGIN' to advance to the next line.
+
+        Segments within a line are placed sequentially using tracked
+        absolute X positioning so indentation is preserved.
         """
+        start_x = pdf.get_x()
+        current_x = start_x
+
         for i, segment in enumerate(line_segments):
             rgb = segment.get("rgb")
             if rgb:
                 pdf.set_text_color(rgb["r"], rgb["g"], rgb["b"])
             else:
                 pdf.set_text_color(0, 0, 0)
-            
+
             text = segment["text"]
-            is_last = (i == len(line_segments) - 1)
-            width = pdf.get_string_width(text) if not is_last else 0
-            
+            width = pdf.get_string_width(text)
+
+            # Place the cell at the current X position
+            pdf.set_x(current_x)
             pdf.cell(
                 width,
                 5,
                 text,
-                new_x="RIGHT" if not is_last else "LMARGIN",
-                new_y="NEXT" if is_last else "",
+                new_x="LMARGIN",
+                new_y="LAST",
                 fill=True,
             )
+            current_x += width
 
     def _render_horizontal_rule(self, pdf: FPDF, token: dict) -> None:
         """Render a horizontal rule."""

@@ -187,7 +187,7 @@ some gibberish code
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(out.exists())
             html = out.read_text(encoding="utf-8")
-            self.assertIn("<pre>", html)
+            self.assertIn('<pre class="mdutil-highlight">', html)
             self.assertIn("def", html)
 
     def test_export_multi_format_both_highlighted(self):
