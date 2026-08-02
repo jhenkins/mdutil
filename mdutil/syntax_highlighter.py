@@ -317,9 +317,20 @@ def _extract_hex_color_from_style(style_value: str) -> str | None:
     Handles formats like '#008000', 'italic #3D7B7B', 'bold #FF0000 italic'.
     Returns None if no hex color found.
     """
+    # Try to find hex color pattern
+    import re
     match = re.search(r'#([0-9a-fA-F]{6})', style_value)
     if match:
         return f"#{match.group(1)}"
+    
+    # Try 3-digit hex
+    match = re.search(r'#([0-9a-fA-F]{3})\b', style_value)
+    if match:
+        # Expand 3-digit to 6-digit
+        hex3 = match.group(1)
+        hex6 = f"{hex3[0]}{hex3[0]}{hex3[1]}{hex3[1]}{hex3[2]}{hex3[2]}"
+        return f"#{hex6}"
+    
     return None
 
 

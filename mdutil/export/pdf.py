@@ -387,33 +387,60 @@ class PdfExporter(Exporter):
         pdf.set_font(self._font_for("mono"), size=9)
         pdf.set_fill_color(240, 240, 240)
         
-        # Group segments by line and render each line together
-        # This preserves indentation: leading whitespace and content are on the same line
+        # Split segments at newlines to preserve line structure
+        # Each segment may contain multiple lines
+        lines: list[list[dict[str, Any]]] = []
         current_line_segments: list[dict[str, Any]] = []
+        
         for segment in segments:
             text = segment["text"]
             rgb = segment.get("rgb")
             
-            # Strip non-ASCII characters to avoid font rendering issues
-            cleaned_text = self._strip_non_ascii(text)
-            
-            if "\n" in cleaned_text:
-                # Split at newlines — each part before a newline is its own line
-                parts = cleaned_text.split("\n")
-                for i, part in enumerate(parts):
-                    if part:
-                        current_line_segments.append({"text": part, "rgb": rgb})
-                    if i < len(parts) - 1:
-                        # Render the accumulated line so far
-                        self._render_code_line(pdf, current_line_segments)
-                        current_line_segments = []
-                continue
-            
-            current_line_segments.append({"text": cleaned_text, "rgb": rgb})
+            # Split on newlines within the text
+            parts = text.split("\n")
+            for i, part in enumerate(parts):
+                if part:
+                    current_line_segments.append({"text": part, "rgb": rgb})
+                if i < len(parts) - 1:
+                    # End of line — save and start new
+                    if current_line_segments:
+                        lines.append(current_line_segments)
+                    current_line_segments = []
         
-        # Render last line
+        # Save any remaining segments as a line
         if current_line_segments:
-            self._render_code_line(pdf, current_line_segments)
+            lines.append(current_line_segments)
+        
+        # If no segments were created, render content as plain text
+        if not lines:
+            lines = [[{"text": content, "rgb": None}]]
+        
+        # Render each line
+        for line_segments in lines:
+            # Render with syntax highlighting applied per-line
+            start_x = pdf.get_x()
+            current_x = start_x
+            
+            for seg in line_segments:
+                rgb = seg.get("rgb")
+                if rgb:
+                    pdf.set_text_color(rgb["r"], rgb["g"], rgb["b"])
+                else:
+                    pdf.set_text_color(0, 0, 0)
+                
+                text = seg["text"]
+                width = pdf.get_string_width(text)
+                
+                pdf.set_x(current_x)
+                pdf.cell(
+                    width,
+                    5,
+                    text,
+                    new_x="LMARGIN",
+                    new_y="LAST",
+                    fill=True,
+                )
+                current_x += width
         
         pdf.ln(5)
 
@@ -440,33 +467,37 @@ class PdfExporter(Exporter):
     def _render_code_line(self, pdf: FPDF, line_segments: list[dict[str, Any]]) -> None:
         """Render a single line of code with syntax highlighting.
 
-        Segments within a line are placed sequentially using tracked
-        absolute X positioning so indentation is preserved.
+        Segments within a line are placed sequentially at the current
+        X position, then Y advances by line height.
         """
-        start_x = pdf.get_x()
-        current_x = start_x
-
-        for i, segment in enumerate(line_segments):
-            rgb = segment.get("rgb")
+        current_x = pdf.get_x()
+        current_y = pdf.get_y()
+        
+        # Calculate total width of all segments
+        total_width = sum(pdf.get_string_width(s["text"]) for s in line_segments)
+        
+        # Set fill color and draw background
+        if line_segments:
+            # Set text color for first segment
+            rgb = line_segments[0].get("rgb")
             if rgb:
                 pdf.set_text_color(rgb["r"], rgb["g"], rgb["b"])
             else:
                 pdf.set_text_color(0, 0, 0)
-
-            text = segment["text"]
-            width = pdf.get_string_width(text)
-
-            # Place the cell at the current X position
+            
+            # Draw a single cell for the entire line
             pdf.set_x(current_x)
             pdf.cell(
-                width,
+                total_width,
                 5,
-                text,
+                "".join(s["text"] for s in line_segments),
                 new_x="LMARGIN",
-                new_y="LAST",
+                new_y="NEXT",
                 fill=True,
             )
-            current_x += width
+        
+        # Move to next line
+        pdf.set_y(current_y + 5)
 
     def _render_horizontal_rule(self, pdf: FPDF, token: dict) -> None:
         """Render a horizontal rule."""
