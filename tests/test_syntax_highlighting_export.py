@@ -163,11 +163,23 @@ class PdfExporterSyntaxHighlightTests(unittest.TestCase):
         """Return a mock FPDF-like object that records cell calls."""
 
         class FakePdf:
+            page = 1
+
             def __init__(self):
                 self.cells = []
                 self.text_colors = []
                 self.font_calls = []
                 self.ln_calls = []
+                self._x = 20.0
+
+            def get_x(self) -> float:
+                return self._x
+
+            def set_x(self, x: float) -> None:
+                self._x = x
+
+            def get_string_width(self, text: str) -> float:
+                return len(text) * 5.0
 
             def set_font(self, family, style="", size=0):
                 self.font_calls.append((family, style, size))
