@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import sys
 from html.parser import HTMLParser
 from typing import Any, cast
 
@@ -165,6 +166,8 @@ class PdfExporter(Exporter):
             text = segment["text"]
             if not text:
                 continue
+            # Strip non-ASCII characters for PDF rendering
+            text = self._strip_non_ascii(text)
             if segment.get("code"):
                 pdf.set_font(self._font_for("mono"), size=9)
             else:
@@ -391,9 +394,12 @@ class PdfExporter(Exporter):
             text = segment["text"]
             rgb = segment.get("rgb")
             
-            if "\n" in text:
+            # Strip non-ASCII characters to avoid font rendering issues
+            cleaned_text = self._strip_non_ascii(text)
+            
+            if "\n" in cleaned_text:
                 # Split at newlines — each part before a newline is its own line
-                parts = text.split("\n")
+                parts = cleaned_text.split("\n")
                 for i, part in enumerate(parts):
                     if part:
                         current_line_segments.append({"text": part, "rgb": rgb})
@@ -403,13 +409,33 @@ class PdfExporter(Exporter):
                         current_line_segments = []
                 continue
             
-            current_line_segments.append(segment)
+            current_line_segments.append({"text": cleaned_text, "rgb": rgb})
         
         # Render last line
         if current_line_segments:
             self._render_code_line(pdf, current_line_segments)
         
         pdf.ln(5)
+
+    def _strip_non_ascii(self, text: str) -> str:
+        """Replace non-ASCII characters with ASCII equivalents or spaces."""
+        result = []
+        for char in text:
+            if ord(char) < 128:
+                result.append(char)
+            elif char == "←":
+                result.append("<-")
+            elif char == "→":
+                result.append("->")
+            elif char == "←":
+                result.append("<-")
+            elif char == "→":
+                result.append("->")
+            elif char == "⚠":
+                result.append("!")
+            else:
+                result.append(" ")
+        return "".join(result)
 
     def _render_code_line(self, pdf: FPDF, line_segments: list[dict[str, Any]]) -> None:
         """Render a single line of code with syntax highlighting.

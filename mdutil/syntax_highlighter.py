@@ -92,8 +92,12 @@ def highlight_code_html(
         return code  # Unknown language, return as-is
 
     from pygments.formatters import HtmlFormatter
-    formatter = HtmlFormatter(style=syntax_theme)
+    from pygments.styles import get_style_by_name
+    
+    style = get_style_by_name(syntax_theme)
+    formatter = HtmlFormatter(style=style)
     highlighted = highlight(code, lexer, formatter)
+    
     return highlighted.rstrip("\n")
 
 
