@@ -329,7 +329,7 @@ def _render_code_block(self, token: dict) -> str:
     return f"<pre><code>{content}</code></pre>"
 ```
 
-**Issue:** HTML-escaped plain text only — no Pygments highlighting. The '\<pre>''\<code>' structure is correct, but the content is just escaped text without color classes.
+**Issue:** HTML-escaped plain text only — no Pygments highlighting. The 'pre' 'code' structure is correct, but the content is just escaped text without color classes.
 
 ### 5.3 How it SHOULD work
 
