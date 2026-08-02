@@ -306,7 +306,7 @@ class PdfExporter(Exporter):
                 continue
 
     def _render_heading(self, pdf: FPDF, token: dict) -> None:
-        """Render a heading token."""
+        """Render a heading token with inline formatting."""
         level = token.get("level", 1)
         text = token.get("text", "")
 
@@ -314,8 +314,35 @@ class PdfExporter(Exporter):
         sizes = {level: size * self.HEADING_SCALE for level, size in sizes.items()}
         font_size = sizes.get(level, self.FONT_SIZE)
 
+        # Parse inline formatting (backticks → code, bold, italic, links)
+        inline = _parse_inline(text)
+        inline_segments = self._parse_inline_html(inline["content"])
+
+        # Render with heading-appropriate font size
         pdf.set_font(self._font_for("bold"), size=font_size)
-        pdf.cell(0, 10, text, new_x="LMARGIN", new_y="NEXT")
+        for segment in inline_segments:
+            if not segment["text"]:
+                continue
+            if segment.get("code"):
+                pdf.set_font(self._font_for("mono"), size=9)
+            else:
+                style = ""
+                if segment.get("strong"):
+                    style += "B"
+                if segment.get("emphasis"):
+                    style += "I"
+                pdf.set_font(
+                    self._font_for("regular"),
+                    style=style,
+                    size=font_size,
+                )
+            if segment.get("href"):
+                pdf.set_text_color(0, 0, 180)
+            else:
+                pdf.set_text_color(0, 0, 0)
+            pdf.write(10, segment["text"], link=segment.get("href") or "")
+
+        pdf.set_text_color(0, 0, 0)
         pdf.ln(3)
 
         # Track heading for PDF outline (h1-h3)
@@ -345,7 +372,7 @@ class PdfExporter(Exporter):
         pdf.ln(3)
 
     def _render_code_block(self, pdf: FPDF, token: dict) -> None:
-        """Render a code block with syntax highlighting."""
+        """Render a code block with syntax highlighting and preserved indentation."""
         content = token.get("content", "")
         language = token.get("language", "")
         syntax_theme = self._options.get("syntax_theme", "default")
@@ -357,15 +384,59 @@ class PdfExporter(Exporter):
         pdf.set_font(self._font_for("mono"), size=9)
         pdf.set_fill_color(240, 240, 240)
         
+        # Group segments by line and render each line together
+        # This preserves indentation: leading whitespace and content are on the same line
+        current_line_segments: list[dict[str, Any]] = []
         for segment in segments:
+            text = segment["text"]
+            rgb = segment.get("rgb")
+            
+            if "\n" in text:
+                # Split at newlines — each part before a newline is its own line
+                parts = text.split("\n")
+                for i, part in enumerate(parts):
+                    if part:
+                        current_line_segments.append({"text": part, "rgb": rgb})
+                    if i < len(parts) - 1:
+                        # Render the accumulated line so far
+                        self._render_code_line(pdf, current_line_segments)
+                        current_line_segments = []
+                continue
+            
+            current_line_segments.append(segment)
+        
+        # Render last line
+        if current_line_segments:
+            self._render_code_line(pdf, current_line_segments)
+        
+        pdf.ln(5)
+
+    def _render_code_line(self, pdf: FPDF, line_segments: list[dict[str, Any]]) -> None:
+        """Render a single line of code with syntax highlighting.
+        
+        Segments within a line are rendered with new_x='RIGHT' so they
+        appear on the same line, preserving indentation. The last segment
+        uses new_x='LMARGIN' to advance to the next line.
+        """
+        for i, segment in enumerate(line_segments):
             rgb = segment.get("rgb")
             if rgb:
                 pdf.set_text_color(rgb["r"], rgb["g"], rgb["b"])
             else:
                 pdf.set_text_color(0, 0, 0)
-            pdf.cell(0, 5, segment["text"], new_x="LMARGIN", new_y="NEXT", fill=True)
-        
-        pdf.ln(5)
+            
+            text = segment["text"]
+            is_last = (i == len(line_segments) - 1)
+            width = pdf.get_string_width(text) if not is_last else 0
+            
+            pdf.cell(
+                width,
+                5,
+                text,
+                new_x="RIGHT" if not is_last else "LMARGIN",
+                new_y="NEXT" if is_last else "",
+                fill=True,
+            )
 
     def _render_horizontal_rule(self, pdf: FPDF, token: dict) -> None:
         """Render a horizontal rule."""

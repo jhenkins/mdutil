@@ -124,11 +124,18 @@ class PdfExporterTests(unittest.TestCase):
 
             def __init__(self):
                 self.font_calls = []
+                self.text_colors = []
 
             def set_font(self, family, style="", size=0):
                 self.font_calls.append((family, style, size))
 
+            def set_text_color(self, *args, **kwargs):
+                self.text_colors.append(args)
+
             def cell(self, *args, **kwargs):
+                pass
+
+            def write(self, *args, **kwargs):
                 pass
 
             def ln(self, *args, **kwargs):
@@ -481,7 +488,7 @@ class HtmlExporterTests(unittest.TestCase):
         """Code blocks should render with pre/code tags and syntax highlighting."""
         tokens = [{"type": "code", "content": "print('hello')", "language": "python"}]
         result = self.exporter.render(tokens, {}, {})
-        self.assertIn("<pre><code class=\"language-python\">", result)
+        self.assertIn("<pre class=\"mdutil-highlight\"><code class=\"language-python\">", result)
         # Pygments outputs HTML with span classes, so check for partial matches
         self.assertIn("print", result)
         self.assertIn("hello", result)

@@ -109,6 +109,9 @@ def highlight_code_pdf(
     mapping token types to RGB colors via theme + syntax theme colors.
     Falls back to plain text for unknown languages.
 
+    IMPORTANT: Segments are split at newlines so that PDF rendering
+    can preserve indentation (each line is rendered separately).
+
     Args:
         code: The code string to highlight.
         language: The language name for lexer detection.
@@ -135,7 +138,7 @@ def highlight_code_pdf(
     # Tokenize the code
     tokens = list(lexer.get_tokens(code))
 
-    # Group consecutive tokens with same style
+    # Group consecutive tokens with same style, splitting at newlines
     segments: list[dict[str, Any]] = []
     current_text = ""
     current_rgb: dict[str, int] | None = None
@@ -154,6 +157,12 @@ def highlight_code_pdf(
             current_rgb = rgb
 
         current_text += text
+
+        # Split at newlines so PDF can preserve indentation
+        if "\n" in text:
+            segments.append({"text": current_text, "rgb": current_rgb})
+            current_text = ""
+            current_rgb = None
 
     # Don't forget the last segment
     if current_text:

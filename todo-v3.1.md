@@ -37,12 +37,27 @@ Rendered PDF and HTML exports should preserve Markdown code-block language infor
 
 ## Phase 4: Verification, Documentation, and Release Prep (v3.1.0)
 **Kanban:** KB-017  
-**Status:** ✅ Complete
+**Status:** ✅ **done**
 
+### Checklist
 - [x] Add focused exporter tests for PDF and HTML syntax highlighting.
 - [x] Add CLI integration tests for syntax-highlighted exports.
 - [x] Update README, specification, and manual QA with syntax-highlighted export behavior.
 - [x] Run full verification: pytest, compileall, setup.py check, version check.
+- [x] Bump version: `mdutil/version.py` → 3.1.0
+- [x] Commit release: `git commit -m "feat(v3.1.0): bump version to 3.1.0 - finalize v3.1 release"`
+- [x] Tag release: `git tag -a v3.1.0 -m "mdutil v3.1.0 - Export Syntax Highlighting"`
+
+### Release Artifacts
+- Version: 3.1.0
+- Commit: df72d85 (HEAD → feature/v3.1-syntax-highlighting)
+- Tag: v3.1.0
+- Tests: 224 passing (26 unit + 8 CLI integration + 190 existing)
+- Bug fix: `highlight_code_pdf()` grouping logic corrected
+
+### Notes
+- Release prepared for user to push and open PR manually.
+- v4.0 Mermaid work (KB-006) remains in backlog.
 
 **Bug Fix:** Applied fix to `highlight_code_pdf()` grouping logic — transition from whitespace (no color) to keywords (has color) was merging consecutive segments.
 

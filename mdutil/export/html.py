@@ -326,7 +326,7 @@ img {{
             match = re.search(r'<div class="highlight">.*?<pre>(.*?)</pre></div>', highlighted, re.DOTALL)
             if match:
                 inner_content = match.group(1)
-                return f'<pre><code class="language-{language}">{inner_content}</code></pre>'
+                return f'<pre class="mdutil-highlight"><code class="language-{language}">{inner_content}</code></pre>'
             else:
                 # Fallback: use escaped content
                 return f"<pre><code class=\"language-{language}\">{escaped_content}</code></pre>"
