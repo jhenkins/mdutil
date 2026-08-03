@@ -376,7 +376,7 @@ class PdfExporter(Exporter):
 
     def _render_code_block(self, pdf: FPDF, token: dict) -> None:
         """Render a code block with syntax highlighting and preserved indentation."""
-        content = token.get("content", "")
+        content = str(token.get("content", "")).expandtabs(4)
         language = token.get("language", "")
         syntax_theme = self._options.get("syntax_theme", "default")
         theme = self._options.get("theme", {})
@@ -446,6 +446,16 @@ class PdfExporter(Exporter):
             pdf.ln(line_height)
             return
 
+        line_text = "".join(segment["text"] for segment in line_segments)
+        leading_spaces = len(line_text) - len(line_text.lstrip(" "))
+        indent_width = pdf.get_string_width(line_text[:leading_spaces])
+        continuation_x = min(start_x + indent_width, right_edge)
+
+        def draw_line_background() -> None:
+            pdf.rect(start_x, pdf.get_y(), right_edge - start_x, line_height, style="F")
+
+        draw_line_background()
+
         for segment in line_segments:
             rgb = segment.get("rgb")
             if rgb:
@@ -458,11 +468,17 @@ class PdfExporter(Exporter):
                 remaining_width = right_edge - current_x
                 if remaining_width <= 0:
                     pdf.ln(line_height)
-                    current_x = start_x
+                    current_x = continuation_x
                     remaining_width = right_edge - current_x
+                    draw_line_background()
 
                 chunk = self._fit_text_to_width(pdf, text, remaining_width)
                 if not chunk:
+                    if current_x != continuation_x:
+                        pdf.ln(line_height)
+                        current_x = continuation_x
+                        draw_line_background()
+                        continue
                     chunk = text[0]
 
                 width = pdf.get_string_width(chunk)
@@ -473,7 +489,7 @@ class PdfExporter(Exporter):
                     chunk,
                     new_x="LMARGIN",
                     new_y="LAST",
-                    fill=True,
+                    fill=False,
                 )
                 current_x += width
                 text = text[len(chunk):]
@@ -486,11 +502,20 @@ class PdfExporter(Exporter):
             return text
 
         chunk = ""
+        last_whitespace_break = 0
         for char in text:
             candidate = chunk + char
-            if chunk and pdf.get_string_width(candidate) > max_width:
+            if pdf.get_string_width(candidate) > max_width:
+                if not chunk:
+                    return ""
+                if last_whitespace_break > 0:
+                    return chunk[:last_whitespace_break]
+                if not char.isspace():
+                    return ""
                 return chunk
             chunk = candidate
+            if char.isspace():
+                last_whitespace_break = len(chunk)
         return chunk
 
     def _render_horizontal_rule(self, pdf: FPDF, token: dict) -> None:

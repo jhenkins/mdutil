@@ -184,6 +184,8 @@ class PdfExporterSyntaxHighlightTests(unittest.TestCase):
                 self.text_colors = []
                 self.font_calls = []
                 self.ln_calls = []
+                self.set_x_calls = []
+                self.rects = []
                 self._x = 20.0
                 self._y = 20.0
                 self.w = 210.0
@@ -193,6 +195,7 @@ class PdfExporterSyntaxHighlightTests(unittest.TestCase):
                 return self._x
 
             def set_x(self, x: float) -> None:
+                self.set_x_calls.append(x)
                 self._x = x
 
             def get_y(self) -> float:
@@ -212,6 +215,9 @@ class PdfExporterSyntaxHighlightTests(unittest.TestCase):
 
             def cell(self, *args, **kwargs):
                 self.cells.append((args, kwargs))
+
+            def rect(self, *args, **kwargs):
+                self.rects.append((args, kwargs))
 
             def ln(self, *args, **kwargs):
                 self.ln_calls.append(args)
@@ -300,6 +306,70 @@ class PdfExporterSyntaxHighlightTests(unittest.TestCase):
         rendered_chunks = [args[2] for args, _kwargs in pdf.cells]
         self.assertGreater(len(rendered_chunks), 1)
         self.assertEqual("".join(rendered_chunks), "abcdefghi")
+
+    def test_tabs_expand_to_spaces_in_pdf_code_blocks(self):
+        """Tabs should render as deterministic spaces in PDF code blocks."""
+        pdf = self._fake_pdf()
+        self.exporter._options = {}
+        self.exporter._use_unicode = False
+
+        token = {"type": "code", "content": "\tchild", "language": "text"}
+        self.exporter._render_code_block(cast(Any, pdf), token)
+
+        rendered_chunks = [args[2] for args, _kwargs in pdf.cells]
+        self.assertEqual("".join(rendered_chunks), "    child")
+
+    def test_wrapped_code_continuation_preserves_indent(self):
+        """Wrapped code continuations should keep the source line indentation."""
+        pdf = self._fake_pdf()
+        pdf.w = 50.0
+        pdf.r_margin = 5.0
+        self.exporter._options = {}
+        self.exporter._use_unicode = False
+
+        token = {"type": "code", "content": "    abcdefghi", "language": "text"}
+        self.exporter._render_code_block(cast(Any, pdf), token)
+
+        rendered_chunks = [args[2] for args, _kwargs in pdf.cells]
+        self.assertEqual("".join(rendered_chunks), "    abcdefghi")
+        self.assertIn(40.0, pdf.set_x_calls)
+
+    def test_code_line_background_is_not_drawn_over_text_segments(self):
+        """Segment backgrounds should not repaint and clip neighbouring glyphs."""
+        pdf = self._fake_pdf()
+        self.exporter._options = {}
+        self.exporter._use_unicode = False
+
+        self.exporter._render_code_line(cast(Any, pdf), [
+            {"text": "alpha", "rgb": None},
+            {"text": "beta", "rgb": {"r": 1, "g": 2, "b": 3}},
+        ])
+
+        self.assertEqual(len(pdf.rects), 1)
+        self.assertTrue(all(not kwargs.get("fill") for _args, kwargs in pdf.cells))
+
+    def test_fit_text_prefers_word_boundaries(self):
+        """Wrapping should avoid splitting words when a whitespace break fits."""
+        pdf = self._fake_pdf()
+
+        chunk = self.exporter._fit_text_to_width(cast(Any, pdf), "alpha beta", 35.0)
+
+        self.assertEqual(chunk, "alpha ")
+
+    def test_wrapped_code_cells_do_not_exceed_right_margin(self):
+        """No rendered code chunk should extend beyond the available line width."""
+        pdf = self._fake_pdf()
+        pdf.w = 47.0
+        pdf.r_margin = 5.0
+        self.exporter._options = {}
+        self.exporter._use_unicode = False
+
+        token = {"type": "code", "content": "abcde", "language": "text"}
+        self.exporter._render_code_block(cast(Any, pdf), token)
+
+        right_edge = pdf.w - pdf.r_margin
+        for x, (args, _kwargs) in zip(pdf.set_x_calls, pdf.cells):
+            self.assertLessEqual(x + args[0], right_edge)
 
 
 # ---------------------------------------------------------------------------
