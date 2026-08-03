@@ -149,6 +149,35 @@ class PdfExporterTests(unittest.TestCase):
 
         self.assertAlmostEqual(fake_pdf.font_calls[0][2], 13.2)
 
+    def test_inline_heading_advances_past_written_text(self):
+        """Headings rendered with write() must not overlap following content."""
+
+        class FakePdf:
+            page = 1
+
+            def __init__(self):
+                self.line_breaks = []
+
+            def set_font(self, *args, **kwargs):
+                pass
+
+            def set_text_color(self, *args, **kwargs):
+                pass
+
+            def write(self, *args, **kwargs):
+                pass
+
+            def ln(self, amount=0):
+                self.line_breaks.append(amount)
+
+        fake_pdf = FakePdf()
+        self.exporter._use_unicode = False
+        self.exporter._heading_sections = []
+
+        self.exporter._render_heading(cast(Any, fake_pdf), {"type": "heading", "text": "`code heading`", "level": 3})
+
+        self.assertGreaterEqual(fake_pdf.line_breaks[-1], 10)
+
     def test_pdf_document_header_metadata_renders_one_entry_per_line(self):
         """Spec metadata header lines should not collapse into one PDF line."""
 

@@ -185,12 +185,18 @@ class PdfExporterSyntaxHighlightTests(unittest.TestCase):
                 self.font_calls = []
                 self.ln_calls = []
                 self._x = 20.0
+                self._y = 20.0
+                self.w = 210.0
+                self.r_margin = 20.0
 
             def get_x(self) -> float:
                 return self._x
 
             def set_x(self, x: float) -> None:
                 self._x = x
+
+            def get_y(self) -> float:
+                return self._y
 
             def get_string_width(self, text: str) -> float:
                 return len(text) * 5.0
@@ -209,6 +215,8 @@ class PdfExporterSyntaxHighlightTests(unittest.TestCase):
 
             def ln(self, *args, **kwargs):
                 self.ln_calls.append(args)
+                amount = args[0] if args else 0
+                self._y += amount
 
         return FakePdf()
 
@@ -265,6 +273,33 @@ class PdfExporterSyntaxHighlightTests(unittest.TestCase):
         self.exporter._render_code_block(cast(Any, pdf), token)
 
         self.assertTrue(len(pdf.cells) > 0)
+
+    def test_multiline_code_block_advances_between_lines(self):
+        """Each source code line should render on its own PDF line, not overlap."""
+        pdf = self._fake_pdf()
+        self.exporter._options = {}
+        self.exporter._use_unicode = False
+
+        token = {"type": "code", "content": "first\nsecond\nthird", "language": "text"}
+        self.exporter._render_code_block(cast(Any, pdf), token)
+
+        line_breaks = [args[0] for args in pdf.ln_calls if args]
+        self.assertGreaterEqual(line_breaks.count(5), 4)
+
+    def test_long_code_line_wraps_before_right_margin(self):
+        """Long code lines should not render as a single clipped off-page cell."""
+        pdf = self._fake_pdf()
+        pdf.w = 50.0
+        pdf.r_margin = 5.0
+        self.exporter._options = {}
+        self.exporter._use_unicode = False
+
+        token = {"type": "code", "content": "abcdefghi", "language": "text"}
+        self.exporter._render_code_block(cast(Any, pdf), token)
+
+        rendered_chunks = [args[2] for args, _kwargs in pdf.cells]
+        self.assertGreater(len(rendered_chunks), 1)
+        self.assertEqual("".join(rendered_chunks), "abcdefghi")
 
 
 # ---------------------------------------------------------------------------
