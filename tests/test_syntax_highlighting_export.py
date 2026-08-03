@@ -56,6 +56,12 @@ class HighlightCodeHtmlTests(unittest.TestCase):
         html = highlight_code_html(code, "")
         self.assertEqual(html, code)
 
+    def test_none_language_returns_plain_text(self):
+        """Parser emits None for fences without an info string."""
+        code = "plain text"
+        html = highlight_code_html(code, None)
+        self.assertEqual(html, code)
+
     def test_plain_text_alias_returns_plain_text(self):
         code = "this is text"
         for lang in ("text", "txt", "plain", "plaintext"):
@@ -115,6 +121,14 @@ class HighlightCodePdfTests(unittest.TestCase):
         code = "plain text"
         segments = highlight_code_pdf(code, "")
         self.assertEqual(len(segments), 1)
+        self.assertIsNone(segments[0]["rgb"])
+
+    def test_none_language_returns_single_plain_segment(self):
+        """Parser emits None for fences without an info string."""
+        code = "plain text"
+        segments = highlight_code_pdf(code, None)
+        self.assertEqual(len(segments), 1)
+        self.assertEqual(segments[0]["text"], code)
         self.assertIsNone(segments[0]["rgb"])
 
     def test_plain_text_alias_returns_plain_segment(self):
@@ -241,6 +255,17 @@ class PdfExporterSyntaxHighlightTests(unittest.TestCase):
 
         self.assertTrue(len(pdf.cells) > 0)
 
+    def test_none_language_falls_back_to_plain(self):
+        """Fenced code blocks without info strings should not crash PDF export."""
+        pdf = self._fake_pdf()
+        self.exporter._options = {}
+        self.exporter._use_unicode = False
+
+        token = {"type": "code", "content": "no language here\n", "language": None}
+        self.exporter._render_code_block(cast(Any, pdf), token)
+
+        self.assertTrue(len(pdf.cells) > 0)
+
 
 # ---------------------------------------------------------------------------
 # HtmlExporter._render_code_block() tests
@@ -277,6 +302,13 @@ class HtmlExporterSyntaxHighlightTests(unittest.TestCase):
 
         self.assertNotIn("<span", result)
         # Should still have pre/code wrapper
+        self.assertIn("<pre><code>", result)
+
+    def test_none_language_has_no_highlight_classes(self):
+        token = {"type": "code", "content": "plain text\n", "language": None}
+        result = self.exporter._render_code_block(token, syntax_theme="default")
+
+        self.assertNotIn("<span", result)
         self.assertIn("<pre><code>", result)
 
     def test_special_html_entities_are_escaped_in_fallback(self):

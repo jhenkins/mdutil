@@ -29,9 +29,14 @@ _CODE_TOKEN_KEYS = {
 _PLAIN_TEXT_LANGUAGE_ALIASES = {"text", "txt", "plain", "plaintext"}
 
 
+def _normalize_language(language: str | None) -> str:
+    """Return a normalized lexer name; parser uses None for bare fences."""
+    return (language or "").strip().lower()
+
+
 def highlight_code(
     code: str,
-    language: str = "",
+    language: str | None = "",
     theme: dict[str, Any] | None = None,
     syntax_theme: str = "default",
 ) -> str:
@@ -47,7 +52,7 @@ def highlight_code(
         syntax_theme: Pygments style name for code highlighting. Defaults to "default"
                       (uses theme's code colors only).
     """
-    lexer_name = language.strip().lower()
+    lexer_name = _normalize_language(language)
     if not lexer_name or lexer_name in _PLAIN_TEXT_LANGUAGE_ALIASES:
         return code
 
@@ -65,7 +70,7 @@ def highlight_code(
 
 def highlight_code_html(
     code: str,
-    language: str = "",
+    language: str | None = "",
     syntax_theme: str = "default",
 ) -> str:
     """Return Pygments-highlighted HTML for a code block.
@@ -82,7 +87,7 @@ def highlight_code_html(
     Returns:
         HTML string with <span> tags for token types, or plain text code.
     """
-    lexer_name = language.strip().lower()
+    lexer_name = _normalize_language(language)
     if not lexer_name or lexer_name in _PLAIN_TEXT_LANGUAGE_ALIASES:
         return code  # Plain text, no highlighting needed
 
@@ -103,7 +108,7 @@ def highlight_code_html(
 
 def highlight_code_pdf(
     code: str,
-    language: str = "",
+    language: str | None = "",
     theme: dict[str, Any] | None = None,
     syntax_theme: str = "default",
 ) -> list[dict[str, Any]]:
@@ -127,7 +132,7 @@ def highlight_code_pdf(
         - text: The code text for this segment
         - rgb: Optional dict with r, g, b keys (0-255) for text color
     """
-    lexer_name = language.strip().lower()
+    lexer_name = _normalize_language(language)
     if not lexer_name or lexer_name in _PLAIN_TEXT_LANGUAGE_ALIASES:
         return [{"text": code, "rgb": None}]  # Plain text, no highlighting
 
