@@ -124,11 +124,18 @@ class PdfExporterTests(unittest.TestCase):
 
             def __init__(self):
                 self.font_calls = []
+                self.text_colors = []
 
             def set_font(self, family, style="", size=0):
                 self.font_calls.append((family, style, size))
 
+            def set_text_color(self, *args, **kwargs):
+                self.text_colors.append(args)
+
             def cell(self, *args, **kwargs):
+                pass
+
+            def write(self, *args, **kwargs):
                 pass
 
             def ln(self, *args, **kwargs):
@@ -141,6 +148,35 @@ class PdfExporterTests(unittest.TestCase):
         self.exporter._render_heading(cast(Any, fake_pdf), {"type": "heading", "text": "Title", "level": 1})
 
         self.assertAlmostEqual(fake_pdf.font_calls[0][2], 13.2)
+
+    def test_inline_heading_advances_past_written_text(self):
+        """Headings rendered with write() must not overlap following content."""
+
+        class FakePdf:
+            page = 1
+
+            def __init__(self):
+                self.line_breaks = []
+
+            def set_font(self, *args, **kwargs):
+                pass
+
+            def set_text_color(self, *args, **kwargs):
+                pass
+
+            def write(self, *args, **kwargs):
+                pass
+
+            def ln(self, amount=0):
+                self.line_breaks.append(amount)
+
+        fake_pdf = FakePdf()
+        self.exporter._use_unicode = False
+        self.exporter._heading_sections = []
+
+        self.exporter._render_heading(cast(Any, fake_pdf), {"type": "heading", "text": "`code heading`", "level": 3})
+
+        self.assertGreaterEqual(fake_pdf.line_breaks[-1], 10)
 
     def test_pdf_document_header_metadata_renders_one_entry_per_line(self):
         """Spec metadata header lines should not collapse into one PDF line."""
@@ -478,11 +514,13 @@ class HtmlExporterTests(unittest.TestCase):
         )
 
     def test_render_code_block(self):
-        """Code blocks should render with pre/code tags."""
+        """Code blocks should render with pre/code tags and syntax highlighting."""
         tokens = [{"type": "code", "content": "print('hello')", "language": "python"}]
         result = self.exporter.render(tokens, {}, {})
-        self.assertIn("<pre><code class=\"language-python\">", result)
-        self.assertIn("print('hello')", result)
+        self.assertIn("<pre class=\"mdutil-highlight\"><code class=\"language-python\">", result)
+        # Pygments outputs HTML with span classes, so check for partial matches
+        self.assertIn("print", result)
+        self.assertIn("hello", result)
 
     def test_render_horizontal_rule(self):
         """Horizontal rules should render as hr tags."""

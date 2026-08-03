@@ -36,9 +36,23 @@ class HtmlExporter(Exporter):
 
     def render(self, tokens: list[dict], theme: dict, options: dict) -> str:
         """Render tokens to HTML."""
+        self._options = options
         css = self._generate_css(theme)
         custom_css = options.get("custom_css", "")
-        body = self._render_tokens(tokens)
+        syntax_theme = options.get("syntax_theme", "default")
+        
+        # Inject Pygments syntax theme CSS for highlighted code blocks
+        try:
+            from pygments.formatters import HtmlFormatter
+            from pygments.styles import get_style_by_name
+            style_defs = HtmlFormatter(style=get_style_by_name(syntax_theme)).get_style_defs(".mdutil-highlight")
+            if style_defs.strip():
+                css = f"{css}\n{style_defs}"
+        except Exception:
+            # If style can't be loaded, proceed without syntax CSS
+            pass
+        
+        body = self._render_tokens(tokens, syntax_theme=syntax_theme)
         style_block = f"{css}"
         if custom_css:
             style_block += f"\n/* Custom CSS */\n{custom_css}\n"
@@ -189,7 +203,7 @@ img {{
 }}
 """
 
-    def _render_tokens(self, tokens: list[dict]) -> str:
+    def _render_tokens(self, tokens: list[dict], syntax_theme: str = "default") -> str:
         """Render a list of tokens to HTML."""
         output = []
         for token in tokens:
@@ -208,7 +222,7 @@ img {{
                 continue
 
             if token_type == "code":
-                output.append(self._render_code_block(token))
+                output.append(self._render_code_block(token, syntax_theme))
                 continue
 
             if token_type == "horizontal_rule":
@@ -292,17 +306,33 @@ img {{
 
         return "".join(output)
 
-    def _render_code_block(self, token: dict) -> str:
-        """Render a code block."""
+    def _render_code_block(self, token: dict, syntax_theme: str = "default") -> str:
+        """Render a code block with syntax highlighting."""
         content = token.get("content", "")
         language = token.get("language", "")
 
-        # Escape HTML entities
-        content = content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        # Escape HTML entities for non-highlighted content
+        escaped_content = content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
         if language:
-            return f'<pre><code class="language-{language}">{content}</code></pre>'
-        return f"<pre><code>{content}</code></pre>"
+            # Use Pygments for highlighted code
+            from mdutil.syntax_highlighter import highlight_code_html
+            highlighted = highlight_code_html(content, language, syntax_theme)
+            
+            # Strip the outer <div class="highlight"> wrapper from Pygments output
+            # Pygments returns: <div class="highlight"><pre>...</pre></div>
+            # We want just the content between <pre> and </pre>
+            import re
+            match = re.search(r'<div class="highlight">.*?<pre>(.*?)</pre></div>', highlighted, re.DOTALL)
+            if match:
+                inner_content = match.group(1)
+                return f'<pre class="mdutil-highlight"><code class="language-{language}">{inner_content}</code></pre>'
+            else:
+                # Fallback: use escaped content
+                return f"<pre><code class=\"language-{language}\">{escaped_content}</code></pre>"
+        else:
+            # No language, use escaped content
+            return f"<pre><code>{escaped_content}</code></pre>"
 
     def _render_table(self, token: dict) -> str:
         """Render a table."""

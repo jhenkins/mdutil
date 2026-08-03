@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import sys
 from html.parser import HTMLParser
 from typing import Any, cast
 
@@ -165,6 +166,8 @@ class PdfExporter(Exporter):
             text = segment["text"]
             if not text:
                 continue
+            # Strip non-ASCII characters for PDF rendering
+            text = self._strip_non_ascii(text)
             if segment.get("code"):
                 pdf.set_font(self._font_for("mono"), size=9)
             else:
@@ -196,6 +199,7 @@ class PdfExporter(Exporter):
 
     def render(self, tokens: list[dict], theme: dict, options: dict) -> bytes:
         """Render tokens to PDF bytes."""
+        self._options = options  # Store options for use in code block rendering
         paper_size = options.get("pdf_paper_size", "A4")
         orientation = options.get("pdf_orientation", "portrait")
 
@@ -305,7 +309,7 @@ class PdfExporter(Exporter):
                 continue
 
     def _render_heading(self, pdf: FPDF, token: dict) -> None:
-        """Render a heading token."""
+        """Render a heading token with inline formatting."""
         level = token.get("level", 1)
         text = token.get("text", "")
 
@@ -313,9 +317,36 @@ class PdfExporter(Exporter):
         sizes = {level: size * self.HEADING_SCALE for level, size in sizes.items()}
         font_size = sizes.get(level, self.FONT_SIZE)
 
+        # Parse inline formatting (backticks → code, bold, italic, links)
+        inline = _parse_inline(text)
+        inline_segments = self._parse_inline_html(inline["content"])
+
+        # Render with heading-appropriate font size
         pdf.set_font(self._font_for("bold"), size=font_size)
-        pdf.cell(0, 10, text, new_x="LMARGIN", new_y="NEXT")
-        pdf.ln(3)
+        for segment in inline_segments:
+            if not segment["text"]:
+                continue
+            if segment.get("code"):
+                pdf.set_font(self._font_for("mono"), size=9)
+            else:
+                style = ""
+                if segment.get("strong"):
+                    style += "B"
+                if segment.get("emphasis"):
+                    style += "I"
+                pdf.set_font(
+                    self._font_for("regular"),
+                    style=style,
+                    size=font_size,
+                )
+            if segment.get("href"):
+                pdf.set_text_color(0, 0, 180)
+            else:
+                pdf.set_text_color(0, 0, 0)
+            pdf.write(10, segment["text"], link=segment.get("href") or "")
+
+        pdf.set_text_color(0, 0, 0)
+        pdf.ln(10)
 
         # Track heading for PDF outline (h1-h3)
         if level <= 3:
@@ -344,17 +375,148 @@ class PdfExporter(Exporter):
         pdf.ln(3)
 
     def _render_code_block(self, pdf: FPDF, token: dict) -> None:
-        """Render a code block with background."""
-        content = token.get("content", "")
-        lines = content.split("\n")
-
+        """Render a code block with syntax highlighting and preserved indentation."""
+        content = str(token.get("content", "")).expandtabs(4)
+        language = token.get("language", "")
+        syntax_theme = self._options.get("syntax_theme", "default")
+        theme = self._options.get("theme", {})
+        
+        from mdutil.syntax_highlighter import highlight_code_pdf
+        segments = highlight_code_pdf(content, language, theme, syntax_theme)
+        
         pdf.set_font(self._font_for("mono"), size=9)
         pdf.set_fill_color(240, 240, 240)
+        
+        # Split segments at newlines to preserve source line structure.
+        # Append even empty lines so blank lines inside code blocks don't collapse.
+        lines: list[list[dict[str, Any]]] = []
+        current_line_segments: list[dict[str, Any]] = []
 
-        for line in lines:
-            pdf.cell(0, 5, line, new_x="LMARGIN", new_y="NEXT", fill=True)
+        for segment in segments:
+            text = segment["text"]
+            rgb = segment.get("rgb")
+
+            parts = text.split("\n")
+            for i, part in enumerate(parts):
+                if part:
+                    current_line_segments.append({"text": part, "rgb": rgb})
+                if i < len(parts) - 1:
+                    lines.append(current_line_segments)
+                    current_line_segments = []
+
+        if current_line_segments:
+            lines.append(current_line_segments)
+
+        if not lines:
+            lines = [[{"text": content, "rgb": None}]]
+
+        for line_segments in lines:
+            self._render_code_line(pdf, line_segments)
 
         pdf.ln(5)
+
+    def _strip_non_ascii(self, text: str) -> str:
+        """Replace non-ASCII characters with ASCII equivalents or spaces."""
+        result = []
+        for char in text:
+            if ord(char) < 128:
+                result.append(char)
+            elif char == "←":
+                result.append("<-")
+            elif char == "→":
+                result.append("->")
+            elif char == "←":
+                result.append("<-")
+            elif char == "→":
+                result.append("->")
+            elif char == "⚠":
+                result.append("!")
+            else:
+                result.append(" ")
+        return "".join(result)
+
+    def _render_code_line(self, pdf: FPDF, line_segments: list[dict[str, Any]]) -> None:
+        """Render one source code line, wrapping before the right margin."""
+        start_x = pdf.get_x()
+        current_x = start_x
+        right_edge = pdf.w - pdf.r_margin
+        line_height = 5
+
+        if not line_segments:
+            pdf.ln(line_height)
+            return
+
+        line_text = "".join(segment["text"] for segment in line_segments)
+        leading_spaces = len(line_text) - len(line_text.lstrip(" "))
+        indent_width = pdf.get_string_width(line_text[:leading_spaces])
+        continuation_x = min(start_x + indent_width, right_edge)
+
+        def draw_line_background() -> None:
+            pdf.rect(start_x, pdf.get_y(), right_edge - start_x, line_height, style="F")
+
+        draw_line_background()
+
+        for segment in line_segments:
+            rgb = segment.get("rgb")
+            if rgb:
+                pdf.set_text_color(rgb["r"], rgb["g"], rgb["b"])
+            else:
+                pdf.set_text_color(0, 0, 0)
+
+            text = segment["text"]
+            while text:
+                remaining_width = right_edge - current_x
+                if remaining_width <= 0:
+                    pdf.ln(line_height)
+                    current_x = continuation_x
+                    remaining_width = right_edge - current_x
+                    draw_line_background()
+
+                chunk = self._fit_text_to_width(pdf, text, remaining_width)
+                if not chunk:
+                    if current_x != continuation_x:
+                        pdf.ln(line_height)
+                        current_x = continuation_x
+                        draw_line_background()
+                        continue
+                    chunk = text[0]
+
+                width = pdf.get_string_width(chunk)
+                pdf.set_x(current_x)
+                pdf.cell(
+                    width,
+                    line_height,
+                    chunk,
+                    new_x="LMARGIN",
+                    new_y="LAST",
+                    fill=False,
+                )
+                current_x += width
+                text = text[len(chunk):]
+
+        pdf.ln(line_height)
+
+    def _fit_text_to_width(self, pdf: FPDF, text: str, max_width: float) -> str:
+        """Return the longest prefix of text that fits within max_width."""
+        if pdf.get_string_width(text) <= max_width:
+            return text
+
+        chunk = ""
+        last_whitespace_break = 0
+        for char in text:
+            candidate = chunk + char
+            if pdf.get_string_width(candidate) > max_width:
+                if not chunk:
+                    return ""
+                if last_whitespace_break > 0:
+                    return chunk[:last_whitespace_break]
+                if not char.isspace():
+                    return ""
+                return chunk
+            chunk = candidate
+            if char.isspace():
+                last_whitespace_break = len(chunk)
+        return chunk
 
     def _render_horizontal_rule(self, pdf: FPDF, token: dict) -> None:
         """Render a horizontal rule."""
