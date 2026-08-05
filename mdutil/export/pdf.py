@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 import sys
-from html.parser import HTMLParser
+import html.parser
 from typing import Any, cast
 
 from fpdf import FPDF
@@ -44,7 +44,7 @@ ORIENTATIONS: dict[str, str] = {
 }
 
 
-class _InlineHTMLParser(HTMLParser):
+class _InlineHTMLParser(html.parser.HTMLParser):
     """Convert parser-produced inline HTML into renderable PDF text segments."""
 
     def __init__(self) -> None:

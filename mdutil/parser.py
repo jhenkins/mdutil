@@ -31,14 +31,25 @@ def parse_markdown(content: str) -> list[Token]:
         code_block, end_pos = extract_code_block(lines, i)
         if code_block:
             content_text = code_block["content"] or ""
-            tokens.append(
-                {
-                    "type": "code",
-                    "content": content_text,
-                    "language": code_block["language"],
-                    "text": content_text,
-                }
-            )
+            language = code_block["language"]
+            if is_mermaid_block(language):
+                tokens.append(
+                    {
+                        "type": "mermaid",
+                        "content": content_text,
+                        "language": language,
+                        "text": content_text,
+                    }
+                )
+            else:
+                tokens.append(
+                    {
+                        "type": "code",
+                        "content": content_text,
+                        "language": language,
+                        "text": content_text,
+                    }
+                )
             i = end_pos
             continue
 
@@ -99,14 +110,25 @@ def parse_markdown(content: str) -> list[Token]:
         code_block, end_pos = extract_code_block(lines, i)
         if code_block:
             content_text = code_block["content"] or ""
-            tokens.append(
-                {
-                    "type": "code",
-                    "content": content_text,
-                    "language": code_block["language"],
-                    "text": content_text,
-                }
-            )
+            language = code_block["language"]
+            if is_mermaid_block(language):
+                tokens.append(
+                    {
+                        "type": "mermaid",
+                        "content": content_text,
+                        "language": language,
+                        "text": content_text,
+                    }
+                )
+            else:
+                tokens.append(
+                    {
+                        "type": "code",
+                        "content": content_text,
+                        "language": language,
+                        "text": content_text,
+                    }
+                )
             i = end_pos
             continue
 
@@ -230,6 +252,22 @@ def extract_code_block(lines: list[str], start_index: int) -> tuple[dict[str, st
         i += 1
 
     return None, start_index
+
+
+def is_mermaid_block(language: str | None) -> bool:
+    """Return True if the code block's language indicates a Mermaid diagram.
+
+    Args:
+        language: The info-string language token from a fenced code block.
+
+    Returns:
+        True if the block is a Mermaid diagram block (`` ```mermaid ``).
+    """
+    if language is None:
+        return False
+    lang = language.strip().lower()
+    # Accept "mermaid", "mermaid: title", "mermaid:something", etc.
+    return lang.split(":")[0].strip() == "mermaid"
 
 
 def extract_table(lines: list[str], start_index: int) -> tuple[dict[str, Any] | None, int]:

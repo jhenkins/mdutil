@@ -30,9 +30,12 @@ htmlcov/
 .kanban/
 pi-session*.*
 
+
 # Other
 # VI/M swap files
 .*.swp
 # Test artifacts
+tmp/
 *.html
 *.pdf
+*.svg

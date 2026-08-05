@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from mdutil.export.base import Exporter
+from mdutil.export.merman_renderer import MermanRenderer, MermanBinaryNotFoundError, MermanRenderError
 from mdutil.parser import _parse_inline
 
 
@@ -201,10 +202,35 @@ img {{
     max-width: 100%;
     box-sizing: border-box;
 }}
+
+.mermaid {{
+    text-align: center;
+    margin: 16px 0;
+}}
+
+.mermaid svg {{
+    max-width: 100%;
+    height: auto;
+}}
 """
 
     def _render_tokens(self, tokens: list[dict], syntax_theme: str = "default") -> str:
         """Render a list of tokens to HTML."""
+        # Collect mermaid diagrams and render them upfront (batched).
+        mermaid_diagrams: list[tuple[dict, int]] = []
+        for i, token in enumerate(tokens):
+            if token.get("type") == "mermaid":
+                mermaid_diagrams.append((token, i))
+
+        rendered_svgs = {}
+        if mermaid_diagrams:
+            mermaid_enabled = self._options.get("mermaid", True)
+            if mermaid_enabled:
+                rendered_svgs = self._render_mermaid_batch(mermaid_diagrams)
+            else:
+                # mermaid disabled: treat mermaid tokens as plain code blocks
+                pass
+
         output = []
         for token in tokens:
             token_type = token.get("type")
@@ -223,6 +249,10 @@ img {{
 
             if token_type == "code":
                 output.append(self._render_code_block(token, syntax_theme))
+                continue
+
+            if token_type == "mermaid":
+                output.append(self._render_mermaid(token, rendered_svgs))
                 continue
 
             if token_type == "horizontal_rule":
@@ -305,6 +335,49 @@ img {{
                 output.append(content)
 
         return "".join(output)
+
+    def _render_mermaid(self, token: dict, rendered_svgs: dict) -> str:
+        """Render a mermaid token to HTML.
+
+        Uses pre-rendered SVG if available; falls back to a fenced code block
+        when rendering failed or the binary is unavailable.
+        """
+        mermaid_enabled = self._options.get("mermaid", True)
+        if not mermaid_enabled:
+            return self._render_code_block(token, syntax_theme="")
+
+        content = token.get("content", "")
+        # Try to get pre-rendered SVG from batch render.
+        svg = rendered_svgs.get(id(token))
+        if svg and not svg.startswith("<!--"):
+            return f'<div class="mermaid">\n{svg}\n</div>'
+
+        # Fallback: render as a code block with an error note.
+        if svg and svg.startswith("<!--"):
+            return f'<div class="mermaid">\n<p><em>Diagram could not be rendered:</em></p>\n<pre><code>{self._escape_html(content)}</code></pre>\n</div>'
+
+        # No SVG rendered at all (binary unavailable or disabled) — emit code block.
+        return self._render_code_block(token, syntax_theme="")
+
+    def _render_mermaid_batch(self, diagrams: list[tuple[dict, int]]) -> dict:
+        """Render multiple mermaid diagrams and return a dict mapping token id → SVG."""
+        renderer = MermanRenderer()
+        if not renderer.available:
+            return {}
+
+        theme = self._options.get("mermaid_theme", "default")
+        code_index_pairs = [(d.get("content", ""), i) for i, (d, _) in enumerate(diagrams)]
+        results = renderer.render_diagrams(code_index_pairs, theme=theme)
+
+        rendered = {}
+        for code, idx, svg in results:
+            token = diagrams[idx][0]
+            rendered[id(token)] = svg
+        return rendered
+
+    def _escape_html(self, text: str) -> str:
+        """Escape HTML entities in text."""
+        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
     def _render_code_block(self, token: dict, syntax_theme: str = "default") -> str:
         """Render a code block with syntax highlighting."""

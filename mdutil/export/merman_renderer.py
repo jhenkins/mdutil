@@ -14,14 +14,15 @@ from pathlib import Path
 from typing import Optional
 
 
-# Platform → merman-cli binary filename mapping
+# Platform → generic merman-cli binary filename
+# The build step (setup.py) copies the matching platform binary to this generic name.
 _PLATFORM_BINARY_MAP = {
-    ("linux", "x86_64"): "merman-cli-linux-x86_64",
-    ("linux", "aarch64"): "merman-cli-linux-aarch64",
-    ("darwin", "arm64"): "merman-cli-darwin-arm64",
-    ("darwin", "x86_64"): "merman-cli-darwin-x86_64",
-    ("win32", "AMD64"): "merman-cli-windows-x64.exe",
-    ("win32", "x86_64"): "merman-cli-windows-x64.exe",
+    ("linux", "x86_64"): "merman-cli",
+    ("linux", "aarch64"): "merman-cli",
+    ("darwin", "arm64"): "merman-cli",
+    ("darwin", "x86_64"): "merman-cli",
+    ("win32", "AMD64"): "merman-cli.exe",
+    ("win32", "x86_64"): "merman-cli.exe",
 }
 
 # Default Mermaid themes supported by merman-cli
@@ -51,14 +52,18 @@ def detect_platform() -> tuple[str, str]:
 
 
 def resolve_binary_name(os_name: str, machine: str) -> Optional[str]:
-    """Resolve the correct merman-cli binary filename for the platform.
+    """Resolve the generic merman-cli binary filename for the platform.
+
+    The build step (setup.py) copies the matching platform binary to a generic
+    name (merman-cli or merman-cli.exe), so the runtime only needs to know the
+    generic name — not the platform-specific source name.
 
     Args:
         os_name: Operating system name (sys.platform value).
         machine: Machine architecture (platform.machine() value).
 
     Returns:
-        Binary filename if supported, None otherwise.
+        Generic binary filename if supported, None otherwise.
     """
     return _PLATFORM_BINARY_MAP.get((os_name, machine))
 
@@ -128,7 +133,7 @@ class MermanRenderer:
                 f"Unsupported theme '{theme}'. Supported: {SUPPORTED_THEMES}"
             )
 
-        cmd = [str(self._binary_path), "--theme", theme, "--input", "-"]
+        cmd = [str(self._binary_path), "-t", theme, "-i", "-", "-o", "-"]
         try:
             result = subprocess.run(
                 cmd,
