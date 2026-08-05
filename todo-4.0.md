@@ -29,12 +29,12 @@
  - [x] Confirm cross-platform support (Linux, macOS, Windows)
  - [ ] Document findings in `docs/mermaid-research.md`
 
- ### KB-002: Bundle infrastructure setup
- - [ ] Add `mdutil/export/_merman_binaries/` directory structure
- - [ ] Create script to download pre-built merman-cli binaries during build
- - [ ] Add platform detection logic (`sys.platform`, `platform.machine()`)
- - [ ] Create `MermanRenderer` class to wrap binary execution
- - [ ] Write unit tests for platform detection and binary discovery
+ ### KB-002: Bundle infrastructure setup ✅ COMPLETE
+ - [x] Add `mdutil/export/_merman_binaries/` directory structure
+ - [x] Create script to download pre-built merman-cli binaries during build
+ - [x] Add platform detection logic (`sys.platform`, `platform.machine()`)
+ - [x] Create `MermanRenderer` class to wrap binary execution
+ - [x] Write unit tests for platform detection and binary discovery
 
  ### KB-003: Core merman rendering integration
  - [ ] Implement `render_mermaid_svg(mermaid_code: str) -> str`
