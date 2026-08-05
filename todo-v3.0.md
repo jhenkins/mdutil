@@ -210,8 +210,33 @@ v3.0 adds document export functionality to mdutil, enabling users to render Mark
   - [x] `python setup.py check` — OK
   - [x] `python -m mdutil --version` — `mdutil 3.0.0`
 - [x] **7.4** Committed: `c63ed9a feat(v3.0.0): add PDF and HTML export` (15 files, +1289 lines)
-- [ ] **7.5** Push feature branch and open PR *(manual step)*
-- [ ] **7.6** Merge PR after approval *(manual step)*
+- [x] **7.5** Push feature branch and open PR *(manual step — completed by maintainer)*
+- [x] **7.6** Merge PR after approval *(manual step — completed by maintainer)*
+- [x] **7.7** PDF rendering bug fixes
+  - [x] Bold (**text**) and italic (*text*) inline rendering broken for PDF
+    - Root cause: `_render_paragraph` was reading `token["text"]` (raw Markdown like `**bold**`) instead of `token["content"]` (already-parsed HTML like `<strong>bold</strong>`)
+    - Fix: Parse inline HTML content into PDF text segments and render with fpdf font styles (`B`, `I`, monospace) instead of emitting raw Markdown or only stripping tags
+  - [x] URL links not rendered as clickable PDF links
+    - Root cause: PDF export flattened `<a href="...">` content to plain text and discarded the href
+    - Fix: Render link segments with blue underlined text and `write(..., link=href)` PDF annotations
+  - [x] Specification metadata header collapsed to one line
+    - Root cause: Markdown soft breaks intentionally collapse consecutive paragraph lines to spaces
+    - Fix: Detect the spec-style metadata block from parser `source_lines`/`content_lines` and render each entry on its own PDF line
+  - [x] PDF heading fonts too large
+    - Fix: Scale Markdown heading font sizes to 55% of the previous values
+  - [x] Table cell text overflowed across page/cells
+    - Root cause: table renderer used fixed-height single-line `cell()` calls
+    - Fix: Use `multi_cell()` dry-run wrapping to calculate row height, then render wrapped text inside bordered cells with page-break checks
+  - [x] Blockquotes rendered as literal `>` lines instead of quote blocks
+    - Fix: Strip `>` markers, render inline formatting inside the quote, indent the content, and draw a vertical quote rule
+- [x] **7.8** HTML rendering bug fixes
+  - [x] Bold (**text**) and italic (*text*) inline rendering broken for HTML
+    - Root cause: `_render_paragraph` was using `_render_spans()` from the `spans[]` list, but the parser's `spans[]` uses types like `"strong"` and `"emphasis"` while the span renderer only checked for `"bold"` and `"italic"`
+    - Fix: Updated `_render_spans` to accept both aliases (`"bold"/"strong"`, `"italic"/"emphasis"`)
+    - Fix: Switched `_render_paragraph` to use `token["content"]` directly (already contains `<strong>`/`<em>` tags) with fallback to `_render_spans`
+  - [x] Specification metadata header collapsed to one line
+    - Root cause: Markdown soft breaks intentionally collapse consecutive paragraph lines to spaces
+    - Fix: Preserve parser `source_lines`/`content_lines` and have HTML export detect spec-style metadata headers, joining entries with `<br>` line breaks
 
 ---
 

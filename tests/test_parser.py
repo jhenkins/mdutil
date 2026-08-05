@@ -20,9 +20,8 @@ class ParserTests(unittest.TestCase):
         tokens = parse_markdown("#not a heading\n####### too many")
 
         self.assertEqual(tokens[0]["type"], "paragraph")
-        self.assertEqual(tokens[0]["text"], "#not a heading")
-        self.assertEqual(tokens[1]["type"], "paragraph")
-        self.assertEqual(tokens[1]["text"], "####### too many")
+        # Consecutive non-blank lines are a single paragraph (soft break → space)
+        self.assertEqual(tokens[0]["text"], "#not a heading ####### too many")
 
     def test_blank_lines_are_blank_tokens(self):
         tokens = parse_markdown("# Title\n\nText\n")
@@ -139,9 +138,9 @@ class ParserTests(unittest.TestCase):
     def test_unclosed_code_fence_is_plain_paragraph_text(self):
         tokens = parse_markdown("```python\nprint(1)")
 
-        self.assertEqual([token["type"] for token in tokens], ["paragraph", "paragraph"])
-        self.assertEqual(tokens[0]["text"], "```python")
-        self.assertEqual(tokens[1]["text"], "print(1)")
+        # Unclosed code fence → both lines become a single paragraph (soft break)
+        self.assertEqual([token["type"] for token in tokens], ["paragraph"])
+        self.assertEqual(tokens[0]["text"], "```python print(1)")
 
     def test_parse_tables_with_and_without_outer_pipes(self):
         tokens = parse_markdown("A | B\n:--- | ---:\n1 | 2\n3 | 4")
