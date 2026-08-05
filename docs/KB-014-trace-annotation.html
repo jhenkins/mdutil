@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mdutil export</title>
+    <style>
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #24292e;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    margin-top: 24px;
+    margin-bottom: 16px;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+h1 { font-size: 2em; border-bottom: 1px solid #dfe2e5; padding-bottom: 0.3em; }
+h2 { font-size: 1.5em; border-bottom: 1px solid #dfe2e5; padding-bottom: 0.3em; }
+h3 { font-size: 1.25em; }
+h4 { font-size: 1em; }
+h5 { font-size: 0.875em; }
+h6 { font-size: 0.85em; color: #6a737d; }
+
+p {
+    margin: 0 0 16px 0;
+}
+
+a {
+    color: #0366d6;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 14px;
+    background-color: #f6f8fa;
+    border-radius: 3px;
+    padding: 0.2em 0.4em;
+}
+
+pre {
+    padding: 16px;
+    overflow: auto;
+    font-size: 14px;
+    line-height: 1.45;
+    background-color: #f6f8fa;
+    border-radius: 3px;
+}
+
+pre code {
+    background-color: transparent;
+    padding: 0;
+    font-size: 100%;
+}
+
+blockquote {
+    padding: 0 1em;
+    color: #6a737d;
+    border-left: 0.25em solid #dfe2e5;
+    margin: 0 0 16px 0;
+}
+
+hr {
+    height: 0.25em;
+    padding: 0;
+    margin: 24px 0;
+    background-color: #dfe2e5;
+    border: 0;
+}
+
+table {
+    border-spacing: 0;
+    border-collapse: collapse;
+    margin: 0 0 16px 0;
+    width: auto;
+    max-width: 100%;
+    overflow: auto;
+    display: block;
+}
+
+th {
+    font-weight: 600;
+    padding: 6px 13px;
+    border: 1px solid #dfe2e5;
+    background-color: #f6f8fa;
+}
+
+td {
+    padding: 6px 13px;
+    border: 1px solid #dfe2e5;
+}
+
+tr:nth-child(2n) {
+    background-color: #f6f8fa;
+}
+
+ul, ol {
+    padding-left: 2em;
+    margin: 0 0 16px 0;
+}
+
+li + li {
+    margin-top: 0.25em;
+}
+
+li > ul, li > ol {
+    margin-top: 0.25em;
+}
+
+img {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+pre { line-height: 125%; }
+td.linenos .normal { color: #666666; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: #666666; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.mdutil-highlight .hll { background-color: #ffffcc }
+.mdutil-highlight { background: #f0f0f0; }
+.mdutil-highlight .c { color: #60A0B0; font-style: italic } /* Comment */
+.mdutil-highlight .err { border: 1px solid #F00 } /* Error */
+.mdutil-highlight .k { color: #007020; font-weight: bold } /* Keyword */
+.mdutil-highlight .o { color: #666 } /* Operator */
+.mdutil-highlight .ch { color: #60A0B0; font-style: italic } /* Comment.Hashbang */
+.mdutil-highlight .cm { color: #60A0B0; font-style: italic } /* Comment.Multiline */
+.mdutil-highlight .cp { color: #007020 } /* Comment.Preproc */
+.mdutil-highlight .cpf { color: #60A0B0; font-style: italic } /* Comment.PreprocFile */
+.mdutil-highlight .c1 { color: #60A0B0; font-style: italic } /* Comment.Single */
+.mdutil-highlight .cs { color: #60A0B0; background-color: #FFF0F0 } /* Comment.Special */
+.mdutil-highlight .gd { color: #A00000 } /* Generic.Deleted */
+.mdutil-highlight .ge { font-style: italic } /* Generic.Emph */
+.mdutil-highlight .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.mdutil-highlight .gr { color: #F00 } /* Generic.Error */
+.mdutil-highlight .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.mdutil-highlight .gi { color: #00A000 } /* Generic.Inserted */
+.mdutil-highlight .go { color: #888 } /* Generic.Output */
+.mdutil-highlight .gp { color: #C65D09; font-weight: bold } /* Generic.Prompt */
+.mdutil-highlight .gs { font-weight: bold } /* Generic.Strong */
+.mdutil-highlight .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.mdutil-highlight .gt { color: #04D } /* Generic.Traceback */
+.mdutil-highlight .kc { color: #007020; font-weight: bold } /* Keyword.Constant */
+.mdutil-highlight .kd { color: #007020; font-weight: bold } /* Keyword.Declaration */
+.mdutil-highlight .kn { color: #007020; font-weight: bold } /* Keyword.Namespace */
+.mdutil-highlight .kp { color: #007020 } /* Keyword.Pseudo */
+.mdutil-highlight .kr { color: #007020; font-weight: bold } /* Keyword.Reserved */
+.mdutil-highlight .kt { color: #902000 } /* Keyword.Type */
+.mdutil-highlight .m { color: #40A070 } /* Literal.Number */
+.mdutil-highlight .s { color: #4070A0 } /* Literal.String */
+.mdutil-highlight .na { color: #4070A0 } /* Name.Attribute */
+.mdutil-highlight .nb { color: #007020 } /* Name.Builtin */
+.mdutil-highlight .nc { color: #0E84B5; font-weight: bold } /* Name.Class */
+.mdutil-highlight .no { color: #60ADD5 } /* Name.Constant */
+.mdutil-highlight .nd { color: #555; font-weight: bold } /* Name.Decorator */
+.mdutil-highlight .ni { color: #D55537; font-weight: bold } /* Name.Entity */
+.mdutil-highlight .ne { color: #007020 } /* Name.Exception */
+.mdutil-highlight .nf { color: #06287E } /* Name.Function */
+.mdutil-highlight .nl { color: #002070; font-weight: bold } /* Name.Label */
+.mdutil-highlight .nn { color: #0E84B5; font-weight: bold } /* Name.Namespace */
+.mdutil-highlight .nt { color: #062873; font-weight: bold } /* Name.Tag */
+.mdutil-highlight .nv { color: #BB60D5 } /* Name.Variable */
+.mdutil-highlight .ow { color: #007020; font-weight: bold } /* Operator.Word */
+.mdutil-highlight .w { color: #BBB } /* Text.Whitespace */
+.mdutil-highlight .mb { color: #40A070 } /* Literal.Number.Bin */
+.mdutil-highlight .mf { color: #40A070 } /* Literal.Number.Float */
+.mdutil-highlight .mh { color: #40A070 } /* Literal.Number.Hex */
+.mdutil-highlight .mi { color: #40A070 } /* Literal.Number.Integer */
+.mdutil-highlight .mo { color: #40A070 } /* Literal.Number.Oct */
+.mdutil-highlight .sa { color: #4070A0 } /* Literal.String.Affix */
+.mdutil-highlight .sb { color: #4070A0 } /* Literal.String.Backtick */
+.mdutil-highlight .sc { color: #4070A0 } /* Literal.String.Char */
+.mdutil-highlight .dl { color: #4070A0 } /* Literal.String.Delimiter */
+.mdutil-highlight .sd { color: #4070A0; font-style: italic } /* Literal.String.Doc */
+.mdutil-highlight .s2 { color: #4070A0 } /* Literal.String.Double */
+.mdutil-highlight .se { color: #4070A0; font-weight: bold } /* Literal.String.Escape */
+.mdutil-highlight .sh { color: #4070A0 } /* Literal.String.Heredoc */
+.mdutil-highlight .si { color: #70A0D0; font-style: italic } /* Literal.String.Interpol */
+.mdutil-highlight .sx { color: #C65D09 } /* Literal.String.Other */
+.mdutil-highlight .sr { color: #235388 } /* Literal.String.Regex */
+.mdutil-highlight .s1 { color: #4070A0 } /* Literal.String.Single */
+.mdutil-highlight .ss { color: #517918 } /* Literal.String.Symbol */
+.mdutil-highlight .bp { color: #007020 } /* Name.Builtin.Pseudo */
+.mdutil-highlight .fm { color: #06287E } /* Name.Function.Magic */
+.mdutil-highlight .vc { color: #BB60D5 } /* Name.Variable.Class */
+.mdutil-highlight .vg { color: #BB60D5 } /* Name.Variable.Global */
+.mdutil-highlight .vi { color: #BB60D5 } /* Name.Variable.Instance */
+.mdutil-highlight .vm { color: #BB60D5 } /* Name.Variable.Magic */
+.mdutil-highlight .il { color: #40A070 } /* Literal.Number.Integer.Long */
+    </style>
+</head>
+<body>
+<h1>KB-014: Syntax Theme Mapping for Exporters</h1>
+
+<h2>Executive Summary</h2>
+
+<p><strong>Chunk 1 (Complete):</strong> Trace document identifies that <code>syntax_theme</code> exists in <code>RuntimeOptions</code> but is never forwarded to PDF/HTML exporters.</p>
+
+<p><strong>Chunk 2 (Complete):</strong> Design decisions document (KB-014b-design.md) with 6 decisions on API signatures, PDF/HTML approaches, and theme mapping.</p>
+
+<p><strong>Chunk 3 (Complete):</strong> Implementation of <code>highlight_code_html()</code>, <code>highlight_code_pdf()</code>, and exporter updates.</p>
+
+<p><strong>Chunk 4 (Complete):</strong> All 198 tests pass with syntax highlighting working in both PDF and HTML exports.</p>
+
+<hr>
+
+<h2>Implementation Notes</h2>
+
+<h3><code>highlight_code_html()</code></h3>
+<ul>
+<li>Uses Pygments <code>HtmlFormatter</code> with <code>style=syntax_theme</code></li>
+<li>Returns <code><div class="highlight"><pre><span>...</span>...</pre></div></code> HTML</li>
+</ul>
+
+<h3><code>highlight_code_pdf()</code></h3>
+<ul>
+<li>Returns list of dicts: <code>{"text": str, "rgb": dict[str, int]}</code></li>
+<li>Groups consecutive tokens with same color</li>
+<li>Walks up Pygments token type hierarchy for fallback colors</li>
+</ul>
+
+<h3><code>_extract_all_token_colors()</code></h3>
+<ul>
+<li>Merges theme colors with syntax theme colors</li>
+<li>Syntax theme takes precedence</li>
+<li>Handles Pygments style definitions with modifiers (italic, bold)</li>
+</ul>
+
+<h3>Test Results</h3>
+<ul>
+<li>198 tests pass</li>
+<li>PDF export verified with test_highlight.md</li>
+<li>HTML export verified with test_highlight.md</li>
+</ul>
+
+<p><strong>Chunk 3 (Complete):</strong> Implementation of <code>highlight_code_html()</code>, <code>highlight_code_pdf()</code>, and exporter updates.</p>
+
+<p><strong>Chunk 4 (Complete):</strong> All 198 tests pass with syntax highlighting working in both PDF and HTML exports.</p>
+
+<hr>
+
+<h2>Implementation Notes</h2>
+
+<h3><code>highlight_code_html()</code></h3>
+<ul>
+<li>Uses Pygments <code>HtmlFormatter</code> with <code>style=syntax_theme</code></li>
+<li>Returns <code><div class="highlight"><pre><span>...</span>...</pre></div></code> HTML</li>
+</ul>
+
+<h3><code>highlight_code_pdf()</code></h3>
+<ul>
+<li>Returns list of dicts: <code>{"text": str, "rgb": dict[str, int]}</code></li>
+<li>Groups consecutive tokens with same color</li>
+<li>Walks up Pygments token type hierarchy for fallback colors</li>
+</ul>
+
+<h3><code>_extract_all_token_colors()</code></h3>
+<ul>
+<li>Merges theme colors with syntax theme colors</li>
+<li>Syntax theme takes precedence</li>
+<li>Handles Pygments style definitions with modifiers (italic, bold)</li>
+</ul>
+
+<h3>Test Results</h3>
+<ul>
+<li>198 tests pass</li>
+<li>PDF export verified with test_highlight.md</li>
+</ul>
+<h1>KB-014: Syntax Theme Mapping for Exporters</h1>
+
+<h2>Executive Summary</h2>
+
+<p><strong>Chunk 1 (Complete):</strong> Trace document identifies that <code>syntax_theme</code> exists in <code>RuntimeOptions</code> but is never forwarded to PDF/HTML exporters.</p>
+
+<p><strong>Chunk 2 (Complete):</strong> Design decisions document (KB-014b-design.md) with 6 decisions on API signatures, PDF/HTML approaches, and theme mapping.</p>
+
+<p><strong>Chunk 3 (Complete):</strong> Implementation of <code>highlight_code_html()</code>, <code>highlight_code_pdf()</code>, and exporter updates.</p>
+
+<p><strong>Chunk 4 (Complete):</strong> All 198 tests pass with syntax highlighting working in both PDF and HTML exports.</p>
+
+<hr>
+
+<h2>Implementation Notes</h2>
+
+<h3><code>highlight_code_html()</code></h3>
+<ul>
+<li>Uses Pygments <code>HtmlFormatter</code> with <code>style=syntax_theme</code></li>
+<li>Returns <code><div class="highlight"><pre><span>...</span>...</pre></div></code> HTML</li>
+</ul>
+
+<h3><code>highlight_code_pdf()</code></h3>
+<ul>
+<li>Returns list of dicts: <code>{"text": str, "rgb": dict[str, int]}</code></li>
+<li>Groups consecutive tokens with same color</li>
+<li>Walks up Pygments token type hierarchy for fallback colors</li>
+</ul>
+
+<h3><code>_extract_all_token_colors()</code></h3>
+<ul>
+<li>Merges theme colors with syntax theme colors</li>
+<li>Syntax theme takes precedence</li>
+<li>Handles Pygments style definitions with modifiers (italic, bold)</li>
+</ul>
+
+<h3>Test Results</h3>
+<ul>
+<li>198 tests pass</li>
+<li>PDF export verified with test_highlight.md</li>
+<li>HTML export verified with test_highlight.md</li>
+</ul>
+
+<hr>
+
+<h2>1. CLI Entry Point (<code>mdutil/cli.py</code>)</h2>
+
+<h3>1.1 <code>--syntax-theme</code> flag definition (line 100-105)</h3>
+
+<pre class="mdutil-highlight"><code class="language-python"><span></span><span class="n">arg_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+    <span class="s2">&quot;--syntax-theme&quot;</span><span class="p">,</span>
+    <span class="n">choices</span><span class="o">=</span><span class="n">syntax_theme_names</span><span class="p">(),</span>
+    <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Choose Pygments syntax style for code highlighting&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre>
+
+<ul>
+<li><code>syntax_theme_names()</code> returns Pygments styles sorted alphabetically (line 179-183 in <code>themes.py</code>)</li>
+<li>Uses <code>pygments.styles.get_all_styles()</code> as source of truth for valid names</li>
+<li>Default: <code>None</code> (means "use config value" or "use 'default'")</li>
+</ul>
+
+<h3>1.2 <code>RuntimeOptions</code> TypedDict (line 65-79)</h3>
+
+<pre class="mdutil-highlight"><code class="language-python"><span></span><span class="k">class</span><span class="w"> </span><span class="nc">RuntimeOptions</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+    <span class="n">theme</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">theme_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">syntax_theme</span><span class="p">:</span> <span class="nb">str</span>        <span class="c1"># ← already defined here</span>
+    <span class="n">line_numbers</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">quiet</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">status_bar_normal</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">status_bar_insert</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">export_format</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">export_output_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">pdf_paper_size</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">pdf_margin_top</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">pdf_margin_bottom</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">pdf_margin_left</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">pdf_margin_right</span><span class="p">:</span> <span class="nb">int</span>
+</code></pre>
+
+<p><strong>Note:</strong> <code>syntax_theme</code> is already part of <code>RuntimeOptions</code> and is passed to the terminal renderer — but NOT forwarded to exporters.</p>
+
+<h3>1.3 Validation and resolution (line 332-355)</h3>
+
+<pre class="mdutil-highlight"><code class="language-python"><span></span><span class="n">syntax_theme</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
+    <span class="nb">str</span><span class="p">,</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">syntax_theme</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">syntax_theme</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;syntax_theme&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+<span class="k">if</span> <span class="n">syntax_theme</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">syntax_theme_names</span><span class="p">():</span>
+    <span class="n">valid</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">syntax_theme_names</span><span class="p">())</span>
+    <span class="n">arg_parser</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;invalid syntax theme in configuration: </span><span class="si">{</span><span class="n">syntax_theme</span><span class="si">!r}</span><span class="s2"> (choose from </span><span class="si">{</span><span class="n">valid</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+</code></pre>
+
+<ul>
+<li>Validates against <code>syntax_theme_names()</code> (Pygments styles)</li>
+<li>Falls back to config value, which is set in <code>config.py:77-83</code> from <code>[syntax_theme]</code> section or <code>DEFAULTS["syntax_theme"]</code> = <code>"default"</code></li>
+</ul>
+
+<h3>1.4 The divergence: <code>_export_single()</code> (line 241-291)</h3>
+
+<pre class="mdutil-highlight"><code class="language-python"><span></span><span class="k">def</span><span class="w"> </span><span class="nf">_export_single</span><span class="p">(</span><span class="n">export_format</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">parsed</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span> <span class="n">runtime</span><span class="p">:</span> <span class="n">RuntimeOptions</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="n">exporter</span> <span class="o">=</span> <span class="n">PdfExporter</span><span class="p">()</span> <span class="k">if</span> <span class="n">export_format</span> <span class="o">==</span> <span class="s2">&quot;pdf&quot;</span> <span class="k">else</span> <span class="n">HtmlExporter</span><span class="p">()</span>
+    <span class="n">theme</span> <span class="o">=</span> <span class="n">load_theme</span><span class="p">(</span><span class="n">runtime</span><span class="p">[</span><span class="s2">&quot;theme&quot;</span><span class="p">],</span> <span class="n">runtime</span><span class="p">[</span><span class="s2">&quot;theme_file&quot;</span><span class="p">])</span>
+    <span class="n">options</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    
+    <span class="k">if</span> <span class="n">export_format</span> <span class="o">==</span> <span class="s2">&quot;pdf&quot;</span><span class="p">:</span>
+        <span class="n">options</span><span class="p">[</span><span class="s2">&quot;pdf_paper_size&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">runtime</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;pdf_paper_size&quot;</span><span class="p">,</span> <span class="s2">&quot;A4&quot;</span><span class="p">)</span>
+        <span class="c1"># ... pdf margins ...</span>
+        <span class="n">options</span><span class="p">[</span><span class="s2">&quot;pdf_bookmarks&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">elif</span> <span class="n">export_format</span> <span class="o">==</span> <span class="s2">&quot;html&quot;</span><span class="p">:</span>
+        <span class="c1"># ... custom CSS handling ...</span>
+    
+    <span class="c1"># ⚠️ BUG: syntax_theme is NOT added to options</span>
+    <span class="c1"># options[&quot;syntax_theme&quot;] is never set</span>
+    <span class="n">export_output</span> <span class="o">=</span> <span class="n">exporter</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">parsed</span><span class="p">,</span> <span class="n">theme</span><span class="o">=</span><span class="n">theme</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">)</span>
+</code></pre>
+
+<p><strong>Key finding:</strong> The <code>options</code> dict passed to <code>exporter.render()</code> contains PDF-specific options but no <code>syntax_theme</code>. The exporter has no way to access the chosen Pygments style.</p>
+
+<hr>
+
+<h2>2. Terminal Renderer (<code>mdutil/renderer.py</code>) — Working Path</h2>
+
+<h3>2.1 Flow (line 16-36)</h3>
+
+<pre class="mdutil-highlight"><code class="language-python"><span></span><span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span>
+    <span class="n">parsed_content</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">theme</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_THEME</span><span class="p">,</span>
+    <span class="n">theme_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">syntax_theme</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span><span class="p">,</span>  <span class="c1"># ← syntax_theme flows here</span>
+    <span class="n">line_numbers</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">quiet</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="n">selected_theme</span> <span class="o">=</span> <span class="n">load_theme</span><span class="p">(</span><span class="n">theme</span><span class="p">,</span> <span class="n">theme_file</span><span class="p">)</span>
+    <span class="n">result_lines</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">parsed_content</span><span class="p">:</span>
+        <span class="n">result_lines</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">_render_token</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">selected_theme</span><span class="p">,</span> <span class="n">syntax_theme</span><span class="p">))</span>
+    <span class="o">...</span>
+</code></pre>
+
+<h3>2.2 Code block rendering (line 79-82)</h3>
+
+<pre class="mdutil-highlight"><code class="language-python"><span></span><span class="k">def</span><span class="w"> </span><span class="nf">_render_code</span><span class="p">(</span><span class="n">token</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">theme</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">syntax_theme</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="n">code</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">token</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;content&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+    <span class="n">language</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">token</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;language&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">highlight_code</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">language</span><span class="p">,</span> <span class="n">theme</span><span class="p">,</span> <span class="n">syntax_theme</span><span class="o">=</span><span class="n">syntax_theme</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre>
+
+<p><strong>This path works correctly:</strong> <code>syntax_theme</code> is passed to <code>highlight_code()</code> which uses it to build a Pygments Style.</p>
+
+<hr>
+
+<h2>3. Highlighter (<code>mdutil/syntax_highlighter.py</code>) — Shared Core</h2>
+
+<h3>3.1 <code>highlight_code()</code> (line 29-60) — Terminal path</h3>
+
+<pre class="mdutil-highlight"><code class="language-python"><span></span><span class="k">def</span><span class="w"> </span><span class="nf">highlight_code</span><span class="p">(</span>
+    <span class="n">code</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">language</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">theme</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">syntax_theme</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="n">lexer_name</span> <span class="o">=</span> <span class="n">language</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">lexer_name</span> <span class="ow">or</span> <span class="n">lexer_name</span> <span class="ow">in</span> <span class="n">_PLAIN_TEXT_LANGUAGE_ALIASES</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">code</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">lexer</span> <span class="o">=</span> <span class="n">get_lexer_by_name</span><span class="p">(</span><span class="n">lexer_name</span><span class="p">,</span> <span class="n">stripall</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">ClassNotFound</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">code</span>
+
+    <span class="n">formatter</span> <span class="o">=</span> <span class="n">TerminalTrueColorFormatter</span><span class="p">(</span>
+        <span class="n">style</span><span class="o">=</span><span class="n">_style_for_theme</span><span class="p">(</span><span class="n">theme</span><span class="p">,</span> <span class="n">syntax_theme</span><span class="p">),</span> <span class="n">bg</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
+    <span class="p">)</span>
+    <span class="n">highlighted</span> <span class="o">=</span> <span class="n">highlight</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">lexer</span><span class="p">,</span> <span class="n">formatter</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">highlighted</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre>
+
+<h3>3.2 <code>_style_for_theme()</code> (line 63-82)</h3>
+
+<p>Merges theme colors (<code>CODE_COLORS</code>) with syntax theme colors from Pygments, using syntax theme as precedence.</p>
+
+<h3>3.3 <code>_extract_syntax_theme_colors()</code> (line 103-120)</h3>
+
+<p>Looks up the Pygments style by name and extracts hex colors for each token type.</p>
+
+<h3>3.4 <code>get_syntax_theme_colors()</code> (line 135-153) — Cached helper</h3>
+
+<p>Returns color mappings for a Pygments style by name, with caching via <code>_style_cache</code>.</p>
+
+<hr>
+
+<h2>4. PDF Exporter (<code>mdutil/export/pdf.py</code>) — Needs Fix</h2>
+
+<h3>4.1 <code>render()</code> signature (line 197)</h3>
+
+<pre class="mdutil-highlight"><code class="language-python"><span></span><span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span> <span class="n">theme</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">options</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+</code></pre>
+
+<p><strong>Issue:</strong> <code>options</code> dict doesn't include <code>syntax_theme</code>, so the exporter can't access it.</p>
+
+<h3>4.2 <code>_render_code_block()</code> (line 346-357) — Current broken state</h3>
+
+<pre class="mdutil-highlight"><code class="language-python"><span></span><span class="k">def</span><span class="w"> </span><span class="nf">_render_code_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pdf</span><span class="p">:</span> <span class="n">FPDF</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Render a code block with background.&quot;&quot;&quot;</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">token</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;content&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">pdf</span><span class="o">.</span><span class="n">set_font</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_font_for</span><span class="p">(</span><span class="s2">&quot;mono&quot;</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+    <span class="n">pdf</span><span class="o">.</span><span class="n">set_fill_color</span><span class="p">(</span><span class="mi">240</span><span class="p">,</span> <span class="mi">240</span><span class="p">,</span> <span class="mi">240</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+        <span class="n">pdf</span><span class="o">.</span><span class="n">cell</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">new_x</span><span class="o">=</span><span class="s2">&quot;LMARGIN&quot;</span><span class="p">,</span> <span class="n">new_y</span><span class="o">=</span><span class="s2">&quot;NEXT&quot;</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">pdf</span><span class="o">.</span><span class="n">ln</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+</code></pre>
+
+<p><strong>Issue:</strong> Plain text rendering only — no syntax highlighting. Each line is written as a single cell without color variation.</p>
+
+<h3>4.3 How it SHOULD work</h3>
+
+<pre class="mdutil-highlight"><code class="language-python"><span></span><span class="k">def</span><span class="w"> </span><span class="nf">_render_code_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pdf</span><span class="p">:</span> <span class="n">FPDF</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">token</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;content&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">language</span> <span class="o">=</span> <span class="n">token</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;language&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">syntax_theme</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_syntax_theme</span><span class="p">()</span>  <span class="c1"># ← need to get from options</span>
+    
+    <span class="c1"># Use highlight_code_pdf() to get (text, rgb) segments</span>
+    <span class="n">segments</span> <span class="o">=</span> <span class="n">highlight_code_pdf</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">language</span><span class="p">,</span> <span class="n">syntax_theme</span><span class="p">)</span>
+    
+    <span class="n">pdf</span><span class="o">.</span><span class="n">set_font</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_font_for</span><span class="p">(</span><span class="s2">&quot;mono&quot;</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+    <span class="n">pdf</span><span class="o">.</span><span class="n">set_fill_color</span><span class="p">(</span><span class="mi">240</span><span class="p">,</span> <span class="mi">240</span><span class="p">,</span> <span class="mi">240</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">segment</span> <span class="ow">in</span> <span class="n">segments</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">segment</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;rgb&quot;</span><span class="p">):</span>
+            <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">segment</span><span class="p">[</span><span class="s2">&quot;rgb&quot;</span><span class="p">]</span>
+            <span class="n">pdf</span><span class="o">.</span><span class="n">set_text_color</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pdf</span><span class="o">.</span><span class="n">set_text_color</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">pdf</span><span class="o">.</span><span class="n">cell</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">segment</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">],</span> <span class="n">new_x</span><span class="o">=</span><span class="s2">&quot;LMARGIN&quot;</span><span class="p">,</span> <span class="n">new_y</span><span class="o">=</span><span class="s2">&quot;NEXT&quot;</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">pdf</span><span class="o">.</span><span class="n">ln</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+</code></pre>
+
+<hr>
+
+<h2>5. HTML Exporter (<code>mdutil/export/html.py</code>) — Needs Fix</h2>
+
+<h3>5.1 <code>render()</code> signature (line 37)</h3>
+
+<pre class="mdutil-highlight"><code class="language-python"><span></span><span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span> <span class="n">theme</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">options</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</code></pre>
+
+<p><strong>Issue:</strong> Same — <code>options</code> dict doesn't include <code>syntax_theme</code>.</p>
+
+<h3>5.2 <code>_render_code_block()</code> (line 295-305) — Current broken state</h3>
+
+<pre class="mdutil-highlight"><code class="language-python"><span></span><span class="k">def</span><span class="w"> </span><span class="nf">_render_code_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Render a code block.&quot;&quot;&quot;</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">token</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;content&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">language</span> <span class="o">=</span> <span class="n">token</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;language&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Escape HTML entities</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&amp;&quot;</span><span class="p">,</span> <span class="s2">&quot;&amp;amp;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&lt;&quot;</span><span class="p">,</span> <span class="s2">&quot;&amp;lt;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;&amp;gt;&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">language</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;&lt;pre&gt;&lt;code class=&quot;language-</span><span class="si">{</span><span class="n">language</span><span class="si">}</span><span class="s1">&quot;&gt;</span><span class="si">{</span><span class="n">content</span><span class="si">}</span><span class="s1">&lt;/code&gt;&lt;/pre&gt;&#39;</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;pre&gt;&lt;code&gt;</span><span class="si">{</span><span class="n">content</span><span class="si">}</span><span class="s2">&lt;/code&gt;&lt;/pre&gt;&quot;</span>
+</code></pre>
+
+<p><strong>Issue:</strong> HTML-escaped plain text only — no Pygments highlighting. The 'pre' 'code' structure is correct, but the content is just escaped text without color classes.</p>
+
+<h3>5.3 How it SHOULD work</h3>
+
+<pre class="mdutil-highlight"><code class="language-python"><span></span><span class="k">def</span><span class="w"> </span><span class="nf">_render_code_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">token</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;content&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">language</span> <span class="o">=</span> <span class="n">token</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;language&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">syntax_theme</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_syntax_theme</span><span class="p">()</span>  <span class="c1"># ← need to get from options</span>
+    
+    <span class="c1"># Use highlight_code_html() to get Pygments HTML</span>
+    <span class="n">highlighted_html</span> <span class="o">=</span> <span class="n">highlight_code_html</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">language</span><span class="p">,</span> <span class="n">syntax_theme</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">language</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;&lt;pre&gt;&lt;code class=&quot;language-</span><span class="si">{</span><span class="n">language</span><span class="si">}</span><span class="s1">&quot;&gt;</span><span class="si">{</span><span class="n">highlighted_html</span><span class="si">}</span><span class="s1">&lt;/code&gt;&lt;/pre&gt;&#39;</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;pre&gt;&lt;code&gt;</span><span class="si">{</span><span class="n">highlighted_html</span><span class="si">}</span><span class="s2">&lt;/code&gt;&lt;/pre&gt;&quot;</span>
+</code></pre>
+
+<hr>
+
+<h2>6. Theme Configuration (<code>mdutil/themes.py</code>)</h2>
+
+<h3>6.1 <code>syntax_theme_names()</code> (line 179-183)</h3>
+
+<pre class="mdutil-highlight"><code class="language-python"><span></span><span class="k">def</span><span class="w"> </span><span class="nf">syntax_theme_names</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return valid syntax (Pygments) style names for CLI validation/help.&quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">pygments.styles</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_all_styles</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">get_all_styles</span><span class="p">())</span>
+</code></pre>
+
+<p><strong>Source of truth</strong> for valid Pygments styles. Currently ~49 styles.</p>
+
+<h3>6.2 <code>THEME_SYNTAX_THEMES</code> (line 41-47)</h3>
+
+<pre class="mdutil-highlight"><code class="language-python"><span></span><span class="n">THEME_SYNTAX_THEMES</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;colored&quot;</span><span class="p">:</span> <span class="s2">&quot;default&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;dracula&quot;</span><span class="p">:</span> <span class="s2">&quot;dracula&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;high-contrast&quot;</span><span class="p">:</span> <span class="s2">&quot;bw&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;one-dark&quot;</span><span class="p">:</span> <span class="s2">&quot;one-dark&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;onedark&quot;</span><span class="p">:</span> <span class="s2">&quot;one-dark&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+</code></pre>
+
+<p><strong>Note:</strong> These map built-in themes to Pygments styles. This is the source of truth for "which Pygments style should I use for this theme?".</p>
+
+<h3>6.3 Built-in themes (<code>line 163-169</code>)</h3>
+
+<pre class="mdutil-highlight"><code class="language-python"><span></span><span class="n">BUILT_IN_THEMES</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;colored&quot;</span><span class="p">:</span> <span class="n">COLORED</span><span class="p">,</span>
+    <span class="s2">&quot;dracula&quot;</span><span class="p">:</span> <span class="n">DRACULA</span><span class="p">,</span>
+    <span class="s2">&quot;high-contrast&quot;</span><span class="p">:</span> <span class="n">HIGH_CONTRAST</span><span class="p">,</span>
+    <span class="s2">&quot;one-dark&quot;</span><span class="p">:</span> <span class="n">ONE_DARK</span><span class="p">,</span>
+    <span class="s2">&quot;onedark&quot;</span><span class="p">:</span> <span class="n">ONE_DARK</span><span class="p">,</span>
+<span class="p">}</span>
+</code></pre>
+
+<p>Each theme has a <code>"syntax"</code> key (line 60, 94, 127, 160) set to <code>"default"</code> — this is the fallback.</p>
+
+<hr>
+
+<h2>7. Summary of Required Changes</h2>
+
+<h3>7.1 CLI (<code>mdutil/cli.py</code>)</h3>
+
+<ol>
+<li>Add <code>options["syntax_theme"] = runtime["syntax_theme"]</code> in <code>_export_single()</code> (line 272)</li>
+<li>Add <code>options["theme"] = theme</code> (already partially present for PDF, need for HTML)</li>
+</ol>
+
+<h3>7.2 Highlighter (<code>mdutil/syntax_highlighter.py</code>)</h3>
+
+<ol>
+<li>Add <code>highlight_code_html(code, language, syntax_theme)</code> — returns Pygments HTML</li>
+<li>Add <code>highlight_code_pdf(code, language, theme, syntax_theme)</code> — returns list of <code>(text, rgb_dict)</code> segments</li>
+</ol>
+
+<h3>7.3 PDF Exporter (<code>mdutil/export/pdf.py</code>)</h3>
+
+<ol>
+<li>Update <code>_render_code_block()</code> to use <code>highlight_code_pdf()</code> and iterate segments with <code>pdf.set_text_color()</code></li>
+</ol>
+
+<h3>7.4 HTML Exporter (<code>mdutil/export/html.py</code>)</h3>
+
+<ol>
+<li>Update <code>_render_code_block()</code> to use <code>highlight_code_html()</code></li>
+</ol>
+
+<h3>7.5 Tests</h3>
+
+<ol>
+<li>Add regression tests for both exporters</li>
+</ol>
+
+<hr>
+
+<h2>8. Edge Cases to Handle</h2>
+
+<table>
+<thead><tr><th style="text-align: left">Case</th><th style="text-align: left">Terminal (working)</th><th style="text-align: left">PDF/HTML (needs fix)</th></tr></thead>
+<tbody><tr><td style="text-align: left">Empty code block</td><td style="text-align: left">Returns empty string</td><td style="text-align: left">Should return empty string</td></tr><tr><td style="text-align: left">No language</td><td style="text-align: left">Plain text, no error</td><td style="text-align: left">Plain text, no error</td></tr><tr><td style="text-align: left">Unknown language</td><td style="text-align: left">Plain text fallback</td><td style="text-align: left">Plain text fallback</td></tr><tr><td style="text-align: left">Unicode in code</td><td style="text-align: left">Works with ANSI</td><td style="text-align: left">Must work with fpdf2 unicode fonts</td></tr><tr><td style="text-align: left">Very long lines</td><td style="text-align: left">Works</td><td style="text-align: left">Must not break fpdf2 rendering</td></tr><tr><td style="text-align: left">Inline formatting in code</td><td style="text-align: left">Pygments doesn't handle markdown inline</td><td style="text-align: left">Expected: plain tokens only</td></tr></tbody>
+</table>
+
+<hr>
+
+<h2>9. Test Plan</h2>
+
+<h3>Unit tests (<code>tests/test_syntax_highlighter.py</code>)</h3>
+
+<ul>
+<li><code>test_highlight_code_known_language</code> — Python → ANSI output</li>
+<li><code>test_highlight_code_unknown_language</code> — unknown → plain text</li>
+<li><code>test_highlight_code_plain_text_alias</code> — text/txt/plain → plain text</li>
+<li><code>test_highlight_code_html_highlighted</code> — Python → HTML with spans</li>
+<li><code>test_highlight_code_pdf_segments</code> — Python → list of (text, rgb) tuples</li>
+</ul>
+
+<h3>Integration tests (<code>tests/test_export.py</code>)</h3>
+
+<ul>
+<li><code>test_render_code_block_html_highlighted</code> — Python code → span tags with color classes</li>
+<li><code>test_render_code_block_pdf_highlighted</code> — Python code → text segments with varying text_color</li>
+<li><code>test_render_code_block_unknown_language_plain</code> — unknown language → plain text, no error</li>
+<li><code>test_render_code_block_no_language_plain</code> — no language → plain text, no error</li>
+<li><code>test_render_code_block_syntax_theme_applied</code> — different syntax themes produce different colors</li>
+</ul>
+
+<h3>CLI integration tests</h3>
+
+<ul>
+<li><code>mdutil --export html --syntax-theme dracula test.md</code> → HTML has highlighted code</li>
+<li><code>mdutil --export pdf --syntax-theme one-dark test.md</code> → PDF has colored code blocks</li>
+</ul>
+
+<hr>
+
+<h2>10. Files to Modify</h2>
+
+<table>
+<thead><tr><th style="text-align: left">File</th><th style="text-align: left">Change</th></tr></thead>
+<tbody><tr><td style="text-align: left"><code>mdutil/cli.py</code></td><td style="text-align: left">Forward <code>syntax_theme</code> and <code>theme</code> to exporters</td></tr><tr><td style="text-align: left"><code>mdutil/syntax_highlighter.py</code></td><td style="text-align: left">Add <code>highlight_code_html()</code> and <code>highlight_code_pdf()</code></td></tr><tr><td style="text-align: left"><code>mdutil/export/pdf.py</code></td><td style="text-align: left">Update <code>_render_code_block()</code> to use new helper</td></tr><tr><td style="text-align: left"><code>mdutil/export/html.py</code></td><td style="text-align: left">Update <code>_render_code_block()</code> to use new helper</td></tr><tr><td style="text-align: left"><code>tests/test_export.py</code></td><td style="text-align: left">Add syntax highlighting regression tests</td></tr></tbody>
+</table>
+
+<hr>
+
+<h2>Next Steps</h2>
+
+<p><strong>Chunk 1 deliverable:</strong> This annotated walkthrough documents the existing pipeline and identifies the gap.</p>
+
+<p><strong>Chunk 2 deliverable:</strong> Design decisions on helper signatures, PDF/HTML approaches, and theme mapping.</p>
+
+<p><strong>Chunk 3 deliverable:</strong> Implementation of helpers and exporter updates.</p>
+
+<p><strong>Chunk 4 deliverable:</strong> Regression tests and verification.</p>
+</body>
+</html>

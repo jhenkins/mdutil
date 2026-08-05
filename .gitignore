@@ -33,3 +33,6 @@ pi-session*.*
 # Other
 # VI/M swap files
 .*.swp
+# Test artifacts
+*.html
+*.pdf
