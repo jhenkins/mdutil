@@ -16,9 +16,10 @@ The focus is on a clean, fast, and fully‑featured viewer with a few light edit
 **Key design goals**
 
 - 100 % terminal‑only (no GUI).
-- Minimal dependencies – a single static binary.
+- Minimal dependencies: all functions native Python as far as possible to keep footprint as small as possible.
 - Cross‑platform: runs on **Linux, macOS, Windows** (native).
 - Responsive UI: scrolling, line‑number toggling, and theming.
+- All functions built-in:  no dependency on online third-party services.
 - **Extensible**: future editing features can plug into the same pipeline.
 - **Export**: convert Markdown to PDF (`--export pdf`) or HTML (`--export html`) without external tools.
 
@@ -34,11 +35,6 @@ The focus is on a clean, fast, and fully‑featured viewer with a few light edit
 | 4   | **Line Numbers**     | Optional display of line numbers for code blocks and the main document.                          |
 | 5   | **Edit**             | In-place Markdown editing with explicit save, dirty-state protection, and normal/insert modes.   |
 | 6   | **Export**           | Render Markdown to PDF (`--export pdf`) or HTML (`--export html`) with optional `--output` path. |
-
-> **Out‑of‑Scope** (for v1.0.0)
->
-> - Rich text editing, live preview, or file synchronization.
-> - Interactive tables or forms.
 
 ---
 
