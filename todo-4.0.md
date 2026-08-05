@@ -36,27 +36,27 @@
  - [x] Create `MermanRenderer` class to wrap binary execution
  - [x] Write unit tests for platform detection and binary discovery
 
- ### KB-003: Core merman rendering integration
- - [ ] Implement `render_mermaid_svg(mermaid_code: str) -> str`
- - [ ] Handle subprocess execution with proper error handling
- - [ ] Support mermaid theme configuration (default, dark, forest, etc.)
- - [ ] Add fallback error messages when merman-cli is unavailable
- - [ ] Write unit tests for rendering pipeline
+ ### KB-003: Core merman rendering integration ✅ COMPLETE
+ - [x] Implement `render_mermaid_svg(mermaid_code: str) -> str`
+ - [x] Handle subprocess execution with proper error handling
+ - [x] Support mermaid theme configuration (default, dark, forest, etc.)
+ - [x] Add fallback error messages when merman-cli is unavailable
+ - [x] Write unit tests for rendering pipeline
 
  ## Phase 2: HTML Export with Mermaid
 
- ### KB-004: HTML exporter mermaid integration
- - [ ] Extend `HtmlExporter` to detect mermaid fenced code blocks
- - [ ] Render each mermaid diagram to SVG via merman-cli
- - [ ] Embed SVGs inline in HTML output (or as file references)
- - [ ] Preserve existing HTML export features (CSS, syntax highlighting, etc.)
- - [ ] Write unit tests for HTML export with mermaid
+ ### KB-004: HTML exporter mermaid integration ✅ COMPLETE
+ - [x] Extend `HtmlExporter` to detect mermaid fenced code blocks
+ - [x] Render each mermaid diagram to SVG via merman-cli
+ - [x] Embed SVGs inline in HTML output (or as file references)
+ - [x] Preserve existing HTML export features (CSS, syntax highlighting, etc.)
+ - [x] Write unit tests for HTML export with mermaid
 
- ### KB-005: Markdown processing for mermaid blocks
- - [ ] Extend parser to identify ` ```mermaid ` code blocks
- - [ ] Extract mermaid source code from markdown
- - [ ] Track diagram positions for HTML embedding
- - [ ] Write unit tests for mermaid block detection
+ ### KB-005: Markdown processing for mermaid blocks ✅ COMPLETE
+ - [x] Extend parser to identify ` ```mermaid ` code blocks
+ - [x] Extract mermaid source code from markdown
+ - [x] Track diagram positions for HTML embedding
+ - [x] Write unit tests for mermaid block detection
 
  ## Phase 3: Testing & Documentation
 
