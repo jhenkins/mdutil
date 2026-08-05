@@ -128,7 +128,7 @@ class MermanRenderer:
                 f"Unsupported theme '{theme}'. Supported: {SUPPORTED_THEMES}"
             )
 
-        cmd = [str(self._binary_path), "--theme", theme, "--input", "-"]
+        cmd = [str(self._binary_path), "-t", theme, "-i", "-", "-o", "-"]
         try:
             result = subprocess.run(
                 cmd,

@@ -37,5 +37,8 @@ mdutil = "mdutil.cli:main"
 [tool.setuptools]
 packages = ["mdutil", "mdutil.export"]
 
+[tool.setuptools.package-data]
+"mdutil.export._merman_binaries" = ["*"]
+
 [tool.setuptools.dynamic]
 version = { attr = "mdutil.version.__version__" }

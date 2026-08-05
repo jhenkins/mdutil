@@ -30,6 +30,7 @@ htmlcov/
 .kanban/
 pi-session*.*
 
+
 # Other
 # VI/M swap files
 .*.swp
@@ -37,3 +38,4 @@ pi-session*.*
 tmp/
 *.html
 *.pdf
+*.svg

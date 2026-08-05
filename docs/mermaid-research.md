@@ -201,6 +201,6 @@ The bundled binary approach means users get mermaid rendering out of the box wit
 
 ## References
 
-- [merman-cli GitHub](https://github.com/external/merman-cli) (to be filled with actual URL)
+- [merman-cli GitHub](https://github.com/Latias94/merman/releases) (v0.7.0)
 - [Mermaid.js Documentation](https://mermaid.js.org/)
 - [Rust cargo documentation](https://doc.rust-lang.org/cargo/)
