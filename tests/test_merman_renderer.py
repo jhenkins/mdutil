@@ -48,22 +48,22 @@ class TestResolveBinaryName:
     """Tests for resolve_binary_name()."""
 
     def test_linux_x86_64(self):
-        assert resolve_binary_name("linux", "x86_64") == "merman-cli-linux-x86_64"
+        assert resolve_binary_name("linux", "x86_64") == "merman-cli"
 
     def test_linux_aarch64(self):
-        assert resolve_binary_name("linux", "aarch64") == "merman-cli-linux-aarch64"
+        assert resolve_binary_name("linux", "aarch64") == "merman-cli"
 
     def test_darwin_arm64(self):
-        assert resolve_binary_name("darwin", "arm64") == "merman-cli-darwin-arm64"
+        assert resolve_binary_name("darwin", "arm64") == "merman-cli"
 
     def test_darwin_x86_64(self):
-        assert resolve_binary_name("darwin", "x86_64") == "merman-cli-darwin-x86_64"
+        assert resolve_binary_name("darwin", "x86_64") == "merman-cli"
 
     def test_win32_amd64(self):
-        assert resolve_binary_name("win32", "AMD64") == "merman-cli-windows-x64.exe"
+        assert resolve_binary_name("win32", "AMD64") == "merman-cli.exe"
 
     def test_win32_x86_64(self):
-        assert resolve_binary_name("win32", "x86_64") == "merman-cli-windows-x64.exe"
+        assert resolve_binary_name("win32", "x86_64") == "merman-cli.exe"
 
     def test_unsupported_platform_returns_none(self):
         assert resolve_binary_name("freebsd", "i386") is None
@@ -93,7 +93,7 @@ class TestGetBinaryPath:
     def test_returns_path_when_binary_exists(self, tmp_path, monkeypatch):
         """When the correct binary exists, get_binary_path returns its Path."""
         # Create a fake binary
-        fake_bin = tmp_path / "merman-cli-linux-x86_64"
+        fake_bin = tmp_path / "merman-cli"
         fake_bin.write_bytes(b"#!/bin/sh\necho fake")
 
         # Mock Path to return our temp dir
@@ -129,7 +129,7 @@ class TestMermanRenderer:
     def test_invalid_theme_raises_error(self, tmp_path):
         """Rendering with invalid theme raises MermanRenderError."""
         # Create a fake binary to avoid MermanBinaryNotFoundError
-        fake_bin = tmp_path / "merman-cli-linux-x86_64"
+        fake_bin = tmp_path / "merman-cli"
         fake_bin.write_bytes(b"#!/bin/sh")
 
         renderer = MermanRenderer.__new__(MermanRenderer)
@@ -152,7 +152,7 @@ class TestMermanRenderer:
         """Successful render returns SVG string."""
         # Use printf to avoid shell mangling of double quotes
         fake_script = '#!/bin/sh\nprintf \'<svg xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100"/></svg>\'\n'
-        fake_bin = tmp_path / "merman-cli-linux-x86_64"
+        fake_bin = tmp_path / "merman-cli"
         fake_bin.write_text(fake_script)
         fake_bin.chmod(0o755)
 
@@ -168,7 +168,7 @@ class TestMermanRenderer:
         """merman-cli failure raises MermanRenderError."""
         # Create a fake merman-cli that exits with code 1
         fake_script = '#!/bin/sh\nexit 1'
-        fake_bin = tmp_path / "merman-cli-linux-x86_64"
+        fake_bin = tmp_path / "merman-cli"
         fake_bin.write_text(fake_script)
         fake_bin.chmod(0o755)
 
@@ -182,7 +182,7 @@ class TestMermanRenderer:
     def test_render_timeout(self, tmp_path):
         """Timeout raises MermanRenderError."""
         fake_script = '#!/bin/sh\nsleep 100'
-        fake_bin = tmp_path / "merman-cli-linux-x86_64"
+        fake_bin = tmp_path / "merman-cli"
         fake_bin.write_text(fake_script)
         fake_bin.chmod(0o755)
 
@@ -196,7 +196,7 @@ class TestMermanRenderer:
     def test_render_diagrams_batch(self, tmp_path):
         """render_diagrams processes multiple diagrams, skipping failures."""
         fake_script = '#!/bin/sh\necho "<svg>ok</svg>"'
-        fake_bin = tmp_path / "merman-cli-linux-x86_64"
+        fake_bin = tmp_path / "merman-cli"
         fake_bin.write_text(fake_script)
         fake_bin.chmod(0o755)
 
@@ -217,7 +217,7 @@ class TestMermanRenderer:
         """render_diagrams returns error comments for failed renders."""
         # Binary that always fails
         fake_script = '#!/bin/sh\nexit 1'
-        fake_bin = tmp_path / "merman-cli-linux-x86_64"
+        fake_bin = tmp_path / "merman-cli"
         fake_bin.write_text(fake_script)
         fake_bin.chmod(0o755)
 

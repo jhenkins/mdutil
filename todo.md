@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-14
 Current branch: `main`
-Current package version: `2.3.1`
+Current package version: `4.0.0`
 Baseline verification at update time: `python -m pytest -q` -> 131 passed, 18 subtests passed in 3.77s
 
 ## Current state
@@ -165,7 +165,12 @@ viewer and rendering quality can move into the next incremental backlog slice.
   - [x] Phase 3: HTML syntax highlighting track (KB-016)
   - [ ] Phase 4: Verification, documentation, and release prep (KB-017)
   - Detailed checklist: `todo-v3.1.md`
-- [ ] v4.0: Add Mermaid diagram rendering to PDF and/or HTML
+- [x] v4.0: Add Mermaid diagram rendering to HTML export (bundled merman-cli binary, platform-filtered install)
+  - [x] Phase 1: Research, bundle infrastructure, MermanRenderer (KB-001 through KB-003)
+  - [x] Phase 2: HTML export integration (KB-004, KB-005)
+  - [x] Phase 3: Testing & documentation
+  - [x] Phase 4: Verification & release (KB-008)
+  - Detailed checklist: `todo-4.0.md`
 
 ## Verification checklist before committing changes
 
