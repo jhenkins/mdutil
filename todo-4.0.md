@@ -79,8 +79,8 @@
  - [ ] Run full test suite (pytest, unittest, compileall)
  - [ ] Verify HTML export with mermaid diagrams
  - [ ] Verify air-gapped operation (no network calls)
- - [ ] Bump version to 4.0.0
- - [ ] Update release notes
+ - [x] Bump version to 4.0.0
+ - [x] Update release notes
 
  ## Testing Requirements
 
