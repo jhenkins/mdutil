@@ -60,6 +60,16 @@ Always follow this pattern:
 
 This ensures clean history and proper code review workflow.
 
+### Pull Request Conventions
+
+**Be terse with PR name/description.** Put all details in the Summary field.
+
+- PR name: Short, descriptive title (one line)
+- PR description: Terse bullet points or "See Summary"
+- Summary field: Full details, context, testing notes, release checklist
+
+The current PR template renders description text as H1, making large blobs of text unwieldy. Keep it concise in the description, expand in the Summary.
+
 ## Configuration and Prompts
 
 (Optional: Information on where system prompts or agent configurations are stored.)
