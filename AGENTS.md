@@ -71,6 +71,20 @@ This ensures clean history and proper code review workflow.
 
 The current PR template renders description text as H1, making large blobs of text unwieldy. Keep it concise in the description, expand in the Summary.
 
+## Persistent Memory (Understory)
+
+This project is linked to **Understory**, a persistent knowledge base accessible via MCP. These tools are available in pi sessions with the Understory extension loaded:
+
+| Tool | Purpose |
+|------|---------|
+| `understory_memory_query` | Search the knowledge base with a natural-language question |
+| `understory_memory_add` | Add new knowledge (facts, docs, decisions, runbooks) |
+| `understory_memory_update` | Update or correct existing knowledge |
+| `understory_memory_status` | Check knowledge base health and stats |
+| `understory_memory_maintain` | Repair orphaned concepts and fix broken links |
+
+**When to use:** Before answering anything related to project decisions, architecture, or shared knowledge — call `understory_memory_query` first. When you learn something lasting, persist it with `understory_memory_add` so it survives across sessions.
+
 ## Configuration and Prompts
 
 (Optional: Information on where system prompts or agent configurations are stored.)
