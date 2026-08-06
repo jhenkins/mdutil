@@ -47,6 +47,19 @@ The agents listed below are used to assist with tasks such as code generation, d
 - **Context**: Provide necessary file contents or error logs when reporting bugs.
 - **Verification**: Always manually verify the outputs of agents before committing changes.
 
+### Git Branching Policy
+
+**Never work directly on the `main` branch.** The `main` branch is protected and can only be updated via a Pull Request.
+
+Always follow this pattern:
+1. Check if you're on a named branch
+2. If not, create one before doing any work
+3. Use naming templates:
+   - Features: `feature/branchname` (e.g., `feature/mermaid-export`)
+   - Bug fixes: `bugfix/branchname` (e.g., `bugfix/html-table-rendering`)
+
+This ensures clean history and proper code review workflow.
+
 ## Configuration and Prompts
 
 (Optional: Information on where system prompts or agent configurations are stored.)

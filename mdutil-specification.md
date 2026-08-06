@@ -164,6 +164,87 @@ Ctrl-/ so `/` remains normal text input.
 
 ---
 
+## 5.5. Mermaid Diagram Export (v4.0+)
+
+**Status:** Implemented in v4.0.1
+
+mdutil supports rendering Mermaid diagrams in HTML export with embedded SVG output. The feature uses a bundled `merman-cli` binary for offline, air-gapped operation.
+
+### CLI Interface
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--mermaid` | enabled | Enable Mermaid diagram rendering in HTML export |
+| `--no-mermaid` | – | Disable Mermaid rendering (diagrams rendered as code blocks) |
+| `--mermaid-theme <name>` | `default` | Mermaid rendering theme (`default`, `forest`, `dark`, `neutral`) |
+
+### Detection
+
+Mermaid code blocks are detected by fenced code blocks with the `mermaid` info string:
+
+```mermaid
+graph TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Action]
+    B -->|No| D[Other]
+```
+
+The parser identifies these blocks and tags them as `"mermaid"` token type during markdown processing.
+
+### Architecture
+
+1. **MermanRenderer** (`mdutil/export/merman_renderer.py`):
+   - Wraps `merman-cli` binary execution
+   - Platform detection for Linux/macOS/Windows binaries
+   - Subprocess execution with timeout and error handling
+   - Theme configuration passthrough
+   - Batch rendering for multiple diagrams
+
+2. **HtmlExporter integration**:
+   - Consumes `"mermaid"` token type from parser
+   - Calls `MermanRenderer.render_mermaid_svg()` for each diagram
+   - Embeds inline SVG in `<div class="mermaid">` containers
+   - Falls back to code block when binary unavailable or `--no-mermaid` active
+
+### Air-Gapped Operation
+
+mdutil bundles platform-specific `merman-cli` binaries:
+- Linux x86_64
+- macOS ARM64 (Apple Silicon)
+- macOS x64 (Intel)
+- Windows x64
+
+**No network access required.** The binary is executed as a subprocess with:
+- 30-second timeout per diagram
+- Captured stderr for error reporting
+- Graceful fallback to code block on failure
+
+### Themes
+
+| Theme | Description |
+|-------|-------------|
+| `default` | Light theme (standard mermaid look) |
+| `forest` | Green-tinted variant |
+| `dark` | Dark background theme |
+| `neutral` | Minimal, low-contrast theme |
+
+Pass theme via CLI: `mdutil doc.md --export html --mermaid-theme dark`
+
+### Fallback Behavior
+
+When `--no-mermaid` is passed OR the `merman-cli` binary is unavailable:
+- Mermaid code blocks export as regular fenced code blocks
+- No SVG rendering occurs
+- Document rendering continues normally
+
+### Testing Coverage
+
+- **Unit tests:** Platform detection, binary discovery, SVG rendering (basic flowcharts), theme passthrough, error handling
+- **Integration tests:** CLI export with mermaid diagrams, `--no-mermaid` flag, multi-diagram documents, mixed content (tables, lists, code blocks with mermaid)
+- **Air-gapped tests:** Verify zero network calls during export
+
+---
+
 ## 6. Testing Strategy
 
 | Test Type                  | Description                                                                                                           |
