@@ -15,6 +15,7 @@ from mdutil.export.merman_renderer import (
     MermanRenderError,
     MermanRenderer,
     SUPPORTED_THEMES,
+    _postprocess_svg,
     detect_platform,
     get_binary_path,
     resolve_binary_name,
@@ -229,3 +230,89 @@ class TestMermanRenderer:
         results = renderer.render_diagrams(diagrams, theme="default")
         assert len(results) == 1
         assert "render error" in results[0][2]
+
+
+# ---------------------------------------------------------------------------
+# SVG post-processing
+# ---------------------------------------------------------------------------
+
+class TestPostprocessSvg:
+    """Tests for ``_postprocess_svg``."""
+
+    def test_removes_inline_max_width_from_svg_root(self):
+        """Inline ``max-width`` is stripped from the root <svg> element."""
+        svg = (
+            '<svg id="merman" width="100%" '
+            'style="max-width: 480px; background-color: white;">'
+            '<g></g></svg>'
+        )
+        result = _postprocess_svg(svg)
+        assert "max-width" not in result
+        assert "background-color: white" in result
+        assert '<svg id="merman" width="100%"' in result
+
+    def test_keeps_other_styles_when_max_width_present(self):
+        """Non-max-width styles on the <svg> are preserved if present."""
+        svg = (
+            '<svg id="merman" width="100%" '
+            'style="max-width: 480px; fill: red;">'
+            '<g></g></svg>'
+        )
+        result = _postprocess_svg(svg)
+        assert "max-width" not in result
+        assert "fill: red" in result
+
+    def test_widens_foreign_object_widths(self):
+        """foreignObject widths are increased by the padding factor."""
+        svg = (
+            '<svg><g class="nodes">'
+            '<foreignObject width="100" height="24">'
+            '<div><p>Hello</p></div></foreignObject>'
+            '</g></svg>'
+        )
+        result = _postprocess_svg(svg)
+        # 100 * 1.15 = 115
+        assert 'width="115.' in result
+
+    def test_skips_zero_width_foreign_objects(self):
+        """Edge labels with width=0 are left untouched."""
+        svg = (
+            '<svg><g class="edgeLabels">'
+            '<foreignObject width="0" height="0">'
+            '<div></div></foreignObject>'
+            '</g></svg>'
+        )
+        result = _postprocess_svg(svg)
+        assert 'width="0"' in result
+
+    def test_empty_svg_returns_as_is(self):
+        """Empty/whitespace SVG is returned unchanged."""
+        assert _postprocess_svg("") == ""
+        assert _postprocess_svg("   ") == "   "
+
+    def test_no_style_attribute_unchanged(self):
+        """SVG without a style attribute is not altered by step 1."""
+        svg = '<svg id="merman" width="100%"><g></g></svg>'
+        result = _postprocess_svg(svg)
+        assert result == svg
+
+    def test_render_mermaid_svg_applies_postprocess(self, tmp_path):
+        """render_mermaid_svg runs post-processing on the output."""
+        fake_script = (
+            '#!/bin/sh\n'
+            'echo \'<svg id="merman" width="100%"'
+            ' style="max-width: 480px; background-color: white;">'
+            '<foreignObject width="100" height="24">'
+            '<div><p>Test</p></div></foreignObject></svg>\'\n'
+        )
+        fake_bin = tmp_path / "merman-cli"
+        fake_bin.write_text(fake_script)
+        fake_bin.chmod(0o755)
+
+        renderer = MermanRenderer.__new__(MermanRenderer)
+        renderer._binary_path = fake_bin
+        renderer._timeout = 5
+
+        result = renderer.render_mermaid_svg("graph TD; A-->B;", theme="default")
+        assert "max-width" not in result
+        assert 'width="115.' in result

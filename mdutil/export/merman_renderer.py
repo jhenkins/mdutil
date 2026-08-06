@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import platform
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -30,6 +31,10 @@ SUPPORTED_THEMES = ["default", "forest", "dark", "neutral"]
 
 # Timeout for merman-cli subprocess (seconds)
 RENDER_TIMEOUT = 30
+
+# Padding factor for foreignObject widths to prevent text clipping.
+# merman-cli measures text narrower than browsers render it, so we add padding.
+_FOREIGN_OBJECT_PADDING_FACTOR = 1.15  # 15% extra width
 
 
 class MermanBinaryNotFoundError(RuntimeError):
@@ -158,7 +163,9 @@ class MermanRenderer:
             )
 
         svg_output = result.stdout.decode("utf-8", errors="replace")
-        return svg_output.strip()
+        svg_output = svg_output.strip()
+        svg_output = _postprocess_svg(svg_output)
+        return svg_output
 
     def render_diagrams(
         self, diagrams: list[tuple[str, int]], theme: str = "default"
@@ -181,3 +188,84 @@ class MermanRenderer:
             except (MermanBinaryNotFoundError, MermanRenderError) as e:
                 results.append((code, idx, f"<!-- render error: {e} -->"))
         return results
+
+
+def _strip_max_width_from_svg(svg: str) -> str:
+    """Remove ``max-width`` from the root <svg> element's style attribute.
+
+    Preserves other CSS declarations in the style attribute if present.
+    If the style becomes empty after removal, the attribute is removed
+    entirely.
+    """
+    # Match only the opening <svg...> tag (non-greedy up to the first >)
+    pattern = re.compile(
+        r'(\s*<svg\s[^>]*style="[^"]*?)'
+        r'max-width\s*:\s*[^;"]*'
+        r'([^"]*")'
+        r'(>)'
+    )
+
+    def _replace(match: re.Match) -> str:
+        before = match.group(1)
+        after = match.group(2)
+        closing = match.group(3)
+        # Strip the matched max-width and any surrounding ; and whitespace
+        combined = before.rstrip() + after
+        # Remove leading ; and whitespace after max-width
+        combined = re.sub(r'\s*;\s*', ' ', combined)
+        # Remove trailing ; and whitespace before closing quote
+        combined = re.sub(r'\s*;\s*"', '"', combined)
+        # Collapse multiple spaces
+        combined = re.sub(r'  +', ' ', combined)
+        # If style attribute is empty (only whitespace left), remove it entirely
+        style_empty = re.search(r'style="\s*"', combined)
+        if style_empty:
+            combined = combined[: style_empty.start()] + combined[style_empty.end() :]
+            # Clean up any trailing whitespace before >
+            combined = re.sub(r'\s+>', '>', combined)
+        return combined + closing
+
+    return pattern.sub(_replace, svg)
+
+
+def _postprocess_svg(svg: str) -> str:
+    """Post-process merman-cli SVG output to fix rendering issues.
+
+    Fixes applied:
+    1. Remove inline ``max-width`` style from the root <svg> element so that
+       the CSS ``.mermaid svg { max-width: 100%; height: auto; }`` can
+       responsively scale the diagram.
+    2. Widen ``<foreignObject>`` widths for node/cluster labels so text
+       produced by the browser does not get clipped by the foreignObject
+       bounds (merman-cli measures text narrower than browsers render it).
+    """
+    if not svg.strip():
+        return svg
+
+    # 1. Remove inline ``max-width`` from the root <svg> element so that
+    #    the CSS ``.mermaid svg { max-width: 100%; height: auto; }`` can
+    #    responsively scale the diagram.
+    svg = _strip_max_width_from_svg(svg)
+
+    # 2. Widen foreignObject widths for node/cluster label content.
+    #    We target foreignObjects inside .label groups (node labels) but
+    #    skip edge labels (which have width="0" and are intentionally empty).
+    def _widen_foreign_object(match: re.Match) -> str:
+        full = match.group(0)
+        w_match = re.search(r'width="([^"]+)"', full)
+        if not w_match:
+            return full
+        width_str = w_match.group(1)
+        try:
+            width_val = float(width_str)
+        except ValueError:
+            return full
+        # Skip zero-width foreignObjects (edge labels)
+        if width_val <= 0:
+            return full
+        new_width = width_val * _FOREIGN_OBJECT_PADDING_FACTOR
+        return full.replace(f'width="{width_str}"', f'width="{new_width:.4f}"')
+
+    svg = re.sub(r'<foreignObject[^>]*>', _widen_foreign_object, svg)
+
+    return svg
