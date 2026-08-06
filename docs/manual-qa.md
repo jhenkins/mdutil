@@ -1,6 +1,6 @@
 # mdutil Manual QA Checklist
 
-**Version target:** 4.0.0  
+**Version target:** 4.0.1  
 **Last updated:** 2026-07-27  
 **Test platforms:** Linux, macOS, Windows (Python 3.11+)
 
@@ -33,7 +33,7 @@
 |------|--------|----------|
 | 1.1a | `python --version` | `Python 3.11.x` or higher |
 | 1.1b | `pip install -e .` from project root | Installs successfully, no errors |
-| 1.1c | `python -m mdutil --version` | Prints `mdutil 4.0.0` (or target version) |
+| 1.1c | `python -m mdutil --version` | Prints `mdutil 4.0.1` (or target version) |
 | 1.1d | `python -m pytest -q` | All tests pass (192 passed at time of writing) |
 
 ### 1.2 Test fixture document
