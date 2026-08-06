@@ -159,6 +159,46 @@ mdutil your_document.md --export html --custom-css style.css --output-dir ./html
 echo -e "# Hello\n\nWorld" | mdutil --export html
 ```
 
+### Export with Mermaid Diagrams
+
+```bash
+mdutil your_document.md --export html --output doc.html
+```
+
+HTML export includes **Mermaid diagram rendering** with embedded SVG output. Mermaid diagrams are detected in ` ```mermaid ` fenced code blocks and rendered to inline SVG using the bundled `merman-cli` binary.
+
+#### Mermaid CLI Options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--mermaid` | enabled | Enable Mermaid diagram rendering in HTML export |
+| `--no-mermaid` | – | Disable Mermaid rendering (diagrams rendered as code blocks) |
+| `--mermaid-theme <name>` | `default` | Mermaid rendering theme (`default`, `forest`, `dark`, `neutral`) |
+
+**Example with dark theme:**
+
+```bash
+mdutil your_document.md --export html --output doc.html --mermaid-theme dark
+```
+
+**Example disabling mermaid:**
+
+```bash
+mdutil your_document.md --export html --output doc.html --no-mermaid
+```
+
+#### Air-Gapped Operation
+
+mdutil bundles the `merman-cli` binary, ensuring **zero network access** is required for Mermaid rendering. This works in air-gapped environments without browser dependencies.
+
+**Supported platforms:**
+- Linux x86_64
+- macOS ARM64 (Apple Silicon)
+- macOS x64 (Intel)
+- Windows x64
+
+When `--no-mermaid` is passed or the binary is unavailable, mermaid code blocks are exported as regular fenced code blocks (no SVG).
+
 ---
 
 ## Demo
@@ -181,6 +221,56 @@ Some markdown text.
 
 Use bold and code.
 ```
+
+---
+
+## Troubleshooting
+
+### Mermaid Diagrams Not Rendering
+
+**Symptom:** Mermaid code blocks appear as plain text instead of SVG diagrams.
+
+**Cause:** The `merman-cli` binary is not available or not executable.
+
+**Solution:**
+1. Verify the binary exists:
+   ```bash
+   python -c "from mdutil.export.merman_renderer import MermanRenderer; print(MermanRenderer.find_binary())"
+   ```
+2. If binary not found, reinstall:
+   ```bash
+   pip install --force-reinstall mdutil
+   ```
+3. Check platform support:
+   - Linux x86_64: ✅ Supported
+   - macOS ARM64: ✅ Supported
+   - macOS x64: ✅ Supported
+   - Windows x64: ✅ Supported
+   - Other platforms: Falls back to code block export
+
+**Force disable mermaid:**
+```bash
+mdutil doc.md --export html --no-mermaid
+```
+
+### Invalid Mermaid Syntax
+
+**Symptom:** SVG renders as empty box or contains error text.
+
+**Cause:** Invalid mermaid syntax in your markdown.
+
+**Solution:** Validate mermaid syntax using the [mermaid.live editor](https://mermaid.live) before export. mdutil reports errors in the terminal but continues rendering the rest of the document.
+
+### Slow Export with Many Diagrams
+
+**Symptom:** Export takes longer than expected with multiple mermaid diagrams.
+
+**Cause:** Each diagram requires a subprocess call to `merman-cli`.
+
+**Solution:** 
+- Use `--no-mermaid` for quick previews
+- Batch diagrams where possible
+- Use simpler diagram types (flowcharts are fastest)
 
 ---
 
