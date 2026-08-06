@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-14
 Current branch: `main`
-Current package version: `4.0.0`
+Current package version: `4.0.1`
 Baseline verification at update time: `python -m pytest -q` -> 131 passed, 18 subtests passed in 3.77s
 
 ## Current state
