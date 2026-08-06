@@ -148,6 +148,24 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--custom-css",
         help="Path to a CSS file to embed in HTML export output",
     )
+    arg_parser.add_argument(
+        "--mermaid",
+        action="store_true",
+        default=True,
+        help="Enable Mermaid diagram rendering in HTML export (default)",
+    )
+    arg_parser.add_argument(
+        "--no-mermaid",
+        action="store_false",
+        dest="mermaid",
+        help="Disable Mermaid rendering (diagrams rendered as code blocks)",
+    )
+    arg_parser.add_argument(
+        "--mermaid-theme",
+        choices=["default", "forest", "dark", "neutral"],
+        default="default",
+        help="Mermaid rendering theme (default: default)",
+    )
     return arg_parser
 
 
@@ -267,6 +285,10 @@ def _export_single(export_format: str, args: argparse.Namespace, parsed: list[di
             except OSError as exc:
                 print(f"Error reading custom CSS file: {exc}", file=sys.stderr)
                 return 1
+        
+        # Pass mermaid options
+        options["mermaid"] = getattr(args, "mermaid", True)
+        options["mermaid_theme"] = getattr(args, "mermaid_theme", "default")
 
     # Forward syntax_theme and theme to exporters
     options["syntax_theme"] = runtime["syntax_theme"]
