@@ -49,7 +49,7 @@ class TestShrinkMaxWidth:
         )
         result = _shrink_max_width_in_svg(svg)
         assert 'viewBox="10 20 252 668"' in result
-        assert 'max-width: 126px' in result
+        assert 'max-width: 76px' in result
 
     def test_no_viewBox_falls_back_to_width_attr(self):
         """When viewBox is absent, fall back to explicit width attribute."""
@@ -86,8 +86,8 @@ class TestShrinkMaxWidth:
         result = _shrink_max_width_in_svg(svg)
         assert result == ''
 
-    def test_default_factor_is_05(self):
-        """Default factor of 0.5 should halve the width."""
+    def test_default_factor_is_03(self):
+        """Default factor of 0.3 shrinks width to 30 %."""
         svg = (
             '<svg xmlns="http://www.w3.org/2000/svg" '
             'viewBox="0 0 1000 500" '
@@ -95,7 +95,7 @@ class TestShrinkMaxWidth:
             '</svg>'
         )
         result = _shrink_max_width_in_svg(svg)
-        assert 'max-width: 500px' in result
+        assert 'max-width: 300px' in result
 
     def test_full_html_export_pipeline(self):
         """End-to-end: SVG with inline max-width gets shrunk by postprocess."""
@@ -109,7 +109,7 @@ class TestShrinkMaxWidth:
             '</svg>'
         )
         result = _postprocess_svg(svg)
-        # Should have shrunk max-width to 432px
-        assert 'max-width: 432px' in result
+        # Should have shrunk max-width to 259px (864 * 0.3)
+        assert 'max-width: 259px' in result
         # foreignObject width should be widened by 15%
         assert 'width="115"' in result or 'width="115.' in result

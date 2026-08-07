@@ -247,7 +247,7 @@ class TestPostprocessSvg:
             '<g></g></svg>'
         )
         result = _postprocess_svg(svg)
-        assert "max-width: 240px" in result
+        assert "max-width: 144px" in result
         assert "background-color: white" in result
         assert '<svg id="merman"' in result
 
@@ -259,7 +259,7 @@ class TestPostprocessSvg:
             '<g></g></svg>'
         )
         result = _postprocess_svg(svg)
-        assert "max-width: 240px" in result
+        assert "max-width: 144px" in result
         assert "fill: red" in result
 
     def test_widens_foreign_object_widths(self):
@@ -314,5 +314,5 @@ class TestPostprocessSvg:
         renderer._timeout = 5
 
         result = renderer.render_mermaid_svg("graph TD; A-->B;", theme="default")
-        assert "max-width: 240px" in result
+        assert "max-width: 144px" in result
         assert 'width="115.' in result
