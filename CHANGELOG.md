@@ -2,6 +2,30 @@
 
 All notable changes to mdutil will be documented in this file.
 
+## [4.1.0] - 2026-08-08
+
+### Added
+- **PDF export of Mermaid diagrams** (KB-026a, KB-026b, KB-026c)
+  - Shared SVG→PNG conversion layer (`mdutil/export/svg_to_image.py`)
+  - `SvgToImageRenderer` wraps merman-cli `--outputFormat png` for PNG rendering
+  - `get_svg_dimensions()` extracts SVG width/height for dimension calculation
+  - PdfExporter batch-renders mermaid diagrams, embeds PNGs in PDF output
+  - Page-break handling: adds new page if diagram won't fit on current page
+  - Aspect-ratio preservation when scaling diagrams to fit page width
+  - Error fallback: renders mermaid code block when PNG conversion fails
+
+### Changed
+- Mermaid rendering now applies to both HTML and PDF export (previously HTML only)
+- `--mermaid` / `--no-mermaid` / `--mermaid-theme` flags control both exporters
+
+### Technical Details
+- Shared `svg_to_image.py` module reusable by future exporters
+- No `cairosvg` dependency — merman-cli produces native PNG output
+- Scale factor 2.0 for HiDPI PNG output
+- fpdf2 scales PNG back to fit page width via target dimensions
+
+---
+
 ## [4.0.1] - 2026-08-06
 
 ### Added
@@ -54,8 +78,6 @@ This is the initial v4.0 release with mermaid support. All development for v4.0 
 
 ---
 
-## Future: v4.1
+## Future: v5.0
 
-- PDF export of Mermaid diagrams (SVG to PNG conversion)
-- Page break handling around diagrams
-- Reusable SVG→image conversion layer between HTML and PDF exporters
+- TBD
