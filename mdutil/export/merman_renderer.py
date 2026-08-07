@@ -190,7 +190,7 @@ class MermanRenderer:
         return results
 
 
-def _shrink_max_width_in_svg(svg: str, factor: float = 0.3) -> str:
+def _shrink_max_width_in_svg(svg: str, factor: float = 0.5) ->str:
     """Shrink the inline ``max-width`` on the root <svg> element.
 
     Replaces the existing ``max-width`` value with ``factor`` times the
@@ -200,8 +200,8 @@ def _shrink_max_width_in_svg(svg: str, factor: float = 0.3) -> str:
     Args:
         svg: SVG string from merman-cli (or any SVG with an inline
              ``style="max-width: ...px"`` on the root element).
-        factor: Shrink factor applied to the natural width.  0.3 shrinks
-                by 70 % (diagram renders at 30 % of natural width).
+        factor: Shrink factor applied to the natural width.  0.5 shrinks
+                by 50 % (diagram renders at half its natural width).
 
     Returns:
         Modified SVG string.
@@ -273,9 +273,9 @@ def _postprocess_svg(svg: str) -> str:
     """Post-process merman-cli SVG output to fix rendering issues.
 
     Fixes applied:
-    1. Shrink inline ``max-width`` on the root <svg> element to 30 % of
-       the diagram's natural viewBox width so the diagram renders at 30 %
-       of its natural width in the document layout.
+    1. Shrink inline ``max-width`` on the root <svg> element to 50 % of
+       the diagram's natural viewBox width so the diagram renders at half
+       its natural width in the document layout.
     2. Widen ``<foreignObject>`` widths for node/cluster labels so text
        produced by the browser does not get clipped by the foreignObject
        bounds (merman-cli measures text narrower than browsers render it).
@@ -283,12 +283,12 @@ def _postprocess_svg(svg: str) -> str:
     if not svg.strip():
         return svg
 
-    # 1. Shrink inline ``max-width`` on the root <svg> element to 30 % of
+    # 1. Shrink inline ``max-width`` on the root <svg> element to 50 % of
     #    the diagram's natural viewBox width.  The inline value beats the
     #    CSS ``.mermaid svg { max-width: 100%; }`` rule so the diagram
-    #    renders at 30 % of its natural width, preventing oversized diagrams
+    #    renders at half its natural width, preventing oversized diagrams
     #    from dominating the document layout.
-    svg = _shrink_max_width_in_svg(svg, factor=0.3)
+    svg = _shrink_max_width_in_svg(svg, factor=0.5)
 
     # 2. Widen foreignObject widths for node/cluster label content.
     #    We target foreignObjects inside .label groups (node labels) but

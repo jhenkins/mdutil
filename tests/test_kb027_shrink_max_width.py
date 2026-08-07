@@ -15,7 +15,7 @@ class TestShrinkMaxWidth:
     """Tests for _shrink_max_width_in_svg()."""
 
     def test_shrinks_inline_max_width_to_50_percent(self):
-        """SVG with 864px viewBox and inline max-width should be shrunk to 432px."""
+        """Default factor 0.5 shrinks 864px diagram to 432px."""
         svg = (
             '<svg xmlns="http://www.w3.org/2000/svg" '
             'viewBox="0 0 864 435" '
@@ -23,7 +23,7 @@ class TestShrinkMaxWidth:
             '<rect width="100" height="100"/>'
             '</svg>'
         )
-        result = _shrink_max_width_in_svg(svg, factor=0.5)
+        result = _shrink_max_width_in_svg(svg)
         assert 'max-width: 432px' in result
         assert '864px' not in result or '864 435' in result  # viewBox stays intact
         assert '435' in result  # viewBox height stays intact
@@ -49,7 +49,7 @@ class TestShrinkMaxWidth:
         )
         result = _shrink_max_width_in_svg(svg)
         assert 'viewBox="10 20 252 668"' in result
-        assert 'max-width: 76px' in result
+        assert 'max-width: 126px' in result
 
     def test_no_viewBox_falls_back_to_width_attr(self):
         """When viewBox is absent, fall back to explicit width attribute."""
@@ -86,8 +86,8 @@ class TestShrinkMaxWidth:
         result = _shrink_max_width_in_svg(svg)
         assert result == ''
 
-    def test_default_factor_is_03(self):
-        """Default factor of 0.3 shrinks width to 30 %."""
+    def test_default_factor_is_05(self):
+        """Default factor of 0.5 should halve the width."""
         svg = (
             '<svg xmlns="http://www.w3.org/2000/svg" '
             'viewBox="0 0 1000 500" '
@@ -95,7 +95,7 @@ class TestShrinkMaxWidth:
             '</svg>'
         )
         result = _shrink_max_width_in_svg(svg)
-        assert 'max-width: 300px' in result
+        assert 'max-width: 500px' in result
 
     def test_full_html_export_pipeline(self):
         """End-to-end: SVG with inline max-width gets shrunk by postprocess."""
@@ -109,7 +109,7 @@ class TestShrinkMaxWidth:
             '</svg>'
         )
         result = _postprocess_svg(svg)
-        # Should have shrunk max-width to 259px (864 * 0.3)
-        assert 'max-width: 259px' in result
+        # Should have shrunk max-width to 432px (864 * 0.5)
+        assert 'max-width: 432px' in result
         # foreignObject width should be widened by 15%
         assert 'width="115"' in result or 'width="115.' in result
