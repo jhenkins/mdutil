@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import sys
 import html.parser
+from io import BytesIO
 from typing import Any, cast
 
 from fpdf import FPDF
@@ -12,6 +13,11 @@ from fpdf.outline import OutlineSection
 from fpdf.syntax import DestinationXYZ
 
 from mdutil.export.base import Exporter
+from mdutil.export.svg_to_image import (
+    MermanBinaryNotFoundError,
+    MermanRenderError,
+    SvgToImageError,
+)
 from mdutil.parser import _parse_inline
 
 # ---------------------------------------------------------------------------
@@ -273,6 +279,20 @@ class PdfExporter(Exporter):
 
     def _render_tokens(self, pdf: FPDF, tokens: list[dict]) -> None:
         """Render a list of tokens to PDF."""
+        # Collect mermaid diagrams and render them upfront (batched).
+        mermaid_diagrams: list[tuple[dict, int]] = []
+        rendered_svgs: dict[int, bytes] = {}
+        for i, token in enumerate(tokens):
+            if token.get("type") == "mermaid":
+                mermaid_diagrams.append((token, i))
+
+        if mermaid_diagrams:
+            mermaid_enabled = self._options.get("mermaid", True)
+            if mermaid_enabled:
+                rendered_svgs = self._render_mermaid_batch(mermaid_diagrams)
+            else:
+                pass
+
         for token in tokens:
             token_type = token.get("type")
 
@@ -290,6 +310,10 @@ class PdfExporter(Exporter):
 
             if token_type == "code":
                 self._render_code_block(pdf, token)
+                continue
+
+            if token_type == "mermaid":
+                self._render_mermaid(pdf, token, rendered_svgs)
                 continue
 
             if token_type == "horizontal_rule":
@@ -412,6 +436,102 @@ class PdfExporter(Exporter):
 
         for line_segments in lines:
             self._render_code_line(pdf, line_segments)
+
+        pdf.ln(5)
+
+    def _render_mermaid_batch(self, diagrams: list[tuple[dict, int]]) -> dict[int, bytes]:
+        """Render multiple Mermaid diagrams to PNG bytes.
+
+        Returns a dict mapping token id → PNG bytes.
+        Failed renders produce (None, index) which results in a code-block fallback.
+        """
+        from mdutil.export.svg_to_image import SvgToImageRenderer
+
+        renderer = SvgToImageRenderer()
+        if not renderer.available:
+            return {}
+
+        theme = self._options.get("mermaid_theme", "default")
+        background = self._options.get("mermaid_background", "transparent")
+        scale = self._options.get("mermaid_scale", 2.0)
+
+        code_index_pairs = [(d.get("content", ""), i) for i, (d, _) in enumerate(diagrams)]
+        results = renderer.render_diagrams_png(
+            code_index_pairs,
+            theme=theme,
+            background=background,
+            scale=scale,
+        )
+
+        rendered: dict[int, bytes] = {}
+        for png, idx in results:
+            if png is not None:
+                token = diagrams[idx][0]
+                rendered[id(token)] = png
+        return rendered
+
+    def _render_mermaid(self, pdf: FPDF, token: dict, rendered_svgs: dict[int, bytes]) -> None:
+        """Render a Mermaid diagram token as an embedded PNG in the PDF.
+
+        Handles:
+        - Getting pre-rendered PNG from batch render
+        - Page-break logic (if diagram won't fit on current page, add a new one)
+        - Aspect-ratio preservation (scale to fit page width)
+        - Error fallback: render as code block when conversion fails
+        """
+        mermaid_enabled = self._options.get("mermaid", True)
+        if not mermaid_enabled:
+            self._render_code_block(pdf, token)
+            return
+
+        content = token.get("content", "")
+        
+        # Try to get pre-rendered PNG from batch render.
+        png = rendered_svgs.get(id(token))
+        if png is None:
+            # Render failed or binary unavailable — fall back to code block.
+            self._render_code_block(pdf, token)
+            return
+
+        # Validate PNG header.
+        if png[:4] != b'\x89PNG':
+            self._render_code_block(pdf, token)
+            return
+
+        # Calculate available width on the page (in mm).
+        available_width = pdf.epw
+        
+        # Calculate diagram height on the page. We need to estimate:
+        # merman-cli produces PNGs at scale=2.0, which means the PNG pixels
+        # are at 2× the display resolution. fpdf2 renders at 72 dpi by default
+        # and the PNG gets scaled automatically if we provide width only.
+        # fpdf2's image() with w=available_width will auto-calculate height
+        # preserving aspect ratio.
+        
+        # Check remaining space on current page.
+        # We need a buffer of 10mm above and below the diagram for visual spacing.
+        diagram_height_buffer = 10  # mm buffer around diagram
+        remaining_height = pdf.h - pdf.b_margin - pdf.get_y() - diagram_height_buffer
+        
+        # If diagram won't fit on this page, start a new page.
+        # Use a generous minimum: if remaining height < 30mm, add a page break.
+        if remaining_height < 30 and pdf.get_y() > pdf.t_margin:
+            pdf.add_page()
+
+        try:
+            # Render the PNG centered on the page.
+            # fpdf2 auto-calculates height when only width is given.
+            buf = BytesIO(png)
+            pdf.image(
+                buf,
+                x=pdf.l_margin + (available_width - available_width) / 2,  # centered = l_margin
+                w=available_width,
+                keep_aspect_ratio=True,
+            )
+        except Exception:
+            # If image rendering fails for any reason, fall back to code block.
+            self._render_code_block(pdf, token)
+            return
 
         pdf.ln(5)
 

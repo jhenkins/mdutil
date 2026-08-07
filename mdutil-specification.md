@@ -166,15 +166,15 @@ Ctrl-/ so `/` remains normal text input.
 
 ## 5.5. Mermaid Diagram Export (v4.0+)
 
-**Status:** Implemented in v4.0.1
+**Status:** Implemented in v4.0.1; PDF export extended in v4.1.0.
 
-mdutil supports rendering Mermaid diagrams in HTML export with embedded SVG output. The feature uses a bundled `merman-cli` binary for offline, air-gapped operation.
+mdutil supports rendering Mermaid diagrams in both HTML and PDF export. Mermaid diagrams are detected in ` ```mermaid ` fenced code blocks and rendered using the bundled `merman-cli` binary for offline, air-gapped operation.
 
 ### CLI Interface
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--mermaid` | enabled | Enable Mermaid diagram rendering in HTML export |
+| `--mermaid` | enabled | Enable Mermaid diagram rendering (HTML and PDF) |
 | `--no-mermaid` | – | Disable Mermaid rendering (diagrams rendered as code blocks) |
 | `--mermaid-theme <name>` | `default` | Mermaid rendering theme (`default`, `forest`, `dark`, `neutral`) |
 
@@ -205,6 +205,13 @@ The parser identifies these blocks and tags them as `"mermaid"` token type durin
    - Calls `MermanRenderer.render_mermaid_svg()` for each diagram
    - Embeds inline SVG in `<div class="mermaid">` containers
    - Falls back to code block when binary unavailable or `--no-mermaid` active
+
+3. **PdfExporter integration** (v4.1.0):
+   - Uses shared `SvgToImageRenderer` (`mdutil/export/svg_to_image.py`) for SVG→PNG conversion
+   - Batch-renders all mermaid diagrams upfront, then embeds PNGs in PDF
+   - Page-break handling: adds new page if diagram won't fit on current page (30mm minimum)
+   - Aspect-ratio preservation: scales PNG to fit page width
+   - Falls back to code block when conversion fails or binary unavailable
 
 ### Air-Gapped Operation
 
@@ -239,9 +246,10 @@ When `--no-mermaid` is passed OR the `merman-cli` binary is unavailable:
 
 ### Testing Coverage
 
-- **Unit tests:** Platform detection, binary discovery, SVG rendering (basic flowcharts), theme passthrough, error handling
-- **Integration tests:** CLI export with mermaid diagrams, `--no-mermaid` flag, multi-diagram documents, mixed content (tables, lists, code blocks with mermaid)
+- **Unit tests:** Platform detection, binary discovery, SVG rendering (basic flowcharts), theme passthrough, error handling, SVG dimension extraction, PNG conversion
+- **Integration tests:** CLI export with mermaid diagrams, `--no-mermaid` flag, multi-diagram documents, mixed content (tables, lists, code blocks with mermaid), PDF mermaid embedding, page-break handling
 - **Air-gapped tests:** Verify zero network calls during export
+- **Regression tests:** All existing HTML/PDF export features verified against mermaid-enabled documents
 
 ---
 

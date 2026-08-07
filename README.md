@@ -165,26 +165,29 @@ echo -e "# Hello\n\nWorld" | mdutil --export html
 mdutil your_document.md --export html --output doc.html
 ```
 
-HTML export includes **Mermaid diagram rendering** with embedded SVG output. Mermaid diagrams are detected in ` ```mermaid ` fenced code blocks and rendered to inline SVG using the bundled `merman-cli` binary.
+Both HTML and PDF export include **Mermaid diagram rendering**. Mermaid diagrams are detected in ` ```mermaid ` fenced code blocks and rendered using the bundled `merman-cli` binary.
+
+- **HTML export:** Renders to inline SVG embedded in `<div class="mermaid">` containers.
+- **PDF export:** Renders to PNG via SVG→PNG conversion, embedded in the PDF with page-break handling and aspect-ratio preservation.
 
 #### Mermaid CLI Options
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--mermaid` | enabled | Enable Mermaid diagram rendering in HTML export |
+| `--mermaid` | enabled | Enable Mermaid diagram rendering (both HTML and PDF) |
 | `--no-mermaid` | – | Disable Mermaid rendering (diagrams rendered as code blocks) |
 | `--mermaid-theme <name>` | `default` | Mermaid rendering theme (`default`, `forest`, `dark`, `neutral`) |
 
 **Example with dark theme:**
 
 ```bash
-mdutil your_document.md --export html --output doc.html --mermaid-theme dark
+mdutil your_document.md --export pdf --output doc.pdf --mermaid-theme dark
 ```
 
 **Example disabling mermaid:**
 
 ```bash
-mdutil your_document.md --export html --output doc.html --no-mermaid
+mdutil your_document.md --export pdf --output doc.pdf --no-mermaid
 ```
 
 #### Air-Gapped Operation
@@ -250,7 +253,7 @@ Use bold and code.
 
 **Force disable mermaid:**
 ```bash
-mdutil doc.md --export html --no-mermaid
+mdutil doc.md --export pdf --no-mermaid
 ```
 
 ### Invalid Mermaid Syntax
