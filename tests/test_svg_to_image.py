@@ -38,16 +38,17 @@ def _fake_png_bytes():
 
 
 def _fake_merman_cli_with_png(tmp_path: Path) -> Path:
-    """Create a fake merman-cli that writes a valid 1x1 PNG to the output dir.
+    """Create a fake merman-cli that writes a valid 1x1 PNG to the output file.
 
-    The fake finds the -o argument and writes a PNG file there.
+    The fake finds the -o argument and writes a PNG file to that path.
     """
     fake_script = '''#!/usr/bin/env python3
 import sys, os, struct, zlib
 
 args = sys.argv[1:]
 o_idx = args.index("-o")
-out_dir = args[o_idx + 1]
+out_file = args[o_idx + 1]
+os.makedirs(os.path.dirname(out_file) or '.', exist_ok=True)
 
 raw = b'\\x00' + b'\\x00\\x00\\x00\\x00'
 compressed = zlib.compress(raw)
@@ -60,7 +61,7 @@ idat += struct.pack('>I', zlib.crc32(b'IDAT' + compressed) & 0xffffffff)
 iend = struct.pack('>I', 0) + b'IEND' + struct.pack('>I', zlib.crc32(b'IEND') & 0xffffffff)
 png = sig + ihdr + idat + iend
 
-with open(os.path.join(out_dir, 'test.png'), 'wb') as f:
+with open(out_file, 'wb') as f:
     f.write(png)
 '''
     fake_bin = tmp_path / "merman-cli"
@@ -273,7 +274,9 @@ class TestSvgToImageRenderer:
 import sys, os
 args = sys.argv[1:]
 o_idx = args.index("-o")
-open(os.path.join(args[o_idx + 1], "test.png"), "wb").close()
+out_file = args[o_idx + 1]
+os.makedirs(os.path.dirname(out_file) or '.', exist_ok=True)
+open(out_file, "wb").close()
 '''
         fake_bin = tmp_path / "merman-cli"
         fake_bin.write_text(fake_script)
@@ -343,11 +346,12 @@ open(os.path.join(args[o_idx + 1], "test.png"), "wb").close()
 
         def capture_cmd(cmd, **kwargs):
             captured['cmd'] = cmd
-            # Write PNG to the output dir from the -o arg
+            # Write PNG to the output file from the -o arg
             o_idx = cmd.index("-o")
-            out_dir = cmd[o_idx + 1]
+            out_file = cmd[o_idx + 1]
+            os.makedirs(os.path.dirname(out_file) or '.', exist_ok=True)
             png = _fake_png_bytes()
-            with open(os.path.join(out_dir, 'test.png'), 'wb') as f:
+            with open(out_file, 'wb') as f:
                 f.write(png)
             result = MagicMock()
             result.returncode = 0
@@ -377,9 +381,10 @@ open(os.path.join(args[o_idx + 1], "test.png"), "wb").close()
         def capture_cmd(cmd, **kwargs):
             captured['cmd'] = cmd
             o_idx = cmd.index("-o")
-            out_dir = cmd[o_idx + 1]
+            out_file = cmd[o_idx + 1]
+            os.makedirs(os.path.dirname(out_file) or '.', exist_ok=True)
             png = _fake_png_bytes()
-            with open(os.path.join(out_dir, 'test.png'), 'wb') as f:
+            with open(out_file, 'wb') as f:
                 f.write(png)
             result = MagicMock()
             result.returncode = 0

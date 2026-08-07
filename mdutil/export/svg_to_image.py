@@ -143,10 +143,11 @@ class SvgToImageRenderer:
         if background and background != _DEFAULT_BACKGROUND:
             cmd.extend(["--rasterBackground", background])
 
-        # merman-cli writes PNG to a temp directory when outputFormat is png.
-        # We use a temp dir and read the resulting file.
+        # merman-cli requires -o to be a file path (not a directory).
+        # We write to a temp file and read it back.
         with tempfile.TemporaryDirectory(prefix="mdutil_svg2png_") as tmpdir:
-            cmd.extend(["-o", tmpdir])
+            output_file = Path(tmpdir) / "output.png"
+            cmd.extend(["-o", str(output_file)])
 
             try:
                 result = subprocess.run(
@@ -171,21 +172,12 @@ class SvgToImageRenderer:
                     f"merman-cli failed (exit {result.returncode}): {stderr}"
                 )
 
-            # merman-cli writes PNG files into the output directory.
-            # Find the first .png file produced.
-            png_files = sorted(Path(tmpdir).glob("*.png"))
-            if not png_files:
-                # Try SVG extension (some versions output .svg for png format)
-                svg_files = sorted(Path(tmpdir).glob("*.svg"))
-                if svg_files:
-                    png_files = svg_files
-
-            if not png_files:
+            if not output_file.exists():
                 raise SvgToImageError(
-                    f"merman-cli produced no output PNG in {tmpdir}"
+                    f"merman-cli produced no output file at {output_file}"
                 )
 
-            png_data = png_files[0].read_bytes()
+            png_data = output_file.read_bytes()
             if not png_data:
                 raise SvgToImageError("merman-cli produced empty PNG output")
 

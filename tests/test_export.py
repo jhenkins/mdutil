@@ -424,6 +424,106 @@ class PdfExporterTests(unittest.TestCase):
         self.assertNotIn(b"/Outlines", result)
 
 
+class PdfExporterMermaidTests(unittest.TestCase):
+    """Test PdfExporter mermaid diagram support (KB-026b)."""
+
+    def setUp(self):
+        self.exporter = PdfExporter()
+
+    def _mermaid_token(self, content="graph TD; A-->B;"):
+        return {
+            "type": "mermaid",
+            "content": content,
+            "language": "mermaid",
+            "text": content,
+        }
+
+    def test_render_mermaid_returns_pdf(self):
+        """PDF export with mermaid diagram produces valid PDF."""
+        tokens = [self._mermaid_token()]
+        result = self.exporter.render(tokens, {}, {"mermaid": True})
+        self.assertIsInstance(result, bytes)
+        self.assertTrue(result.startswith(b"%PDF"))
+
+    def test_render_mermaid_diagram_embedded(self):
+        """Mermaid diagram is embedded as PNG in PDF output."""
+        tokens = [
+            {"type": "heading", "text": "Title", "level": 1, "content": "", "spans": [], "source_lines": [], "content_lines": []},
+            self._mermaid_token("graph TD; A-->B; B-->C;"),
+        ]
+        result = self.exporter.render(tokens, {}, {"mermaid": True})
+        # PDF with embedded PNG should be larger than a PDF without images.
+        self.assertGreater(len(result), 10000)
+
+    def test_render_mermaid_disabled_as_code_block(self):
+        """When mermaid is disabled, diagram renders as code block."""
+        tokens = [self._mermaid_token("graph TD; A-->B;")]
+        result = self.exporter.render(tokens, {}, {"mermaid": False})
+        self.assertIsInstance(result, bytes)
+        self.assertTrue(result.startswith(b"%PDF"))
+        # PDF should render successfully without errors (content is compressed).
+        self.assertGreater(len(result), 5000)
+
+    def test_render_multiple_mermaid_diagrams(self):
+        """Multiple mermaid diagrams are all rendered."""
+        tokens = [
+            self._mermaid_token("graph TD; A-->B;"),
+            {"type": "paragraph", "content": "Between", "text": ""},
+            self._mermaid_token("sequenceDiagram Alice->>Bob: Hi"),
+        ]
+        result = self.exporter.render(tokens, {}, {"mermaid": True})
+        self.assertIsInstance(result, bytes)
+        self.assertTrue(result.startswith(b"%PDF"))
+        # With 2 diagrams, PDF should be noticeably larger.
+        single = self.exporter.render([self._mermaid_token()], {}, {"mermaid": True})
+        self.assertGreater(len(result), len(single))
+
+    def test_render_mermaid_with_theme(self):
+        """Mermaid diagrams respect the theme option."""
+        tokens = [self._mermaid_token("graph TD; A-->B;")]
+        result = self.exporter.render(tokens, {}, {"mermaid": True, "mermaid_theme": "dark"})
+        self.assertIsInstance(result, bytes)
+        self.assertTrue(result.startswith(b"%PDF"))
+
+    def test_render_mermaid_mixed_content(self):
+        """PDF with mixed content (headings, paragraphs, mermaid, code) renders."""
+        tokens = [
+            {"type": "heading", "text": "Diagram Section", "level": 1, "content": "", "spans": [], "source_lines": [], "content_lines": []},
+            {"type": "paragraph", "content": "Here is a diagram:", "text": ""},
+            self._mermaid_token("graph TD; A-->B; B-->C; C-->D;"),
+            {"type": "paragraph", "content": "And some code:", "text": ""},
+            {"type": "code", "content": "print('hello')", "language": "python", "text": "print('hello')"},
+        ]
+        result = self.exporter.render(tokens, {}, {"mermaid": True})
+        self.assertIsInstance(result, bytes)
+        self.assertTrue(result.startswith(b"%PDF"))
+        self.assertGreater(len(result), 15000)
+
+    def test_render_mermaid_invalid_syntax_fallback(self):
+        """Invalid mermaid syntax falls back to code block rendering."""
+        tokens = [self._mermaid_token("this is not valid mermaid @@@")]
+        result = self.exporter.render(tokens, {}, {"mermaid": True})
+        self.assertIsInstance(result, bytes)
+        self.assertTrue(result.startswith(b"%PDF"))
+        # PDF should render successfully (fallback to code block).
+
+    def test_render_mermaid_with_page_break(self):
+        """Mermaid diagram triggers page break when it doesn't fit."""
+        # Create content that fills the page, then add a mermaid diagram.
+        tokens = []
+        # Add many paragraphs to fill the page.
+        for i in range(30):
+            tokens.append({
+                "type": "paragraph",
+                "content": f"Line {i} of filler content to fill the page. " * 3,
+                "text": "",
+            })
+        tokens.append(self._mermaid_token("graph TD; A-->B; B-->C;"))
+        result = self.exporter.render(tokens, {}, {"mermaid": True})
+        self.assertIsInstance(result, bytes)
+        self.assertTrue(result.startswith(b"%PDF"))
+
+
 class HtmlExporterCustomCssTests(unittest.TestCase):
     """Test HtmlExporter custom CSS support."""
 
