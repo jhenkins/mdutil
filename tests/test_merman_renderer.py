@@ -239,27 +239,27 @@ class TestMermanRenderer:
 class TestPostprocessSvg:
     """Tests for ``_postprocess_svg``."""
 
-    def test_removes_inline_max_width_from_svg_root(self):
-        """Inline ``max-width`` is stripped from the root <svg> element."""
+    def test_shrinks_inline_max_width_on_svg_root(self):
+        """Inline ``max-width`` is shrunk to 50 % of the viewBox width."""
         svg = (
-            '<svg id="merman" width="100%" '
+            '<svg id="merman" viewBox="0 0 480 300" '
             'style="max-width: 480px; background-color: white;">'
             '<g></g></svg>'
         )
         result = _postprocess_svg(svg)
-        assert "max-width" not in result
+        assert "max-width: 240px" in result
         assert "background-color: white" in result
-        assert '<svg id="merman" width="100%"' in result
+        assert '<svg id="merman"' in result
 
     def test_keeps_other_styles_when_max_width_present(self):
-        """Non-max-width styles on the <svg> are preserved if present."""
+        """Non-max-width styles on the <svg> are preserved."""
         svg = (
-            '<svg id="merman" width="100%" '
+            '<svg id="merman" viewBox="0 0 480 300" '
             'style="max-width: 480px; fill: red;">'
             '<g></g></svg>'
         )
         result = _postprocess_svg(svg)
-        assert "max-width" not in result
+        assert "max-width: 240px" in result
         assert "fill: red" in result
 
     def test_widens_foreign_object_widths(self):
@@ -300,7 +300,7 @@ class TestPostprocessSvg:
         """render_mermaid_svg runs post-processing on the output."""
         fake_script = (
             '#!/bin/sh\n'
-            'echo \'<svg id="merman" width="100%"'
+            'echo \'<svg id="merman" viewBox="0 0 480 300"'
             ' style="max-width: 480px; background-color: white;">'
             '<foreignObject width="100" height="24">'
             '<div><p>Test</p></div></foreignObject></svg>\'\n'
@@ -314,5 +314,5 @@ class TestPostprocessSvg:
         renderer._timeout = 5
 
         result = renderer.render_mermaid_svg("graph TD; A-->B;", theme="default")
-        assert "max-width" not in result
+        assert "max-width: 240px" in result
         assert 'width="115.' in result
