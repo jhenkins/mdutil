@@ -232,41 +232,41 @@ def _shrink_max_width_in_svg(svg: str, factor: float = 0.3) -> str:
 
     # Now find the inline style on the root <svg> element and replace
     # the max-width value.
-    # Match: <svg ... style="...max-width: <val>px..." ...>
-    pattern = re.compile(
-        r'(<svg\s[^>]*style="[^"]*?)'
-        r'max-width\s*:\s*([\d.]+)\s*(?:px)?'
-        r'([^"]*")'
-        r'(>)',
-        re.IGNORECASE,
+    # Match: <svg ... style="...max-width: <val>px..." ...> (style may not
+    # be the last attribute on the <svg> element).
+    # Locate the opening <svg and the style="..." attribute.
+    open_match = re.search(r'<svg\s', svg, re.IGNORECASE)
+    if not open_match:
+        return svg
+
+    style_start = svg.find('style="', open_match.start())
+    if style_start == -1:
+        return svg
+
+    style_val_start = style_start + 7  # after style="
+    style_val_end = svg.find('"', style_val_start)
+    if style_val_end == -1:
+        return svg
+
+    before_style = svg[:style_start + 7]
+    after_style = svg[style_val_end:]
+    style_inner = svg[style_val_start:style_val_end]
+
+    # Only replace the numeric value, preserving surrounding whitespace.
+    new_style_inner = re.sub(
+        r'(max-width\s*:\s*)([\d.]+\s*px?)',
+        f'\\g<1>{constrained_width:.0f}px',
+        style_inner,
+        count=1,
+        flags=re.IGNORECASE,
     )
 
-    def _replace(match: re.Match) -> str:
-        before = match.group(1)
-        old_val = match.group(2)
-        after = match.group(3)
-        closing = match.group(4)
-        # Check that the old value was a numeric px value we can replace
-        try:
-            float(old_val)
-        except ValueError:
-            return match.group(0)  # not a numeric value, leave it
-        # Build the new style: replace max-width value
-        before_stripped = before.rstrip()
-        combined = before_stripped + f'max-width: {constrained_width:.0f}px' + after
-        # Clean up: remove leftover separator (e.g. "; ") around the replaced value
-        combined = re.sub(r'\s*;\s*max-width', ' max-width', combined)
-        combined = re.sub(r'max-width\s*;\s*', 'max-width:', combined)
-        # Collapse multiple spaces
-        combined = re.sub(r'  +', ' ', combined)
-        # If style attribute is empty (only whitespace left), remove it
-        style_empty = re.search(r'style="\s*"', combined)
-        if style_empty:
-            combined = combined[: style_empty.start()] + combined[style_empty.end():]
-            combined = re.sub(r'\s+>', '>', combined)
-        return combined + closing
+    # Normalise internal spacing around semicolons
+    new_style_inner = re.sub(r'\s*;\s*', '; ', new_style_inner)
+    new_style_inner = re.sub(r'\s+', ' ', new_style_inner).strip()
+    new_style_inner = new_style_inner.strip(';').strip()
 
-    return pattern.sub(_replace, svg)
+    return before_style + new_style_inner + after_style
 
 
 def _postprocess_svg(svg: str) -> str:
