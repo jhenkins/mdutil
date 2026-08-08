@@ -125,7 +125,7 @@ class SvgToImageRenderer:
 
         # Build merman-cli command for PNG output.
         # merman-cli supports: --outputFormat png, --outputDir, --outputName,
-        # and for raster options: --rasterScaleFactor, --rasterFitWidth,
+        # and for raster options: --rasterScaleFactor, --raster-fit-width,
         # --rasterBackground (hex color or transparent).
         cmd = [
             str(self._binary_path),
@@ -135,7 +135,7 @@ class SvgToImageRenderer:
         ]
 
         if fit_width is not None:
-            cmd.extend(["--rasterFitWidth", str(int(fit_width))])
+            cmd.extend(["--raster-fit-width", str(int(fit_width))])
 
         if scale != _DEFAULT_SCALE:
             cmd.extend(["--rasterScaleFactor", str(scale)])

@@ -341,7 +341,7 @@ open(out_file, "wb").close()
         assert results[0][1] == 0
 
     def test_render_passes_fit_width(self, tmp_path):
-        """fit_width is passed as --rasterFitWidth to merman-cli."""
+        """fit_width is passed as --raster-fit-width to merman-cli."""
         captured = {}
 
         def capture_cmd(cmd, **kwargs):
@@ -371,7 +371,7 @@ open(out_file, "wb").close()
         with patch("subprocess.run", side_effect=capture_cmd):
             result = renderer.render_mermaid_png("graph TD; A-->B;", fit_width=800)
             assert isinstance(result, bytes)
-            assert "--rasterFitWidth" in captured['cmd']
+            assert "--raster-fit-width" in captured['cmd']
             assert "800" in captured['cmd']
 
     def test_render_passes_scale(self, tmp_path):

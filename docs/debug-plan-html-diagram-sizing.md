@@ -25,7 +25,7 @@ Mermaid diagrams in HTML export are too large. The inline `style="max-width: XXX
 - Implementation: parse SVG `<svg>` tag, compute `natural_width = viewBox_width`, set `max-width = natural_width * 0.5`
 - Add to `MermanRenderer.render_mermaid_svg()` or `HtmlExporter._render_mermaid()`
 
-### Option B: Use merman-cli `--rasterFitWidth` (for PNG path only)
+### Option B: Use merman-cli `--raster-fit-width` (for PNG path only)
 - Not applicable to HTML (SVG output), only relevant for PDF PNG path
 
 ### Option C: CSS-only fix
