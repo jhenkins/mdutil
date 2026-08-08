@@ -524,6 +524,121 @@ class PdfExporterMermaidTests(unittest.TestCase):
         self.assertTrue(result.startswith(b"%PDF"))
 
 
+class PdfExporterMermaidFitTests(unittest.TestCase):
+    """Test PDF mermaid diagram fitting within page boundaries (KB-028)."""
+
+    def setUp(self):
+        self.exporter = PdfExporter()
+
+    def _mermaid_token(self, content="graph TD; A-->B;"):
+        return {
+            "type": "mermaid",
+            "content": content,
+            "language": "mermaid",
+            "text": content,
+        }
+
+    def test_fit_width_passed_to_renderer(self):
+        """fit_width is calculated from page width and passed to SvgToImageRenderer."""
+        from unittest import mock
+
+        exporter = PdfExporter()
+        with mock.patch(
+            "mdutil.export.svg_to_image.SvgToImageRenderer"
+        ) as MockRenderer:
+            mock_instance = MockRenderer.return_value
+            mock_instance.available = True
+            mock_instance.render_diagrams_png.return_value = [(b'\x89PNGFake', 0)]
+
+            tokens = [self._mermaid_token("graph TD; A-->B;")]
+            exporter.render(tokens, {}, {"mermaid": True})
+
+            call_kwargs = mock_instance.render_diagrams_png.call_args[1]
+            self.assertIsNotNone(call_kwargs.get("fit_width"))
+            # fit_width should be epw * 3.7795 (mm to CSS px)
+            # A4 epw = 210 - 20 - 20 = 170 mm → 170 * 3.7795 ≈ 642.5
+            self.assertAlmostEqual(call_kwargs["fit_width"], 170 * 3.7795275591, places=1)
+
+    def test_png_dimensions_read(self):
+        """_get_png_dimensions returns correct pixel dimensions."""
+        from PIL import Image
+        import io
+
+        # Create a 200x100 test PNG.
+        img = Image.new("RGB", (200, 100), color="red")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        png_bytes = buf.getvalue()
+
+        w, h = self.exporter._get_png_dimensions(png_bytes)
+        self.assertEqual(w, 200)
+        self.assertEqual(h, 100)
+
+    def test_png_dimensions_fallback_invalid(self):
+        """_get_png_dimensions returns (0, 0) for invalid data."""
+        w, h = self.exporter._get_png_dimensions(b"not a png")
+        self.assertEqual(w, 0)
+        self.assertEqual(h, 0)
+
+    def test_wide_diagram_fits_page(self):
+        """A very wide mermaid diagram scales to fit within page width."""
+        # Create a diagram with many nodes to make it wide.
+        wide_nodes = "; ".join(f"N{i}-->N{i+1}" for i in range(50))
+        tokens = [self._mermaid_token(f"graph LR; {wide_nodes}")]
+        result = self.exporter.render(tokens, {}, {"mermaid": True})
+        self.assertIsInstance(result, bytes)
+        self.assertTrue(result.startswith(b"%PDF"))
+        # PDF should contain the PNG image data (larger than minimal).
+        self.assertGreater(len(result), 5000)
+
+    def test_narrow_diagram_centering(self):
+        """A narrow diagram renders without error (centering path exercised)."""
+        tokens = [self._mermaid_token("graph TD; A-->B;")]
+        result = self.exporter.render(tokens, {}, {"mermaid": True})
+        self.assertIsInstance(result, bytes)
+        self.assertTrue(result.startswith(b"%PDF"))
+
+    def test_diagram_page_break_based_on_height(self):
+        """Diagram near page bottom triggers a page break."""
+        tokens = []
+        # Fill most of the page.
+        for i in range(45):
+            tokens.append({
+                "type": "paragraph",
+                "content": f"Filler line {i} for page filling. " * 2,
+                "text": "",
+            })
+        tokens.append(self._mermaid_token("graph TD; A-->B; B-->C;"))
+        result = self.exporter.render(tokens, {}, {"mermaid": True})
+        self.assertIsInstance(result, bytes)
+        self.assertTrue(result.startswith(b"%PDF"))
+        # Should produce at least 2 pages (page break triggered).
+        self.assertGreater(result.count(b"/Type /Page"), 1)
+
+    def test_multiple_diagrams_different_sizes(self):
+        """Multiple diagrams of different sizes all render correctly."""
+        tokens = [
+            self._mermaid_token("graph TD; A-->B;"),
+            {"type": "paragraph", "content": "medium", "text": ""},
+            self._mermaid_token(
+                "graph LR; " + "; ".join(f"X{i}-->Y{i}" for i in range(20))
+            ),
+            {"type": "paragraph", "content": "wide", "text": ""},
+            self._mermaid_token("sequenceDiagram Alice->>Bob: Hello"),
+        ]
+        result = self.exporter.render(tokens, {}, {"mermaid": True})
+        self.assertIsInstance(result, bytes)
+        self.assertTrue(result.startswith(b"%PDF"))
+
+    def test_fit_width_roundtrip_mm_to_css(self):
+        """Verify mm → CSS pixel conversion factor is correct."""
+        # A4 width = 210mm, margins 20mm each → epw = 170mm
+        # CSS px at 96dpi: 170 * 96 / 25.4 ≈ 642.52
+        expected = 170 * 96 / 25.4
+        actual = 170 * 3.7795275591
+        self.assertAlmostEqual(actual, expected, places=5)
+
+
 class HtmlExporterCustomCssTests(unittest.TestCase):
     """Test HtmlExporter custom CSS support."""
 

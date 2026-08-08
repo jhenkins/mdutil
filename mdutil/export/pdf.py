@@ -13,6 +13,8 @@ from fpdf.outline import OutlineSection
 from fpdf.syntax import DestinationXYZ
 
 from mdutil.export.base import Exporter
+from PIL import Image as PILImage
+
 from mdutil.export.svg_to_image import (
     MermanBinaryNotFoundError,
     MermanRenderError,
@@ -289,7 +291,10 @@ class PdfExporter(Exporter):
         if mermaid_diagrams:
             mermaid_enabled = self._options.get("mermaid", True)
             if mermaid_enabled:
-                rendered_svgs = self._render_mermaid_batch(mermaid_diagrams)
+                # Clip wide diagrams to page width before rasterization.
+                # Convert mm → CSS pixels (96 dpi): mm * 96 / 25.4 ≈ mm * 3.7795
+                fit_width = pdf.epw * 3.7795275591
+                rendered_svgs = self._render_mermaid_batch(mermaid_diagrams, fit_width=fit_width)
             else:
                 pass
 
@@ -399,7 +404,11 @@ class PdfExporter(Exporter):
         pdf.ln(3)
 
     def _render_code_block(self, pdf: FPDF, token: dict) -> None:
-        """Render a code block with syntax highlighting and preserved indentation."""
+        """Render a code block with syntax highlighting and preserved indentation.
+        
+        Code blocks are kept together on one page unless they exceed page length.
+        Multi-page code blocks get a separate background rect per page section.
+        """
         content = str(token.get("content", "")).expandtabs(4)
         language = token.get("language", "")
         syntax_theme = self._options.get("syntax_theme", "default")
@@ -409,7 +418,6 @@ class PdfExporter(Exporter):
         segments = highlight_code_pdf(content, language, theme, syntax_theme)
         
         pdf.set_font(self._font_for("mono"), size=9)
-        pdf.set_fill_color(240, 240, 240)
         
         # Split segments at newlines to preserve source line structure.
         # Append even empty lines so blank lines inside code blocks don't collapse.
@@ -434,16 +442,84 @@ class PdfExporter(Exporter):
         if not lines:
             lines = [[{"text": content, "rgb": None}]]
 
-        for line_segments in lines:
-            self._render_code_line(pdf, line_segments)
-
+        # Calculate total height needed for this code block.
+        start_x = pdf.l_margin
+        right_edge = pdf.w - pdf.r_margin
+        line_height = 5
+        num_lines = len(lines)
+        estimated_bg_height = num_lines * line_height + 1
+        
+        # Check if the code block fits on the current page.
+        spacing_buffer = 3.0
+        remaining_height = pdf.h - pdf.b_margin - pdf.get_y() - spacing_buffer
+        
+        # Add page break if code block doesn't fit and we're past the top margin.
+        if estimated_bg_height > remaining_height and pdf.get_y() > pdf.t_margin:
+            pdf.add_page()
+        
+        # Render the code block, splitting across pages if necessary.
+        self._render_code_block_section(
+            pdf, lines, start_x, right_edge, line_height, num_lines, section_start=0
+        )
+        
         pdf.ln(5)
+    
+    def _render_code_block_section(
+        self,
+        pdf: FPDF,
+        lines: list[list[dict[str, Any]]],
+        start_x: float,
+        right_edge: float,
+        line_height: float,
+        total_lines: int,
+        section_start: int,
+    ) -> None:
+        """Render a section of a code block (possibly spanning multiple pages).
+        
+        Splits the section into page-sized chunks, each with its own background rect.
+        """
+        # Calculate how many lines fit on one page.
+        available_height = pdf.h - pdf.t_margin - pdf.b_margin - 6.0  # 3mm buffer top and bottom
+        max_lines_per_page = max(1, int(available_height / line_height))
+        
+        i = section_start
+        while i < total_lines:
+            # Calculate remaining lines in this chunk.
+            remaining = total_lines - i
+            chunk_size = min(max_lines_per_page, remaining)
+            chunk_bg_height = chunk_size * line_height + 1
+            
+            # Check if this chunk fits.
+            fits = pdf.h - pdf.b_margin - pdf.get_y() >= chunk_bg_height
+            
+            if not fits and pdf.get_y() > pdf.t_margin:
+                pdf.add_page()
+            
+            # Draw background rect for this chunk.
+            pdf.set_fill_color(240, 240, 240)
+            pdf.rect(start_x, pdf.get_y(), right_edge - start_x, chunk_bg_height, style="F")
+            
+            # Render the lines for this chunk.
+            for _ in range(chunk_size):
+                self._render_code_line(pdf, lines[i], is_code_block=True)
+                i += 1
 
-    def _render_mermaid_batch(self, diagrams: list[tuple[dict, int]]) -> dict[int, bytes]:
+    def _render_mermaid_batch(
+        self,
+        diagrams: list[tuple[dict, int]],
+        *,
+        fit_width: float | None = None,
+    ) -> dict[int, bytes]:
         """Render multiple Mermaid diagrams to PNG bytes.
 
         Returns a dict mapping token id → PNG bytes.
         Failed renders produce (None, index) which results in a code-block fallback.
+
+        Args:
+            diagrams: List of (token, index) tuples.
+            fit_width: CSS-pixel width to fit diagrams to via merman-cli
+                       ``--raster-fit-width``. Clips wide diagrams before
+                       rasterization so the PNG doesn't bloat.
         """
         from mdutil.export.svg_to_image import SvgToImageRenderer
 
@@ -461,6 +537,7 @@ class PdfExporter(Exporter):
             theme=theme,
             background=background,
             scale=scale,
+            fit_width=fit_width,
         )
 
         rendered: dict[int, bytes] = {}
@@ -470,12 +547,33 @@ class PdfExporter(Exporter):
                 rendered[id(token)] = png
         return rendered
 
+    def _get_png_dimensions(self, png: bytes) -> tuple[int, int]:
+        """Return (width_px, height_px) of a PNG byte array.
+
+        Uses PIL for robustness; falls back to reading the PNG IHDR chunk
+        directly if PIL is unavailable.
+        """
+        try:
+            with PILImage.open(BytesIO(png)) as img:
+                return img.size  # (width, height)
+        except Exception:
+            # Fallback: parse PNG IHDR chunk directly.
+            if len(png) < 24 or png[:8] != b'\x89PNG\r\n\x1a\n':
+                return (0, 0)
+            # IHDR is the 8 bytes after the signature.
+            import struct
+            ihdr = png[8:16]
+            width, height = struct.unpack(">HH", ihdr[:4])
+            return (width, height)
+
     def _render_mermaid(self, pdf: FPDF, token: dict, rendered_svgs: dict[int, bytes]) -> None:
         """Render a Mermaid diagram token as an embedded PNG in the PDF.
 
         Handles:
         - Getting pre-rendered PNG from batch render
-        - Page-break logic (if diagram won't fit on current page, add a new one)
+        - Computing actual diagram dimensions in mm using PNG pixel size
+        - Page-break logic based on real diagram height
+        - Centering narrower diagrams on the page
         - Aspect-ratio preservation (scale to fit page width)
         - Error fallback: render as code block when conversion fails
         """
@@ -484,8 +582,6 @@ class PdfExporter(Exporter):
             self._render_code_block(pdf, token)
             return
 
-        content = token.get("content", "")
-        
         # Try to get pre-rendered PNG from batch render.
         png = rendered_svgs.get(id(token))
         if png is None:
@@ -498,34 +594,59 @@ class PdfExporter(Exporter):
             self._render_code_block(pdf, token)
             return
 
-        # Calculate available width on the page (in mm).
+        # Get PNG pixel dimensions.
+        png_w_px, png_h_px = self._get_png_dimensions(png)
+        if png_w_px <= 0 or png_h_px <= 0:
+            self._render_code_block(pdf, token)
+            return
+
+        # Calculate diagram dimensions on the PDF page in mm.
+        # fpdf2 uses 72 dpi. merman-cli renders at scale=2.0 (2× CSS pixels).
+        # CSS pixels at 96 dpi → fpdf2 mm: px / dpi * 25.4
+        # So: rendered_mm = px / (scale * 96) * 25.4 = px * 25.4 / (scale * 96)
+        scale = self._options.get("mermaid_scale", 2.0)
+        px_to_mm = 25.4 / (scale * 96.0)  # ≈ 0.002604 mm/px at scale=2
+
+        diagram_w_mm = png_w_px * px_to_mm
+        diagram_h_mm = png_h_px * px_to_mm
+
+        # Available width on the page (in mm).
         available_width = pdf.epw
-        
-        # Calculate diagram height on the page. We need to estimate:
-        # merman-cli produces PNGs at scale=2.0, which means the PNG pixels
-        # are at 2× the display resolution. fpdf2 renders at 72 dpi by default
-        # and the PNG gets scaled automatically if we provide width only.
-        # fpdf2's image() with w=available_width will auto-calculate height
-        # preserving aspect ratio.
-        
-        # Check remaining space on current page.
-        # We need a buffer of 10mm above and below the diagram for visual spacing.
-        diagram_height_buffer = 10  # mm buffer around diagram
-        remaining_height = pdf.h - pdf.b_margin - pdf.get_y() - diagram_height_buffer
-        
-        # If diagram won't fit on this page, start a new page.
-        # Use a generous minimum: if remaining height < 30mm, add a page break.
-        if remaining_height < 30 and pdf.get_y() > pdf.t_margin:
+
+        # Determine rendered width: use available_width, but if the diagram
+        # is narrower, render at its natural width (for centering).
+        if diagram_w_mm <= available_width:
+            rendered_w = diagram_w_mm
+        else:
+            rendered_w = available_width
+
+        # Calculate actual rendered height preserving aspect ratio.
+        if png_w_px > 0:
+            rendered_h = rendered_w * (png_h_px / png_w_px)
+        else:
+            rendered_h = diagram_h_mm
+
+        # Page-break logic: check if diagram fits on current page.
+        spacing_buffer = 8.0  # mm buffer around diagram
+        remaining_height = pdf.h - pdf.b_margin - pdf.get_y() - spacing_buffer
+
+        # Add page break if diagram doesn't fit and we're past the top margin.
+        if rendered_h > remaining_height and pdf.get_y() > pdf.t_margin:
             pdf.add_page()
+            remaining_height = pdf.h - pdf.b_margin - pdf.get_y() - spacing_buffer
+
+        # X position: center the diagram if it's narrower than available width.
+        if diagram_w_mm < available_width:
+            x = pdf.l_margin + (available_width - rendered_w) / 2
+        else:
+            x = pdf.l_margin
 
         try:
-            # Render the PNG centered on the page.
-            # fpdf2 auto-calculates height when only width is given.
             buf = BytesIO(png)
             pdf.image(
                 buf,
-                x=pdf.l_margin + (available_width - available_width) / 2,  # centered = l_margin
-                w=available_width,
+                x=x,
+                w=rendered_w,
                 keep_aspect_ratio=True,
             )
         except Exception:
@@ -533,7 +654,7 @@ class PdfExporter(Exporter):
             self._render_code_block(pdf, token)
             return
 
-        pdf.ln(5)
+        pdf.ln(spacing_buffer)
 
     def _strip_non_ascii(self, text: str) -> str:
         """Replace non-ASCII characters with ASCII equivalents or spaces."""
@@ -555,7 +676,9 @@ class PdfExporter(Exporter):
                 result.append(" ")
         return "".join(result)
 
-    def _render_code_line(self, pdf: FPDF, line_segments: list[dict[str, Any]]) -> None:
+    def _render_code_line(
+        self, pdf: FPDF, line_segments: list[dict[str, Any]], *, is_code_block: bool = False
+    ) -> None:
         """Render one source code line, wrapping before the right margin."""
         start_x = pdf.get_x()
         current_x = start_x
@@ -571,8 +694,11 @@ class PdfExporter(Exporter):
         indent_width = pdf.get_string_width(line_text[:leading_spaces])
         continuation_x = min(start_x + indent_width, right_edge)
 
+        # Background rect is drawn once per code block by _render_code_block.
+        # Skip per-line background draws to avoid hairline gaps between rects.
         def draw_line_background() -> None:
-            pdf.rect(start_x, pdf.get_y(), right_edge - start_x, line_height, style="F")
+            if not is_code_block:
+                pdf.rect(start_x, pdf.get_y(), right_edge - start_x, line_height, style="F")
 
         draw_line_background()
 

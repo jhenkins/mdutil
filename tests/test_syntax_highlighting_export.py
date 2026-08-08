@@ -189,7 +189,12 @@ class PdfExporterSyntaxHighlightTests(unittest.TestCase):
                 self._x = 20.0
                 self._y = 20.0
                 self.w = 210.0
+                self.h = 297.0  # A4 height
+                self.l_margin = 20.0
                 self.r_margin = 20.0
+                self.b_margin = 20.0
+                self.t_margin = 20.0
+                self.epw = 170.0  # w - l_margin - r_margin
 
             def get_x(self) -> float:
                 return self._x

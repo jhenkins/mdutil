@@ -190,51 +190,92 @@ class MermanRenderer:
         return results
 
 
-def _strip_max_width_from_svg(svg: str) -> str:
-    """Remove ``max-width`` from the root <svg> element's style attribute.
+def _shrink_max_width_in_svg(svg: str, factor: float = 0.5) ->str:
+    """Shrink the inline ``max-width`` on the root <svg> element.
 
-    Preserves other CSS declarations in the style attribute if present.
-    If the style becomes empty after removal, the attribute is removed
-    entirely.
+    Replaces the existing ``max-width`` value with ``factor`` times the
+    diagram's natural viewBox width.  This constrains the rendered size
+    of the diagram without affecting the viewBox coordinates themselves.
+
+    Args:
+        svg: SVG string from merman-cli (or any SVG with an inline
+             ``style="max-width: ...px"`` on the root element).
+        factor: Shrink factor applied to the natural width.  0.5 shrinks
+                by 50 % (diagram renders at half its natural width).
+
+    Returns:
+        Modified SVG string.
     """
-    # Match only the opening <svg...> tag (non-greedy up to the first >)
-    pattern = re.compile(
-        r'(\s*<svg\s[^>]*style="[^"]*?)'
-        r'max-width\s*:\s*[^;"]*'
-        r'([^"]*")'
-        r'(>)'
+    # Extract the natural width from viewBox="x y w h"
+    vb_match = re.search(
+        r'<svg[^>]*\bviewBox="[^"]*\s+([\d.]+)\s+([\d.]+)"',
+        svg, re.IGNORECASE | re.DOTALL,
+    )
+    natural_width: Optional[float]
+    if vb_match:
+        natural_width = float(vb_match.group(1))
+    else:
+        # Fallback: try explicit width attribute (numeric px value)
+        w_match = re.search(
+            r'<svg[^>]*\bwidth="([\d.]+)\s*(?:px|)"',
+            svg, re.IGNORECASE | re.DOTALL,
+        )
+        if w_match:
+            try:
+                natural_width = float(w_match.group(1))
+            except ValueError:
+                return svg  # non-numeric width, leave untouched
+        else:
+            return svg  # no dimension info — leave untouched
+
+    constrained_width = natural_width * factor
+
+    # Now find the inline style on the root <svg> element and replace
+    # the max-width value.
+    # Match: <svg ... style="...max-width: <val>px..." ...> (style may not
+    # be the last attribute on the <svg> element).
+    # Locate the opening <svg and the style="..." attribute.
+    open_match = re.search(r'<svg\s', svg, re.IGNORECASE)
+    if not open_match:
+        return svg
+
+    style_start = svg.find('style="', open_match.start())
+    if style_start == -1:
+        return svg
+
+    style_val_start = style_start + 7  # after style="
+    style_val_end = svg.find('"', style_val_start)
+    if style_val_end == -1:
+        return svg
+
+    before_style = svg[:style_start + 7]
+    after_style = svg[style_val_end:]
+    style_inner = svg[style_val_start:style_val_end]
+
+    # Only replace the numeric value, preserving surrounding whitespace.
+    new_style_inner = re.sub(
+        r'(max-width\s*:\s*)([\d.]+\s*px?)',
+        f'\\g<1>{constrained_width:.0f}px',
+        style_inner,
+        count=1,
+        flags=re.IGNORECASE,
     )
 
-    def _replace(match: re.Match) -> str:
-        before = match.group(1)
-        after = match.group(2)
-        closing = match.group(3)
-        # Strip the matched max-width and any surrounding ; and whitespace
-        combined = before.rstrip() + after
-        # Remove leading ; and whitespace after max-width
-        combined = re.sub(r'\s*;\s*', ' ', combined)
-        # Remove trailing ; and whitespace before closing quote
-        combined = re.sub(r'\s*;\s*"', '"', combined)
-        # Collapse multiple spaces
-        combined = re.sub(r'  +', ' ', combined)
-        # If style attribute is empty (only whitespace left), remove it entirely
-        style_empty = re.search(r'style="\s*"', combined)
-        if style_empty:
-            combined = combined[: style_empty.start()] + combined[style_empty.end() :]
-            # Clean up any trailing whitespace before >
-            combined = re.sub(r'\s+>', '>', combined)
-        return combined + closing
+    # Normalise internal spacing around semicolons
+    new_style_inner = re.sub(r'\s*;\s*', '; ', new_style_inner)
+    new_style_inner = re.sub(r'\s+', ' ', new_style_inner).strip()
+    new_style_inner = new_style_inner.strip(';').strip()
 
-    return pattern.sub(_replace, svg)
+    return before_style + new_style_inner + after_style
 
 
 def _postprocess_svg(svg: str) -> str:
     """Post-process merman-cli SVG output to fix rendering issues.
 
     Fixes applied:
-    1. Remove inline ``max-width`` style from the root <svg> element so that
-       the CSS ``.mermaid svg { max-width: 100%; height: auto; }`` can
-       responsively scale the diagram.
+    1. Shrink inline ``max-width`` on the root <svg> element to 50 % of
+       the diagram's natural viewBox width so the diagram renders at half
+       its natural width in the document layout.
     2. Widen ``<foreignObject>`` widths for node/cluster labels so text
        produced by the browser does not get clipped by the foreignObject
        bounds (merman-cli measures text narrower than browsers render it).
@@ -242,10 +283,12 @@ def _postprocess_svg(svg: str) -> str:
     if not svg.strip():
         return svg
 
-    # 1. Remove inline ``max-width`` from the root <svg> element so that
-    #    the CSS ``.mermaid svg { max-width: 100%; height: auto; }`` can
-    #    responsively scale the diagram.
-    svg = _strip_max_width_from_svg(svg)
+    # 1. Shrink inline ``max-width`` on the root <svg> element to 50 % of
+    #    the diagram's natural viewBox width.  The inline value beats the
+    #    CSS ``.mermaid svg { max-width: 100%; }`` rule so the diagram
+    #    renders at half its natural width, preventing oversized diagrams
+    #    from dominating the document layout.
+    svg = _shrink_max_width_in_svg(svg, factor=0.5)
 
     # 2. Widen foreignObject widths for node/cluster label content.
     #    We target foreignObjects inside .label groups (node labels) but
