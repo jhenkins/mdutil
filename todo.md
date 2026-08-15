@@ -163,7 +163,7 @@ viewer and rendering quality can move into the next incremental backlog slice.
     - [x] KB-014d: Add regression test fixtures
   - [x] Phase 2: PDF syntax highlighting track (KB-015)
   - [x] Phase 3: HTML syntax highlighting track (KB-016)
-  - [ ] Phase 4: Verification, documentation, and release prep (KB-017)
+  - [x] Phase 4: Verification, documentation, and release prep (KB-017)
   - Detailed checklist: `todo-v3.1.md`
 - [x] v4.0: Add Mermaid diagram rendering to HTML export (bundled merman-cli binary, platform-filtered install)
   - [x] Phase 1: Research, bundle infrastructure, MermanRenderer (KB-001 through KB-003)
@@ -171,6 +171,7 @@ viewer and rendering quality can move into the next incremental backlog slice.
   - [x] Phase 3: Testing & documentation
   - [x] Phase 4: Verification & release (KB-008)
   - Detailed checklist: `todo-4.0.md`
+- [x] v5.0: Better Markdown rendering
 
 ## Verification checklist before committing changes
 
