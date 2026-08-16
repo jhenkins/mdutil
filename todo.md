@@ -171,7 +171,24 @@ viewer and rendering quality can move into the next incremental backlog slice.
   - [x] Phase 3: Testing & documentation
   - [x] Phase 4: Verification & release (KB-008)
   - Detailed checklist: `todo-4.0.md`
-- [x] v5.0: Better Markdown rendering
+|- [x] v5.0: Better Markdown rendering
+  - [ ] Phase 1a: Research & analysis (KB-050)
+  - [ ] Phase 1b: Strikethrough (KB-051)
+  - [ ] Phase 1c: Task lists (KB-052, KB-053, KB-054)
+  - [ ] Phase 1d: Math notation (KB-055, KB-056)
+  - [ ] Phase 2a: Footnotes (KB-057, KB-058, KB-059, KB-060)
+  - [ ] Phase 2b: Subscript & superscript (KB-061, KB-062)
+  - [ ] Phase 2c: Highlight (KB-063, KB-064)
+  - [ ] Phase 3a: Definition lists (KB-065, KB-066)
+  - [ ] Phase 3b: Image rendering (KB-067, KB-068, KB-069, KB-070)
+  - [ ] Phase 4a: Link with title (KB-071, KB-072)
+  - [ ] Phase 5a: Nested list fix (KB-073, KB-074)
+  - [ ] Phase 6a: Theme & config support (KB-075, KB-076)
+  - [ ] Phase 7a: Comprehensive testing (KB-077, KB-078, KB-079, KB-080)
+  - [ ] Phase 7b: Documentation (KB-081, KB-082, KB-083, KB-084)
+  - [ ] Phase 8a: Verification (KB-085, KB-086, KB-087)
+  - [ ] Phase 8b: Release prep (KB-088, KB-089)
+  - Detailed checklist: `todo-v5.0.md`
 
 ## Verification checklist before committing changes
 
