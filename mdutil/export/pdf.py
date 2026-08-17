@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import sys
 import html.parser
@@ -21,6 +22,9 @@ from mdutil.export.svg_to_image import (
     SvgToImageError,
 )
 from mdutil.parser import _parse_inline
+
+_logger = logging.getLogger("mdutil.export.pdf")
+
 
 # ---------------------------------------------------------------------------
 # Unicode-capable TTF font paths (fallback from core fonts for non-Latin chars)
@@ -207,9 +211,12 @@ class PdfExporter(Exporter):
 
     def render(self, tokens: list[dict], theme: dict, options: dict) -> bytes:
         """Render tokens to PDF bytes."""
+        _logger.debug("Starting PDF export with %d tokens", len(tokens))
         self._options = options  # Store options for use in code block rendering
         paper_size = options.get("pdf_paper_size", "A4")
         orientation = options.get("pdf_orientation", "portrait")
+
+        _logger.debug("Using paper size %s, orientation %s", paper_size, orientation)
 
         pdf = FPDF(
             orientation=ORIENTATIONS.get(orientation, "P"),

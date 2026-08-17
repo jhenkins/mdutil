@@ -27,6 +27,7 @@ DEFAULTS: dict[str, Any] = {
     "pdf_margin_right": 20,
     "html_embed_css": True,
     "html_theme": None,
+    "mermaid": True,
 }
 
 SECTION = "mdutil"
@@ -96,6 +97,11 @@ def load_config(path: Path) -> dict[str, Any]:
                 raw_style = section.get(key, fallback="") or ""
                 style = raw_style.strip()
                 loaded[key] = style or None
+        if "mermaid" in section:
+            loaded["mermaid"] = section.getboolean(
+                "mermaid",
+                fallback=DEFAULTS["mermaid"],
+            )
 
     # Load export settings from [export] section
     if parser.has_section("export"):

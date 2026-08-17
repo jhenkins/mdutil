@@ -23,33 +23,32 @@ def parse_markdown(content: str) -> list[Token]:
     while i < len(lines):
         line = lines[i]
 
+        # Blank lines → emit immediately
         if not line.strip():
             tokens.append({"type": "blank", "content": "", "text": ""})
             i += 1
             continue
 
+        # --- block elements (single-pass detection) ---
+        # Code fence (including mermaid)
         code_block, end_pos = extract_code_block(lines, i)
         if code_block:
             content_text = code_block["content"] or ""
             language = code_block["language"]
             if is_mermaid_block(language):
-                tokens.append(
-                    {
-                        "type": "mermaid",
-                        "content": content_text,
-                        "language": language,
-                        "text": content_text,
-                    }
-                )
+                tokens.append({
+                    "type": "mermaid",
+                    "content": content_text,
+                    "language": language,
+                    "text": content_text,
+                })
             else:
-                tokens.append(
-                    {
-                        "type": "code",
-                        "content": content_text,
-                        "language": language,
-                        "text": content_text,
-                    }
-                )
+                tokens.append({
+                    "type": "code",
+                    "content": content_text,
+                    "language": language,
+                    "text": content_text,
+                })
             i = end_pos
             continue
 
@@ -65,123 +64,42 @@ def parse_markdown(content: str) -> list[Token]:
             i += 1
             continue
 
+        # Table: need to call extract_table to get end_pos
         table, end_pos = extract_table(lines, i)
         if table:
-            tokens.append(
-                {
-                    "type": "table",
-                    "content": table["content"],
-                    "text": table["content"],
-                    "headers": table["headers"],
-                    "alignments": table["alignments"],
-                    "rows": table["rows"],
-                }
-            )
+            tokens.append({
+                "type": "table",
+                "content": table["content"],
+                "text": table["content"],
+                "headers": table["headers"],
+                "alignments": table["alignments"],
+                "rows": table["rows"],
+            })
             i = end_pos
             continue
 
+        # Blockquote
         if line.strip().startswith(">"):
             blockquote_lines = [line]
             i += 1
             while i < len(lines) and lines[i].strip().startswith(">"):
                 blockquote_lines.append(lines[i])
                 i += 1
-            tokens.append(
-                {
-                    "type": "blockquote",
-                    "content": "\n".join(blockquote_lines),
-                    "text": "\n".join(blockquote_lines),
-                }
-            )
+            tokens.append({
+                "type": "blockquote",
+                "content": "\n".join(blockquote_lines),
+                "text": "\n".join(blockquote_lines),
+            })
             continue
 
+        # List
         list_token, end_pos = _extract_list(lines, i)
         if list_token:
             tokens.append(list_token)
             i = end_pos
             continue
 
-        # Multi-line paragraph: consecutive non-blank, non-block lines
-        # are joined into a single paragraph token. However, we must first
-        # check if the first line is itself a block element (heading, hr,
-        # code fence, table, blockquote, list).
-        skip_paragraph = False
-
-        code_block, end_pos = extract_code_block(lines, i)
-        if code_block:
-            content_text = code_block["content"] or ""
-            language = code_block["language"]
-            if is_mermaid_block(language):
-                tokens.append(
-                    {
-                        "type": "mermaid",
-                        "content": content_text,
-                        "language": language,
-                        "text": content_text,
-                    }
-                )
-            else:
-                tokens.append(
-                    {
-                        "type": "code",
-                        "content": content_text,
-                        "language": language,
-                        "text": content_text,
-                    }
-                )
-            i = end_pos
-            continue
-
-        heading = _parse_heading(line)
-        if heading:
-            tokens.append(heading)
-            i += 1
-            continue
-
-        if _is_horizontal_rule(line):
-            text = line.strip()
-            tokens.append({"type": "horizontal_rule", "content": text, "text": text})
-            i += 1
-            continue
-
-        table, end_pos = extract_table(lines, i)
-        if table:
-            tokens.append(
-                {
-                    "type": "table",
-                    "content": table["content"],
-                    "text": table["content"],
-                    "headers": table["headers"],
-                    "alignments": table["alignments"],
-                    "rows": table["rows"],
-                }
-            )
-            i = end_pos
-            continue
-
-        if line.strip().startswith(">"):
-            blockquote_lines = [line]
-            i += 1
-            while i < len(lines) and lines[i].strip().startswith(">"):
-                blockquote_lines.append(lines[i])
-                i += 1
-            tokens.append(
-                {
-                    "type": "blockquote",
-                    "content": "\n".join(blockquote_lines),
-                    "text": "\n".join(blockquote_lines),
-                }
-            )
-            continue
-
-        list_token, end_pos = _extract_list(lines, i)
-        if list_token:
-            tokens.append(list_token)
-            i = end_pos
-            continue
-
-        # Multi-line paragraph: consecutive non-blank, non-block lines
-        # are joined into a single paragraph token (soft breaks become spaces).
+        # --- multi-line paragraph ---
         paragraph_lines = [line]
         paragraph_inline = [_parse_inline(line.strip())]
         i += 1
@@ -211,16 +129,14 @@ def parse_markdown(content: str) -> list[Token]:
             for pi in paragraph_inline:
                 para_spans.extend(pi["spans"])
         para_text = " ".join(pl.strip() for pl in paragraph_lines)
-        tokens.append(
-            {
-                "type": "paragraph",
-                "content": para_content,
-                "text": para_text,
-                "spans": para_spans,
-                "source_lines": [pl.strip() for pl in paragraph_lines],
-                "content_lines": [pi["content"] for pi in paragraph_inline],
-            }
-        )
+        tokens.append({
+            "type": "paragraph",
+            "content": para_content,
+            "text": para_text,
+            "spans": para_spans,
+            "source_lines": [pl.strip() for pl in paragraph_lines],
+            "content_lines": [pi["content"] for pi in paragraph_inline],
+        })
 
     return tokens
 
@@ -251,7 +167,11 @@ def extract_code_block(lines: list[str], start_index: int) -> tuple[dict[str, st
             return {"content": code_content, "language": language}, i + 1
         i += 1
 
-    return None, start_index
+    # Unclosed fence: treat remaining lines as code until EOF.
+    # This matches common Markdown implementations (e.g. CommonMark)
+    # where an opening fence without a matching close consumes to end.
+    code_content = "\n".join(lines[start_index + 1 :])
+    return {"content": code_content, "language": language}, len(lines)
 
 
 def is_mermaid_block(language: str | None) -> bool:
@@ -405,6 +325,18 @@ def _parse_inline_segment(text: str) -> tuple[str, list[dict[str, str]]]:
                 strong_text = _visible_inline_text(inner_content)
                 spans.append({"type": "strong", "text": strong_text})
                 output.append(f"<strong>{inner_content}</strong>")
+                index = end + 2
+                continue
+
+        # Strikethrough: ~~text~~
+        if text.startswith("~~", index):
+            end = _find_unescaped(text, "~~", index + 2)
+            if end != -1:
+                inner_content, inner_spans = _parse_inline_segment(text[index + 2 : end])
+                spans.extend(inner_spans)
+                strong_text = _visible_inline_text(inner_content)
+                spans.append({"type": "strikethrough", "text": strong_text})
+                output.append(f"<del>{inner_content}</del>")
                 index = end + 2
                 continue
 

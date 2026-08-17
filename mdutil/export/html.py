@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any
 
 from mdutil.export.base import Exporter
 from mdutil.export.merman_renderer import MermanRenderer, MermanBinaryNotFoundError, MermanRenderError
 from mdutil.parser import _parse_inline
+
+_logger = logging.getLogger("mdutil.export.html")
 
 
 class HtmlExporter(Exporter):

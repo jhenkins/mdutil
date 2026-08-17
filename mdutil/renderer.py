@@ -200,7 +200,7 @@ def _ansi_color(color: Any) -> str:
 def _strip_inline_tags(text: str, theme: dict[str, Any] | None = None) -> str:
     """Collapse the parser's lightweight HTML-like inline markup to visible text."""
     def render_link(match: re.Match[str]) -> str:
-        label = re.sub(r"</?(?:strong|em|code)>", "", match.group(2))
+        label = re.sub(r"</?(?:strong|em|del|code)>", "", match.group(2))
         return _style(f"{label} ({match.group(1)})", theme or {}, "link")
 
     text = re.sub(
@@ -208,5 +208,5 @@ def _strip_inline_tags(text: str, theme: dict[str, Any] | None = None) -> str:
         render_link,
         text,
     )
-    text = re.sub(r"</?(?:strong|em|code)>", "", text)
+    text = re.sub(r"</?(?:strong|em|del|code)>", "", text)
     return text

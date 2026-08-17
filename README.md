@@ -71,7 +71,7 @@ When stdout is a TTY and a file path is provided, `mdutil` opens the interactive
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/mdutil.git
+git clone https://github.com/jhenkins/mdutil.git
 cd mdutil
 
 # Install from source
