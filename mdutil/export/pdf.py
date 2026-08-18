@@ -344,6 +344,10 @@ class PdfExporter(Exporter):
                 self._render_list(pdf, token)
                 continue
 
+            if token_type == "footnote_definition":
+                self._render_footnote_definition(pdf, token)
+                continue
+
     def _render_heading(self, pdf: FPDF, token: dict) -> None:
         """Render a heading token with inline formatting."""
         level = token.get("level", 1)
@@ -400,6 +404,12 @@ class PdfExporter(Exporter):
 
         content = token.get("content", "")
         if content:
+            # Replace <fnref id="N"> tags with Unicode superscript
+            content = re.sub(
+                r'<fnref\s+id="(\d+)">',
+                lambda m: self._superscript(m.group(1)),
+                content,
+            )
             pdf.set_x(pdf.l_margin)
             self._render_inline_html(pdf, content)
             pdf.ln(8)
@@ -884,6 +894,58 @@ class PdfExporter(Exporter):
         pdf.set_text_color(0, 0, 0)
         pdf.ln(3)
 
+    def _render_footnote_ref(self, pdf: FPDF, span: dict[str, Any]) -> str:
+        """Render a footnote reference span as a Unicode superscript."""
+        fn_id = span.get("id", "")
+        return self._superscript(fn_id)
+
+    def _render_footnote_definition(self, pdf: FPDF, token: dict) -> None:
+        """Render a footnote definition token.
+
+        Format:  "    ¹  Footnote text..."  with a horizontal rule above.
+        """
+        if pdf.get_y() > pdf.h - pdf.b_margin - 25:
+            pdf.add_page()
+
+        # Horizontal rule separator
+        y = pdf.get_y()
+        x = pdf.l_margin + 2
+        pdf.set_draw_color(160, 160, 160)
+        pdf.line(x, y, pdf.w - pdf.r_margin, y)
+        pdf.ln(4)
+
+        fn_id = token.get("id", "")
+        content = token.get("content", "")
+        plain_text = self._plain_text_from_inline_html(content)
+        superscript = self._superscript(fn_id)
+
+        # Render indented footnote with superscript prefix
+        pdf.set_font(self._font_for("regular"), size=self.FONT_SIZE)
+        pdf.set_text_color(100, 100, 100)
+
+        # Indent for footnote block
+        start_x = pdf.l_margin + 8
+        pdf.set_x(start_x)
+
+        # Render superscript + text
+        effective_w = pdf.w - start_x - pdf.r_margin
+        if effective_w < 10:
+            effective_w = 50
+        pdf.multi_cell(effective_w, 5, f"{superscript}  {plain_text}", align="L")
+
+        pdf.set_text_color(0, 0, 0)
+        pdf.ln(3)
+
+    @staticmethod
+    def _superscript(n: str) -> str:
+        """Convert a number string to Unicode superscript characters."""
+        super_map = {
+            "0": "\u2070", "1": "\u00b9", "2": "\u00b2", "3": "\u00b3",
+            "4": "\u2074", "5": "\u2075", "6": "\u2076", "7": "\u2077",
+            "8": "\u2078", "9": "\u2079",
+        }
+        return "".join(super_map.get(c, c) for c in n)
+
     def _render_list(self, pdf: FPDF, token: dict) -> None:
         """Render an ordered or unordered list."""
         parsed_items = token.get("parsed_items", [])
@@ -913,6 +975,12 @@ class PdfExporter(Exporter):
             else:
                 content = str(item)
             # Strip HTML inline tags for PDF (fpdf2 can't render HTML)
+            # But replace footnote refs with superscript first
+            content = re.sub(
+                r'<fnref\s+id="(\d+)">',
+                lambda m: self._superscript(m.group(1)),
+                content,
+            )
             content = re.sub(r"</?(?:strong|em|code|a[^>]*)>", "", content)
 
             pdf.set_x(left_x + indent)

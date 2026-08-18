@@ -27,7 +27,7 @@
  - [x] Evaluate merman-cli (pure Rust, no browser, cross-platform)
  - [x] Verify merman-cli works with system Chromium fallback
  - [x] Confirm cross-platform support (Linux, macOS, Windows)
- - [ ] Document findings in `docs/mermaid-research.md`
+ - [x] Document findings in `docs/mermaid-research.md`
 
  ### KB-002: Bundle infrastructure setup ✅ COMPLETE
  - [x] Add `mdutil/export/_merman_binaries/` directory structure
@@ -61,24 +61,24 @@
  ## Phase 3: Testing & Documentation
 
  ### KB-006: Comprehensive testing
- - [ ] Unit tests for merman-cli binary detection (all platforms)
- - [ ] Unit tests for SVG rendering (flowcharts, sequence, state, etc.)
- - [ ] Integration tests for HTML export with mermaid diagrams
- - [ ] Air-gapped testing (verify no network calls)
- - [ ] Regression tests for existing HTML export features
+ - [x] Unit tests for merman-cli binary detection (all platforms)
+ - [x] Unit tests for SVG rendering (flowcharts, sequence, state, etc.)
+ - [x] Integration tests for HTML export with mermaid diagrams
+ - [x] Air-gapped testing (verify no network calls)
+ - [x] Regression tests for existing HTML export features
 
  ### KB-007: Documentation
- - [ ] Update README with mermaid support
- - [ ] Document bundled binary and air-gapped operation
- - [ ] Add troubleshooting for merman-cli issues
- - [ ] Update specification document
+ - [x] Update README with mermaid support
+ - [x] Document bundled binary and air-gapped operation
+ - [x] Add troubleshooting for merman-cli issues
+ - [x] Update specification document
 
  ## Phase 4: Verification & Release
 
  ### KB-008: Final verification
- - [ ] Run full test suite (pytest, unittest, compileall)
- - [ ] Verify HTML export with mermaid diagrams
- - [ ] Verify air-gapped operation (no network calls)
+ - [x] Run full test suite (pytest, unittest, compileall)
+ - [x] Verify HTML export with mermaid diagrams
+ - [x] Verify air-gapped operation (no network calls)
  - [x] Bump version to 4.0.1
  - [x] Update release notes
 

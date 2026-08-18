@@ -21,7 +21,7 @@
 **Goal:** Document exact parser gaps and design extension points
 
 **Tasks:**
-- [ ] KB-050: Audit current parser coverage against CommonMark/GFM spec
+- [x] KB-050: Audit current parser coverage against CommonMark/GFM spec
   - [ ] Map every parser regex to spec requirement
   - [ ] Document where inline/block parsing diverges from spec
   - [ ] Identify which features are inline vs block level
@@ -38,7 +38,7 @@
 **Goal:** Support `~~strikethrough~~` syntax
 
 **Tasks:**
-- [ ] KB-051: Parser: detect `~~text~~` inline syntax
+- [x] KB-051: Parser: detect `~~text~~` inline syntax
   - [ ] Add regex pattern for strikethrough markers
   - [ ] Extend `_parse_inline_segment` to handle `~~...~~`
   - [ ] Generate `<del>text</del>` output
@@ -56,7 +56,7 @@
 **Goal:** Render `- [x]` and `- [ ]` as checked/unchecked checkboxes
 
 **Tasks:**
-- [ ] KB-052: Parser: detect task list items
+- [x] KB-052: Parser: detect task list items
   - [ ] Extend `_extract_list` to recognize `[ ]` and `[x]` markers
   - [ ] Add `checked` field to list items (True/False/None)
   - [ ] Generate special token for task items
@@ -64,7 +64,7 @@
 **Files:**
 - Modify: `mdutil/parser.py:327-369` (_extract_list)
 
-- [ ] KB-053: Renderer: display checkboxes in terminal
+- [x] KB-053: Renderer: display checkboxes in terminal
   - [ ] Add ANSI rendering for `[x]` and `[ ]`
   - [ ] Style checkbox markers with theme colors
   - [ ] Support mixed checked/unchecked in same list
@@ -73,7 +73,7 @@
 - Modify: `mdutil/renderer.py:85-93` (_render_list)
 - Theme: `mdutil/themes.py` (add checkbox styling)
 
-- [ ] KB-054: HTML/PDF exporter: render checkboxes
+- [x] KB-054: HTML/PDF exporter: render checkboxes
   - [ ] Add checkbox symbols to HTML output (☑/☐ or CSS)
   - [ ] Add checkbox symbols to PDF output
   - [ ] Support task list semantic in export
@@ -89,7 +89,7 @@
 **Goal:** Render `$E=mc^2$` and `$$display$$` math
 
 **Tasks:**
-- [ ] KB-055: Parser: detect inline math `$...$`
+- [x] KB-055: Parser: detect inline math `$...$`
   - [ ] Add regex for `$...$` inline math
   - [ ] Add regex for `$$...$$` display math (optional)
   - [ ] Generate `<math>latex</math>` output
@@ -98,7 +98,7 @@
 **Files:**
 - Modify: `mdutil/parser.py:378-461` (_parse_inline_segment)
 
-- [ ] KB-056: Renderer: display math in terminal
+- [x] KB-056: Renderer: display math in terminal
   - [ ] Render LaTeX as readable text fallback (e.g., "E = mc²")
   - [ ] Add monospace styling for math blocks
   - [ ] Support basic LaTeX to Unicode conversion
@@ -117,7 +117,7 @@
 **Goal:** Support `[^1]` references and `[^1]: text` definitions
 
 **Tasks:**
-- [ ] KB-057: Parser: detect footnote definitions
+- [x] KB-057: Parser: detect footnote definitions
   - [ ] Add regex for `[^label]: text` at document end
   - [ ] Store footnote definitions in token metadata
   - [ ] Generate `<sup>` markers for references
@@ -125,7 +125,7 @@
 **Files:**
 - Modify: `mdutil/parser.py` (add footnote collection pass)
 
-- [ ] KB-058: Parser: detect footnote references inline
+- [x] KB-058: Parser: detect footnote references inline
   - [ ] Add regex for `[^label]` inline references
   - [ ] Replace with clickable/superscript marker
   - [ ] Link to footnote definitions
@@ -133,7 +133,7 @@
 **Files:**
 - Modify: `mdutil/parser.py:378-461` (_parse_inline_segment)
 
-- [ ] KB-059: Renderer: display footnotes
+- [x] KB-059: Renderer: display footnotes
   - [ ] Render `[^1]` as superscript in terminal
   - [ ] Add footnote section at document end
   - [ ] Support footnote navigation in interactive mode
@@ -142,7 +142,7 @@
 - Modify: `mdutil/renderer.py`
 - Modify: `mdutil/display.py` (interactive footnote handling)
 
-- [ ] KB-060: HTML/PDF exporter: render footnotes
+- [x] KB-060: HTML/PDF exporter: render footnotes
   - [ ] HTML: anchor links + bottom-of-page footnotes
   - [ ] PDF: superscript markers + footnote section
   - [ ] Support footnote numbering and cross-references

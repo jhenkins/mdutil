@@ -58,7 +58,21 @@ def _render_token(
         return _render_table(token)
     if ttype == "horizontal_rule":
         return [_style(str(token.get("content", token.get("text", ""))), theme, "hr")]
+    if ttype == "footnote_definition":
+        return _render_footnote_definition(token, theme)
     return str(token.get("content", "")).split("\n")
+
+
+def _render_footnote_definition(token: dict[str, Any], theme: dict[str, Any]) -> list[str]:
+    """Render a footnote definition token as indented text."""
+    fn_id = token.get("id", "")
+    content = token.get("content", "")
+    # Strip inline tags for terminal display
+    text = _strip_inline_tags(content, theme)
+    # Format as "  ¹  Footnote text..." with indentation
+    superscript = _superscript(fn_id)
+    rendered = f"    {superscript}  {text}"
+    return [rendered]
 
 
 def _render_heading(token: dict[str, Any], theme: dict[str, Any]) -> str:
@@ -200,7 +214,7 @@ def _ansi_color(color: Any) -> str:
 def _strip_inline_tags(text: str, theme: dict[str, Any] | None = None) -> str:
     """Collapse the parser's lightweight HTML-like inline markup to visible text."""
     def render_link(match: re.Match[str]) -> str:
-        label = re.sub(r"</?(?:strong|em|del|code)>", "", match.group(2))
+        label = re.sub(r"</?(?:strong|em|del|code|math)>", "", match.group(2))
         return _style(f"{label} ({match.group(1)})", theme or {}, "link")
 
     text = re.sub(
@@ -208,5 +222,15 @@ def _strip_inline_tags(text: str, theme: dict[str, Any] | None = None) -> str:
         render_link,
         text,
     )
-    text = re.sub(r"</?(?:strong|em|del|code)>", "", text)
+    text = re.sub(r"<fnref\s+id=\"(\d+)\">", lambda m: _style(_superscript(m.group(1)), theme or {}, "footnote_ref"), text)
+    text = re.sub(r"</?(?:strong|em|del|code|math)>", "", text)
     return text
+
+
+def _superscript(n: str) -> str:
+    """Convert a number string to Unicode superscript characters."""
+    superscript_map = {
+        "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
+        "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹",
+    }
+    return "".join(superscript_map.get(c, c) for c in n)

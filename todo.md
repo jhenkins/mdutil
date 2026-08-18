@@ -1,9 +1,9 @@
 # mdutil TODO
 
-Last updated: 2026-07-14
+Last updated: 2026-08-18
 Current branch: `main`
 Current package version: `4.0.1`
-Baseline verification at update time: `python -m pytest -q` -> 131 passed, 18 subtests passed in 3.77s
+Baseline verification at update time: `python -m pytest -q` -> 453 passed, 25 subtests passed in ~46s
 
 ## Current state
 
@@ -144,7 +144,7 @@ viewer and rendering quality can move into the next incremental backlog slice.
     - [x] Added `G` key binding to jump to top of document.
     - [x] Updated status bar with `g Bottom  •  G Top` hints.
     - [x] Updated F1 help modal with both jump bindings.
-- [ ] v3.0: Render document to PDF and/or HTML
+- [x] v3.0: Render document to PDF and/or HTML
   - [x] Phase 1: Foundation & Setup (fpdf2 dependency, export module structure, base Exporter class)
   - [x] Phase 2: PDF Export Core (PdfExporter with fpdf2, CLI `--export pdf` and `--output` flags)
   - [x] Phase 3: HTML Export (HtmlExporter with embedded CSS, CLI `--export html` flag)
@@ -172,11 +172,11 @@ viewer and rendering quality can move into the next incremental backlog slice.
   - [x] Phase 4: Verification & release (KB-008)
   - Detailed checklist: `todo-4.0.md`
 |- [x] v5.0: Better Markdown rendering
-  - [ ] Phase 1a: Research & analysis (KB-050)
-  - [ ] Phase 1b: Strikethrough (KB-051)
-  - [ ] Phase 1c: Task lists (KB-052, KB-053, KB-054)
-  - [ ] Phase 1d: Math notation (KB-055, KB-056)
-  - [ ] Phase 2a: Footnotes (KB-057, KB-058, KB-059, KB-060)
+  - [x] Phase 1a: Research & analysis (KB-050)
+  - [x] Phase 1b: Strikethrough (KB-051)
+  - [x] Phase 1c: Task lists (KB-052, KB-053, KB-054)
+  - [x] Phase 1d: Math notation (KB-055, KB-056)
+  - [x] Phase 2a: Footnotes (KB-057, KB-058, KB-059, KB-060)
   - [ ] Phase 2b: Subscript & superscript (KB-061, KB-062)
   - [ ] Phase 2c: Highlight (KB-063, KB-064)
   - [ ] Phase 3a: Definition lists (KB-065, KB-066)

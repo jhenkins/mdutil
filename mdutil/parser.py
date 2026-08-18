@@ -12,10 +12,18 @@ _CODE_FENCE_RE = re.compile(r"^(?P<indent> {0,3})(?P<fence>`{3,}|~{3,})[ \t]*(?P
 _HEADING_RE = re.compile(r"^ {0,3}(?P<marks>#{1,6})(?:[ \t]+(?P<text>.*)|[ \t]*)$")
 _LIST_RE = re.compile(r"^(?P<indent> {0,3})(?:(?P<unordered>[-+*])|(?P<ordered>\d{1,9}[.)]))[ \t]+(?P<item>.*)$")
 _AUTOLINK_RE = re.compile(r"<((?:https?|ftp)://[^>]+)>")
+_FOOTNOTE_DEF_RE = re.compile(r"^\[\^([a-zA-Z0-9]+)\]:\s?(.*)$", re.IGNORECASE)
+_FOOTNOTE_REF_RE = re.compile(r"\[\^([a-zA-Z0-9]+)\]", re.IGNORECASE)
 
 
 def parse_markdown(content: str) -> list[Token]:
-    """Parse Markdown content into a structured token list."""
+    """Parse Markdown content into a structured token list.
+
+    Returns a list of tokens with an attached ``footnotes`` dict (not a
+    regular list element) containing any footnote definitions found at the
+    end of the document.  Footnote definitions are removed from the main
+    token stream and emitted as ``footnote_definition`` tokens.
+    """
     tokens: list[Token] = []
     lines = content.split("\n")
 
@@ -138,7 +146,17 @@ def parse_markdown(content: str) -> list[Token]:
             "content_lines": [pi["content"] for pi in paragraph_inline],
         })
 
-    return tokens
+    # Post-process: collect footnote definitions and remove from main tokens.
+    footnotes, filtered = _collect_footnote_definitions(tokens)
+    # Append footnote_definition tokens at the end of the main stream.
+    for fn_id, fn_text in footnotes.items():
+        filtered.append({
+            "type": "footnote_definition",
+            "id": fn_id,
+            "content": fn_text,
+            "text": fn_text,
+        })
+    return filtered
 
 
 def extract_code_block(lines: list[str], start_index: int) -> tuple[dict[str, str | None] | None, int]:
@@ -295,6 +313,31 @@ def _parse_inline(text: str) -> dict[str, Any]:
     return {"content": content, "spans": spans}
 
 
+def _collect_footnote_definitions(tokens: list[Token]) -> tuple[dict[str, str], list[Token]]:
+    """Collect footnote definitions from the token stream.
+
+    Scans for paragraph tokens whose raw text matches ``[^n]: text`` and
+    extracts them into a mapping keyed by footnote index.  Returns a tuple
+    of (footnotes dict, filtered token list with those paragraphs removed).
+    """
+    footnotes: dict[str, str] = {}
+    filtered: list[Token] = []
+    for token in tokens:
+        if token.get("type") == "paragraph":
+            raw_text = "".join(token.get("source_lines", []))
+            def_match = _FOOTNOTE_DEF_RE.match(raw_text.strip())
+            if def_match:
+                fn_id = def_match.group(1)
+                fn_text_raw = def_match.group(2).strip()
+                # Parse inline formatting in footnote content
+                inline_result = _parse_inline(fn_text_raw)
+                fn_text = inline_result["content"]
+                footnotes[fn_id] = fn_text
+                continue  # skip this paragraph from main stream
+        filtered.append(token)
+    return footnotes, filtered
+
+
 def _parse_inline_segment(text: str) -> tuple[str, list[dict[str, str]]]:
     output: list[str] = []
     spans: list[dict[str, str]] = []
@@ -363,6 +406,26 @@ def _parse_inline_segment(text: str) -> tuple[str, list[dict[str, str]]]:
                 index = end + 1
                 continue
 
+        # Math notation: $...$
+        if char == "$" and index + 1 < len(text):
+            end = _find_unescaped(text, "$", index + 1)
+            if end != -1:
+                math_content = text[index + 1 : end]
+                spans.append({"type": "math", "text": math_content})
+                output.append(f"<math>{math_content}</math>")
+                index = end + 1
+                continue
+
+        # Footnote reference: [^1]
+        if text.startswith("[^", index):
+            ref_match = _FOOTNOTE_REF_RE.match(text, index)
+            if ref_match:
+                fn_id = ref_match.group(1)
+                spans.append({"type": "footnote_ref", "id": fn_id})
+                output.append(f'<fnref id="{fn_id}">')
+                index = ref_match.end()
+                continue
+
         if char == "[":
             close_label = _find_unescaped(text, "]", index + 1)
             if close_label != -1 and close_label + 1 < len(text) and text[close_label + 1] == "(":
@@ -406,7 +469,9 @@ def _find_unescaped(text: str, marker: str, start: int) -> int:
 
 def _visible_inline_text(text: str) -> str:
     text = re.sub(r"<a\s+href=\"[^\"]*\">(.*?)</a>", r"\1", text)
-    return re.sub(r"</?(?:strong|em|code)>", "", text)
+    text = re.sub(r"<fnref\s+id=\"\d+\">", "", text)
+    text = re.sub(r"</?(?:strong|em|code|fnref)>", "", text)
+    return text
 
 
 def _is_table_separator(line: str) -> bool:

@@ -215,6 +215,33 @@ img {{
     max-width: 100%;
     height: auto;
 }}
+
+.footnotes {{
+    border-top: 1px solid {table_border};
+    margin-top: 24px;
+    padding-top: 10px;
+    font-size: 0.9em;
+    color: {blockquote_color};
+}}
+
+.footnotes ol {{
+    padding-left: 2em;
+}}
+
+.footnotes li {{
+    margin-bottom: 4px;
+}}
+
+.footnotes a {{
+    color: {link_color};
+    text-decoration: none;
+    margin-left: 2px;
+    font-size: 0.85em;
+}}
+
+.footnotes a:hover {{
+    text-decoration: underline;
+}}
 """
 
     def _render_tokens(self, tokens: list[dict], syntax_theme: str = "default") -> str:
@@ -274,6 +301,10 @@ img {{
                 output.append(self._render_list(token))
                 continue
 
+            if token_type == "footnote_definition":
+                output.append(self._render_footnote_definition(token))
+                continue
+
         return "\n".join(output)
 
     def _render_heading(self, token: dict) -> str:
@@ -283,6 +314,16 @@ img {{
         inline = _parse_inline(text)
         content = inline["content"]
         return f"<h{level}>{content}</h{level}>"
+
+    def _process_fnref_tags(self, text: str) -> str:
+        """Replace <fnref id="N"> tags with superscript anchor links."""
+        import re as _re
+        return _re.sub(
+            r'<fnref\s+id="(\d+)">',
+            lambda m: f'<sup><a href="#fn-{m.group(1)}" id="fnref-{m.group(1)}">'
+                      f'{m.group(1)}</a></sup>',
+            text,
+        )
 
     def _render_paragraph(self, token: dict) -> str:
         """Render a paragraph.
@@ -296,6 +337,7 @@ img {{
 
         content = token.get("content", "")
         if content:
+            content = self._process_fnref_tags(content)
             return f"<p>{content}</p>"
         # Fallback for tokens without inline-parsed content
         spans = token.get("spans", [])
@@ -334,6 +376,10 @@ img {{
             elif span_type == "link":
                 href = span.get("href", "#")
                 output.append(f'<a href="{href}">{content}</a>')
+            elif span_type == "footnote_ref":
+                fn_id = span.get("id", "")
+                output.append(f'<sup><a href="#fn-{fn_id}" id="fnref-{fn_id}">'
+                              f'{fn_id}</a></sup>')
             else:
                 output.append(content)
 
@@ -471,6 +517,17 @@ img {{
         sub_tokens = parse_markdown(raw_text)
         inner_html = self._render_tokens(sub_tokens)
         return f"<blockquote>\n{inner_html}\n</blockquote>"
+
+    def _render_footnote_definition(self, token: dict) -> str:
+        """Render footnote definitions as a numbered list with anchor links."""
+        fn_id = token.get("id", "")
+        content = token.get("content", "")
+        return (
+            f'<div class="footnotes">'
+            f'<ol><li id="fn-{fn_id}">'
+            f'<a href="#fnref-{fn_id}">\u21a9</a> {content}'
+            f'</li></ol></div>'
+        )
 
     def _render_list(self, token: dict) -> str:
         """Render an ordered or unordered list."""
