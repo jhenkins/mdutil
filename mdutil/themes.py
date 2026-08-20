@@ -17,6 +17,8 @@ MARKDOWN_COLORS: dict[str, str] = {
     "blockquote": "#888888",
     "hr": "#cccccc",
     "blockquote_border": "#444444",
+    "subscript": "#555555",
+    "superscript": "#555555",
 }
 
 CODE_COLORS: dict[str, str] = {

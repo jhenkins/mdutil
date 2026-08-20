@@ -223,14 +223,50 @@ def _strip_inline_tags(text: str, theme: dict[str, Any] | None = None) -> str:
         text,
     )
     text = re.sub(r"<fnref\s+id=\"(\d+)\">", lambda m: _style(_superscript(m.group(1)), theme or {}, "footnote_ref"), text)
-    text = re.sub(r"</?(?:strong|em|del|code|math)>", "", text)
+    inner_re = r"</?(?:strong|em|del|code|math)>"
+    text = re.sub(r"<sub>(.*?)</sub>", lambda m: _style(_subscript(re.sub(inner_re, "", m.group(1))), theme or {}, "subscript"), text)
+    text = re.sub(r"<sup>(.*?)</sup>", lambda m: _style(_superscript(re.sub(inner_re, "", m.group(1))), theme or {}, "superscript"), text)
+    text = re.sub(r"</?(?:strong|em|del|code|math|sub|sup)>", "", text)
     return text
 
 
 def _superscript(n: str) -> str:
-    """Convert a number string to Unicode superscript characters."""
+    """Convert a string to Unicode superscript characters."""
     superscript_map = {
         "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
         "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹",
+        "a": "ᵃ", "b": "ᵇ", "c": "ᶜ", "d": "ᵈ", "e": "ᵉ",
+        "f": "ᶠ", "g": "ᵍ", "h": "ʰ", "i": "ⁱ", "j": "ʲ",
+        "k": "ᵏ", "l": "ˡ", "m": "ᵐ", "n": "ⁿ", "o": "ᵒ",
+        "p": "ᵖ", "q": "ʳ", "r": "ʳ", "s": "ˢ", "t": "ᵗ",
+        "u": "ᵘ", "v": "ᵛ", "w": "ʷ", "x": "ˣ", "y": "ʸ",
+        "z": "ᶻ", "A": "ᴬ", "B": "ᴮ", "C": "ᶜ", "D": "ᴰ",
+        "E": "ᴱ", "F": "ᶠ", "G": "ᴳ", "H": "ᴴ", "I": "ᴵ",
+        "J": "ᴶ", "K": "ᴷ", "L": "ᴸ", "M": "ᴹ", "N": "ᴺ",
+        "O": "ᴼ", "P": "ᴾ", "Q": "ᴽ", "R": "ᴿ", "S": "ˢ",
+        "T": "ᵀ", "U": "ᵁ", "V": "ⱽ", "W": "ᵂ", "X": "ˣ",
+        "Y": "ʸ", "-": "⁻", "+": "⁺", "=": "⁼",
+        "(": "⁽", ")": "⁾",
     }
     return "".join(superscript_map.get(c, c) for c in n)
+
+
+def _subscript(n: str) -> str:
+    """Convert a string to Unicode subscript characters."""
+    subscript_map = {
+        "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄",
+        "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉",
+        "a": "ₐ", "b": "b", "c": "c", "d": "d", "e": "ₑ",
+        "f": "f", "g": "g", "h": "ₕ", "i": "ᵢ", "j": "ⱼ",
+        "k": "ₖ", "l": "ₗ", "m": "ₘ", "n": "ₙ", "o": "ₒ",
+        "p": "ₚ", "q": "q", "r": "ᵣ", "s": "ₛ", "t": "ₜ",
+        "u": "ᵤ", "v": "ᵥ", "w": "w", "x": "ₓ", "y": "y",
+        "z": "z", "A": "A", "B": "B", "C": "C", "D": "D",
+        "E": "E", "F": "F", "G": "G", "H": "H", "I": "I",
+        "J": "J", "K": "K", "L": "L", "M": "M", "N": "N",
+        "O": "O", "P": "P", "Q": "Q", "R": "R", "S": "S",
+        "T": "T", "U": "U", "V": "V", "W": "W", "X": "X",
+        "Y": "Y", "Z": "Z", "-": "₋", "+": "₊", "=": "₌",
+        "(": "₍", ")": "₎",
+    }
+    return "".join(subscript_map.get(c, c) for c in n)

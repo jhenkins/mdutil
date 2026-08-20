@@ -383,6 +383,30 @@ def _parse_inline_segment(text: str) -> tuple[str, list[dict[str, str]]]:
                 index = end + 2
                 continue
 
+        # Subscript: ~text~
+        if char == "~" and index + 1 < len(text):
+            end = _find_unescaped(text, "~", index + 1)
+            if end != -1 and end > index + 1:
+                inner_content, inner_spans = _parse_inline_segment(text[index + 1 : end])
+                spans.extend(inner_spans)
+                subscript_text = _visible_inline_text(inner_content)
+                spans.append({"type": "subscript", "text": subscript_text})
+                output.append(f"<sub>{inner_content}</sub>")
+                index = end + 1
+                continue
+
+        # Superscript: ^text^
+        if char == "^" and index + 1 < len(text):
+            end = _find_unescaped(text, "^", index + 1)
+            if end != -1 and end > index + 1:
+                inner_content, inner_spans = _parse_inline_segment(text[index + 1 : end])
+                spans.extend(inner_spans)
+                superscript_text = _visible_inline_text(inner_content)
+                spans.append({"type": "superscript", "text": superscript_text})
+                output.append(f"<sup>{inner_content}</sup>")
+                index = end + 1
+                continue
+
         if char == "*" :
             end = _find_unescaped(text, "*", index + 1)
             if end != -1:
