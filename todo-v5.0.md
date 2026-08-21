@@ -157,19 +157,18 @@
 
 **Goal:** Support `H~2~O` (subscript) and `e^2` (superscript)
 
-**Tasks:**
-- [ ] KB-061: Parser: detect sub/superscript syntax
-  - [ ] Add regex for `~sub~` subscript
-  - [ ] Add regex for `^super^` superscript
-  - [ ] Generate `<sub>text</sub>` and `<sup>text</sup>`
+- [x] KB-061: Parser: detect sub/superscript syntax
+  - [x] Add regex for `~sub~` subscript
+  - [x] Add regex for `^super^` superscript
+  - [x] Generate `<sub>text</sub>` and `<sup>text</sup>`
 
 **Files:**
 - Modify: `mdutil/parser.py:378-461` (_parse_inline_segment)
 
-- [ ] KB-062: Renderer: display sub/superscript
-  - [ ] Terminal: use Unicode sub/superscript characters
-  - [ ] Fallback: `[sub]` and `^sup^` notation
-  - [ ] Theme support for sub/superscript styling
+- [x] KB-062: Renderer: display sub/superscript
+  - [x] Terminal: use Unicode sub/superscript characters
+  - [x] Fallback: `[sub]` and `^sup^` notation
+  - [x] Theme support for sub/superscript styling
 
 **Files:**
 - Modify: `mdutil/renderer.py:200-212` (_strip_inline_tags)
@@ -181,18 +180,18 @@
 **Goal:** Support `==highlight==` syntax
 
 **Tasks:**
-- [ ] KB-063: Parser: detect highlight syntax
-  - [ ] Add regex for `==text==`
-  - [ ] Generate `<mark>text</mark>` output
-  - [ ] Add span type `"mark"` for metadata
+- [x] KB-063: Parser: detect highlight syntax
+  - [x] Add regex for `==text==`
+  - [x] Generate `<mark>text</mark>` output
+  - [x] Add span type `"mark"` for metadata
 
 **Files:**
 - Modify: `mdutil/parser.py:378-461` (_parse_inline_segment)
 
-- [ ] KB-064: Renderer: display highlights
-  - [ ] Terminal: reverse-video or bright color highlighting
-  - [ ] Theme support for highlight color
-  - [ ] HTML: `<mark>` tag with CSS
+- [x] KB-064: Renderer: display highlights
+  - [x] Terminal: yellow background highlighting (48;2;R;G;Bm)
+  - [x] Theme support for highlight color
+  - [x] HTML: `<mark>` tag with CSS
 
 **Files:**
 - Modify: `mdutil/renderer.py:174-184` (_style)
@@ -202,46 +201,54 @@
 
 ## Phase 3: Block Extensions
 
-### Phase 3a: Definition Lists (CommonMark) (0.5 day)
+### Phase 3a: Definition Lists (CommonMark) (0.5 day) ✅ **COMPLETE**
 
 **Goal:** Support `Term\n:   Definition` syntax
 
 **Tasks:**
-- [ ] KB-065: Parser: detect definition lists
-  - [ ] Add regex for `Term\n:   Definition`
-  - [ ] Generate `{"type": "definition", "term": ..., "definition": ...}` token
-  - [ ] Support multiple terms with same definition
+- [x] KB-065: Parser: detect definition lists
+  - [x] Add regex for `Term\n:   Definition`
+  - [x] Generate `{"type": "definition", "terms": [...], "definitions": [...]}` token
+  - [x] Support multiple terms with same definition
+  - [x] Support multiple definitions per term
+  - [x] Support inline formatting in definitions (**bold**, *italic*, `code`, links)
 
 **Files:**
-- Modify: `mdutil/parser.py` (add definition block detection)
+- Modify: `mdutil/parser.py` (add `_extract_definition_list()` function)
 
-- [ ] KB-066: Renderer: display definition lists
-  - [ ] Terminal: indent definition with "→" or "—" prefix
-  - [ ] Style term and definition differently
-  - [ ] Support multi-line definitions
+- [x] KB-066: Renderer: display definition lists
+  - [x] Terminal: indent definition with "—" prefix, styled term
+  - [x] Style term and definition differently (theme keys `definition_term`, `definition_definition`)
+  - [x] Support multi-line definitions (each definition on its own line)
+  - [x] HTML exporter: `<dl>/<dt>/<dd>` structure with CSS
+  - [x] PDF exporter: bold term + indented definitions with "—" prefix
 
 **Files:**
-- Modify: `mdutil/renderer.py:39-61` (_render_token)
+- Modify: `mdutil/renderer.py` (add `_render_definition()`)
+- Modify: `mdutil/export/html.py` (add `_render_definition()` + CSS)
+- Modify: `mdutil/export/pdf.py` (add `_render_definition()`)
+- Modify: `mdutil/themes.py` (add `definition_term`, `definition_definition` theme keys)
+- Add: `tests/test_definition_list.py` (22 tests)
 
 ---
 
-### Phase 3b: Image Rendering (GFM) (1 day)
+### Phase 3b: Image Rendering (GFM) (1 day) ✅ **COMPLETE**
 
 **Goal:** Render `![alt](url)` as image placeholders or URLs
 
 **Tasks:**
-- [ ] KB-067: Parser: detect image syntax properly
-  - [ ] Fix `![alt](url)` parsing (currently parsed as link)
-  - [ ] Generate `{"type": "image", "alt": ..., "src": ...}` token
-  - [ ] Preserve alt text for accessibility
+- [x] KB-067: Parser: detect image syntax properly
+  - [x] Fix `![alt](url)` parsing (currently parsed as link)
+  - [x] Generate `{"type": "image", "alt": ..., "src": ...}` token
+  - [x] Preserve alt text for accessibility
 
 **Files:**
 - Modify: `mdutil/parser.py:378-461` (_parse_inline_segment)
 
-- [ ] KB-068: Renderer: display images in terminal
-  - [ ] Terminal: show `[image: alt text]` placeholder
-  - [ ] Option to show URL below placeholder
-  - [ ] Support file:// URLs with file metadata
+- [x] KB-068: Renderer: display images in terminal
+  - [x] Terminal: show `[image: alt text]` placeholder
+  - [x] Option to show URL below placeholder
+  - [x] Support file:// URLs with file metadata
 
 **Files:**
 - Modify: `mdutil/renderer.py:39-61` (_render_token)

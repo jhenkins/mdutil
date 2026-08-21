@@ -14,6 +14,7 @@ _LIST_RE = re.compile(r"^(?P<indent> {0,3})(?:(?P<unordered>[-+*])|(?P<ordered>\
 _AUTOLINK_RE = re.compile(r"<((?:https?|ftp)://[^>]+)>")
 _FOOTNOTE_DEF_RE = re.compile(r"^\[\^([a-zA-Z0-9]+)\]:\s?(.*)$", re.IGNORECASE)
 _FOOTNOTE_REF_RE = re.compile(r"\[\^([a-zA-Z0-9]+)\]", re.IGNORECASE)
+_DEFINITION_RE = re.compile(r"^[ \t]*:[ \t]+(.*)$")
 
 
 def parse_markdown(content: str) -> list[Token]:
@@ -104,6 +105,13 @@ def parse_markdown(content: str) -> list[Token]:
         list_token, end_pos = _extract_list(lines, i)
         if list_token:
             tokens.append(list_token)
+            i = end_pos
+            continue
+
+        # Definition list: Term\n:   Definition
+        def_token, end_pos = _extract_definition_list(lines, i)
+        if def_token:
+            tokens.append(def_token)
             i = end_pos
             continue
 
@@ -307,6 +315,94 @@ def _extract_list(lines: list[str], start_index: int) -> tuple[Token | None, int
     }, i
 
 
+def _extract_definition_list(lines: list[str], start_index: int) -> tuple[Token | None, int]:
+    """Extract a definition list starting at ``start_index``.
+
+    Definition list syntax::
+
+        Term
+        :   Definition
+
+    Multiple terms can share a definition::
+
+        Term1
+        Term2
+        :   Shared definition
+
+    Args:
+        lines: All document lines.
+        start_index: Current line index in the document.
+
+    Returns:
+        A tuple of (definition token dict or None, next index to process).
+    """
+    if start_index >= len(lines):
+        return None, start_index
+
+    first_line = lines[start_index]
+    if not first_line.strip():
+        return None, start_index
+
+    # Look ahead to find the first definition line (: ...)
+    # Terms can span multiple lines before the definition appears
+    terms_start = start_index
+    i = start_index + 1
+    while i < len(lines):
+        line = lines[i]
+        if not line.strip():
+            break
+        if _DEFINITION_RE.match(line):
+            break
+        # If we hit a block element, this is not a definition list
+        if (_CODE_FENCE_RE.match(line)
+                or _parse_heading(line)
+                or _is_horizontal_rule(line)
+                or _LIST_RE.match(line)
+                or line.strip().startswith(">")):
+            return None, start_index
+        i += 1
+
+    # No definition line found
+    if i >= len(lines) or not _DEFINITION_RE.match(lines[i]):
+        return None, start_index
+
+    # Collect terms from start_index to i
+    terms: list[str] = [lines[j].strip() for j in range(terms_start, i)]
+
+    # Collect definition lines
+    definitions: list[str] = []
+    while i < len(lines):
+        line = lines[i]
+        if not line.strip():
+            break
+        def_match = _DEFINITION_RE.match(line)
+        if not def_match:
+            break
+        definitions.append(def_match.group(1).strip())
+        i += 1
+
+    if not definitions:
+        return None, start_index
+
+    term_text = " / ".join(terms)
+    # Build content with inline parsing on each definition
+    parsed_defs: list[str] = []
+    for defn in definitions:
+        inline = _parse_inline(defn)
+        parsed_defs.append(inline["content"])
+    content = " ".join(parsed_defs)
+    text = " ".join(definitions)
+
+    return {
+        "type": "definition",
+        "terms": terms,
+        "definitions": definitions,
+        "content": content,
+        "text": text,
+        "term_text": term_text,
+    }, i
+
+
 def _parse_inline(text: str) -> dict[str, Any]:
     """Parse lightweight inline Markdown into renderable markup and span metadata."""
     content, spans = _parse_inline_segment(text)
@@ -383,6 +479,18 @@ def _parse_inline_segment(text: str) -> tuple[str, list[dict[str, str]]]:
                 index = end + 2
                 continue
 
+        # Highlight: ==text==
+        if text.startswith("==", index):
+            end = _find_unescaped(text, "==", index + 2)
+            if end != -1:
+                inner_content, inner_spans = _parse_inline_segment(text[index + 2 : end])
+                spans.extend(inner_spans)
+                highlight_text = _visible_inline_text(inner_content)
+                spans.append({"type": "highlight", "text": highlight_text})
+                output.append(f"<mark>{inner_content}</mark>")
+                index = end + 2
+                continue
+
         # Subscript: ~text~
         if char == "~" and index + 1 < len(text):
             end = _find_unescaped(text, "~", index + 1)
@@ -449,6 +557,20 @@ def _parse_inline_segment(text: str) -> tuple[str, list[dict[str, str]]]:
                 output.append(f'<fnref id="{fn_id}">')
                 index = ref_match.end()
                 continue
+
+        # Image: ![alt](url)
+        if char == "!" and index + 1 < len(text) and text[index + 1] == "[":
+            close_label = _find_unescaped(text, "]", index + 2)
+            if close_label != -1 and close_label + 1 < len(text) and text[close_label + 1] == "(":
+                close_href = _find_unescaped(text, ")", close_label + 2)
+                if close_href != -1:
+                    alt_content, alt_spans = _parse_inline_segment(text[index + 2 : close_label])
+                    src = text[close_label + 2 : close_href]
+                    spans.extend(alt_spans)
+                    spans.append({"type": "image", "text": _visible_inline_text(alt_content), "src": src})
+                    output.append(f'<img src="{src}" alt="{alt_content}">')
+                    index = close_href + 1
+                    continue
 
         if char == "[":
             close_label = _find_unescaped(text, "]", index + 1)

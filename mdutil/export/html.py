@@ -242,6 +242,30 @@ img {{
 .footnotes a:hover {{
     text-decoration: underline;
 }}
+
+mark {{
+    background-color: #ffff00;
+    color: inherit;
+    padding: 0.1em 0.2em;
+    border-radius: 2px;
+}}
+
+dl {{
+    margin: 0 0 16px 0;
+    padding: 0;
+}}
+
+dl dt {{
+    font-weight: 600;
+    color: #0066cc;
+    margin-top: 12px;
+}}
+
+dl dd {{
+    margin-left: 24px;
+    margin-bottom: 8px;
+    color: #333333;
+}}
 """
 
     def _render_tokens(self, tokens: list[dict], syntax_theme: str = "default") -> str:
@@ -303,6 +327,10 @@ img {{
 
             if token_type == "footnote_definition":
                 output.append(self._render_footnote_definition(token))
+                continue
+
+            if token_type == "definition":
+                output.append(self._render_definition(token))
                 continue
 
         return "\n".join(output)
@@ -380,6 +408,11 @@ img {{
                 fn_id = span.get("id", "")
                 output.append(f'<sup><a href="#fn-{fn_id}" id="fnref-{fn_id}">'
                               f'{fn_id}</a></sup>')
+            elif span_type == "highlight":
+                output.append(f"<mark>{content}</mark>")
+            elif span_type == "image":
+                src = span.get("src", "")
+                output.append(f'<img src="{src}" alt="{content}">')
             else:
                 output.append(content)
 
@@ -551,3 +584,18 @@ img {{
                 list_items.append(f"<li>{content}</li>")
 
         return f"<{list_type}>\n" + "\n".join(list_items) + f"\n</{list_type}>"
+
+    def _render_definition(self, token: dict) -> str:
+        """Render a definition list (dl/dt/dd) for HTML."""
+        terms = token.get("terms", [])
+        definitions = token.get("definitions", [])
+
+        # Join terms with " / " if multiple
+        term_text = " / ".join(terms)
+
+        # Parse inline formatting in each definition
+        dd_elements = ""
+        for defn in definitions:
+            inline = _parse_inline(defn)
+            dd_elements += f"<dd>{inline['content']}</dd>"
+        return f"<dl><dt>{term_text}</dt>{dd_elements}</dl>"

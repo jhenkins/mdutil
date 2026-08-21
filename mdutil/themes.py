@@ -19,6 +19,9 @@ MARKDOWN_COLORS: dict[str, str] = {
     "blockquote_border": "#444444",
     "subscript": "#555555",
     "superscript": "#555555",
+    "highlight": "#ffff00",
+    "definition_term": "#0066cc",
+    "definition_definition": "#333333",
 }
 
 CODE_COLORS: dict[str, str] = {

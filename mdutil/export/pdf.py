@@ -77,6 +77,21 @@ class _InlineHTMLParser(html.parser.HTMLParser):
         elif tag == "a":
             href = dict(attrs).get("href") or ""
             self._links.append(href)
+        elif tag == "img":
+            attrs_dict = dict(attrs)
+            alt = attrs_dict.get("alt", "")
+            src = attrs_dict.get("src", "")
+            display = alt if alt else src
+            if display:
+                self.segments.append(
+                    {
+                        "text": f"[image: {display}]",
+                        "strong": bool(self._strong),
+                        "emphasis": bool(self._emphasis),
+                        "code": bool(self._code),
+                        "href": self._links[-1] if self._links else "",
+                    }
+                )
 
     def handle_endtag(self, tag: str) -> None:
         if tag == "strong" and self._strong:
@@ -346,6 +361,10 @@ class PdfExporter(Exporter):
 
             if token_type == "footnote_definition":
                 self._render_footnote_definition(pdf, token)
+                continue
+
+            if token_type == "definition":
+                self._render_definition(pdf, token)
                 continue
 
     def _render_heading(self, pdf: FPDF, token: dict) -> None:
@@ -935,6 +954,36 @@ class PdfExporter(Exporter):
 
         pdf.set_text_color(0, 0, 0)
         pdf.ln(3)
+
+    def _render_definition(self, pdf: FPDF, token: dict) -> None:
+        """Render a definition list token in the PDF."""
+        terms = token.get("terms", [])
+        definitions = token.get("definitions", [])
+        term_text = " / ".join(terms)
+
+        # Render term in bold with definition_term color
+        pdf.set_font(self._font_for("bold"), size=self.FONT_SIZE)
+        pdf.set_text_color(0, 0, 180)  # Use link color for term
+        pdf.set_x(pdf.l_margin)
+        pdf.write(5, term_text)
+        pdf.ln(3)
+
+        # Render each definition indented
+        pdf.set_font(self._font_for("regular"), size=self.FONT_SIZE)
+        pdf.set_text_color(50, 50, 50)  # Dark gray for definition text
+        indent = pdf.l_margin + 8
+        pdf.set_x(indent)
+
+        for defn in definitions:
+            plain_text = self._plain_text_from_inline_html(defn)
+            effective_w = pdf.w - indent - pdf.r_margin
+            if effective_w < 10:
+                effective_w = 50
+            pdf.multi_cell(effective_w, 5, f"— {plain_text}", align="L")
+            pdf.ln(1)
+
+        pdf.ln(3)
+        pdf.set_text_color(0, 0, 0)
 
     @staticmethod
     def _superscript(n: str) -> str:

@@ -11,6 +11,7 @@ from .themes import DEFAULT_THEME, load_theme
 
 RESET = "\033[0m"
 BOLD = "\033[1m"
+REVERSE = "\033[7m"
 
 
 def render(
@@ -60,6 +61,8 @@ def _render_token(
         return [_style(str(token.get("content", token.get("text", ""))), theme, "hr")]
     if ttype == "footnote_definition":
         return _render_footnote_definition(token, theme)
+    if ttype == "definition":
+        return _render_definition(token, theme)
     return str(token.get("content", "")).split("\n")
 
 
@@ -73,6 +76,32 @@ def _render_footnote_definition(token: dict[str, Any], theme: dict[str, Any]) ->
     superscript = _superscript(fn_id)
     rendered = f"    {superscript}  {text}"
     return [rendered]
+
+
+def _render_definition(token: dict[str, Any], theme: dict[str, Any]) -> list[str]:
+    """Render a definition list token.
+
+    Terminal display::
+
+        Term  —
+            Definition text
+
+    Multiple terms are joined with " / ". First definition appears under term;
+    additional definitions are indented.
+    """
+    term_text = token.get("term_text", "")
+    definitions = token.get("definitions", [])
+
+    lines: list[str] = []
+    styled_term = _style(term_text, theme, "definition_term", bold=True)
+    lines.append(styled_term + " —")
+
+    for defn in definitions:
+        # Strip inline tags for terminal display
+        plain_defn = _strip_inline_tags(defn, theme)
+        lines.append("    " + _style(plain_defn, theme, "definition_definition"))
+
+    return lines
 
 
 def _render_heading(token: dict[str, Any], theme: dict[str, Any]) -> str:
@@ -211,10 +240,26 @@ def _ansi_color(color: Any) -> str:
     return f"\033[38;2;{red};{green};{blue}m"
 
 
+def _highlight_text(text: str, theme: dict[str, Any]) -> str:
+    """Apply ANSI highlight (background color) to text using theme's highlight color."""
+    color = theme.get("markdown", {}).get("highlight")
+    if not color:
+        return text
+    # Use background color (48;2;R;G;B) for highlight effect
+    match = re.fullmatch(r"#([0-9a-fA-F]{6})", color.strip())
+    if not match:
+        return text
+    hex_value = match.group(1)
+    red = int(hex_value[0:2], 16)
+    green = int(hex_value[2:4], 16)
+    blue = int(hex_value[4:6], 16)
+    return f"\033[48;2;{red};{green};{blue}m{text}\033[0m"
+
+
 def _strip_inline_tags(text: str, theme: dict[str, Any] | None = None) -> str:
     """Collapse the parser's lightweight HTML-like inline markup to visible text."""
     def render_link(match: re.Match[str]) -> str:
-        label = re.sub(r"</?(?:strong|em|del|code|math)>", "", match.group(2))
+        label = re.sub(r"</?(?:strong|em|del|code|math|img)>", "", match.group(2))
         return _style(f"{label} ({match.group(1)})", theme or {}, "link")
 
     text = re.sub(
@@ -222,11 +267,26 @@ def _strip_inline_tags(text: str, theme: dict[str, Any] | None = None) -> str:
         render_link,
         text,
     )
+
+    # Image: render as [image: alt text] or [image: url] if no alt
+    text = re.sub(
+        r'<img\s+src="([^"]+)"\s+alt="([^"]*)"[^>]*/?>',
+        lambda m: _style(f"[image: {m.group(2) or m.group(1)}]", theme or {}, "link"),
+        text,
+    )
+    # Self-closing <img> without alt (fallback)
+    text = re.sub(
+        r'<img\s+src="([^"]+)"[^>]*/?>',
+        lambda m: _style(f"[image: {m.group(1)}]", theme or {}, "link"),
+        text,
+    )
+
     text = re.sub(r"<fnref\s+id=\"(\d+)\">", lambda m: _style(_superscript(m.group(1)), theme or {}, "footnote_ref"), text)
     inner_re = r"</?(?:strong|em|del|code|math)>"
     text = re.sub(r"<sub>(.*?)</sub>", lambda m: _style(_subscript(re.sub(inner_re, "", m.group(1))), theme or {}, "subscript"), text)
     text = re.sub(r"<sup>(.*?)</sup>", lambda m: _style(_superscript(re.sub(inner_re, "", m.group(1))), theme or {}, "superscript"), text)
-    text = re.sub(r"</?(?:strong|em|del|code|math|sub|sup)>", "", text)
+    text = re.sub(r"<mark>(.*?)</mark>", lambda m: _highlight_text(re.sub(inner_re, "", m.group(1)), theme or {}), text)
+    text = re.sub(r"</?(?:strong|em|del|code|math|sub|sup|mark)>", "", text)
     return text
 
 
