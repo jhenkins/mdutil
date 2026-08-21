@@ -280,4 +280,4 @@ When `--no-mermaid` is passed OR the `merman-cli` binary is unavailable:
 
 ## 8. Future Enhancements (Roadmap)
 
-The project roadmap is maintained as a single source of truth in `todo.md` under the "Immediate priorities" section. This spec intentionally does not duplicate the roadmap table; consult `todo.md` for current priorities, backlog items, and the housekeeping/merge state of the branch.
+The project roadmap is maintained in `.kanban/board.md` (kanban board with card state and completion notes). The implementation plan for current work is in `todo-v5.0.md`. Historical plans (v3.0, v3.1, v4.0) are archived in `docs/archive/`. This spec intentionally does not duplicate the roadmap; consult `.kanban/board.md` for current priorities and backlog items.

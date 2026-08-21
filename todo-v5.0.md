@@ -2,6 +2,13 @@
 
 > **For Hermes:** Use subagent-driven-development skill to implement this plan task-by-task.
 
+## Relationship to Kanban Board
+
+- **`.kanban/board.md`** is the source of truth for card state (backlog / ready / in-progress / done).
+- **`todo-v5.0.md`** is the implementation companion — detailed per-KB task checklists.
+- Do not maintain separate todo documents. If a card needs more detail, update its entry in `board.md` Notes or this file.
+- Completed v3.0/v3.1/v4.0 plans are archived in `docs/archive/`.
+
 **Goal:** Extend mdutil's Markdown rendering to support GFM/CommonMark features: strikethrough, task lists, math notation, footnotes, sub/superscript, highlight, definition lists, link titles, image rendering, and fix nested list nesting.
 
 **Architecture:** 
@@ -57,30 +64,30 @@
 
 **Tasks:**
 - [x] KB-052: Parser: detect task list items
-  - [ ] Extend `_extract_list` to recognize `[ ]` and `[x]` markers
-  - [ ] Add `checked` field to list items (True/False/None)
-  - [ ] Generate special token for task items
+  - [x] Extend `_extract_list` to recognize `[ ]` and `[x]` markers
+  - [x] Add `checked` field to list items (True/False/None)
+  - [x] Set `task` flag on list token when any item has checkboxes
 
 **Files:**
-- Modify: `mdutil/parser.py:327-369` (_extract_list)
+- Modify: `mdutil/parser.py:267-335` (_extract_list)
 
 - [x] KB-053: Renderer: display checkboxes in terminal
-  - [ ] Add ANSI rendering for `[x]` and `[ ]`
-  - [ ] Style checkbox markers with theme colors
-  - [ ] Support mixed checked/unchecked in same list
+  - [x] Render `[ ]` as `☐` (U+2610) for unchecked tasks
+  - [x] Render `[x]`/`[X]` as `☑` (U+2611) for checked tasks
+  - [x] Support mixed checked/unchecked in same list
+  - [x] Regular items in task lists render without checkbox symbols
 
 **Files:**
-- Modify: `mdutil/renderer.py:85-93` (_render_list)
-- Theme: `mdutil/themes.py` (add checkbox styling)
+- Modify: `mdutil/renderer.py:128-167` (_render_list)
 
 - [x] KB-054: HTML/PDF exporter: render checkboxes
-  - [ ] Add checkbox symbols to HTML output (☑/☐ or CSS)
-  - [ ] Add checkbox symbols to PDF output
-  - [ ] Support task list semantic in export
+  - [x] HTML: emit `<input type="checkbox" disabled>` / `<input type="checkbox" checked disabled>`
+  - [x] PDF: prefix task items with `☐` / `☑` Unicode symbols
+  - [x] Regular lists unaffected in both exporters
 
 **Files:**
-- Modify: `mdutil/export/html.py`
-- Modify: `mdutil/export/pdf.py`
+- Modify: `mdutil/export/html.py:565-595` (_render_list)
+- Modify: `mdutil/export/pdf.py:998-1045` (_render_list)
 
 ---
 
@@ -253,21 +260,23 @@
 **Files:**
 - Modify: `mdutil/renderer.py:39-61` (_render_token)
 
-- [ ] KB-069: HTML exporter: render images
-  - [ ] HTML: `<img src="url" alt="alt">`
-  - [ ] HTML: add CSS for image styling
-  - [ ] HTML: support width/height attributes
+- [x] KB-069: HTML exporter: render images
+  - [x] HTML: `<img src="url" alt="alt">` (via `_render_spans` image span handler)
+  - [x] HTML: CSS for images (`max-width: 100%; box-sizing: border-box;`)
+  - [x] HTML: support width/height attributes from GFM `=WxH` dimension syntax
 
 **Files:**
-- Modify: `mdutil/export/html.py`
+- Modify: `mdutil/export/html.py` (line 413-420: emit width/height on `<img>`)
 
-- [ ] KB-070: PDF exporter: render images
-  - [ ] PDF: embed image via fpdf2
-  - [ ] PDF: support local and remote URLs
-  - [ ] PDF: fallback to text placeholder
+- [x] KB-070: PDF exporter: render images
+  - [x] PDF: embed local images via fpdf2 `pdf.image()` with aspect ratio preservation
+  - [x] PDF: support local file paths (relative and absolute)
+  - [x] PDF: remote URLs fall back to `[image: alt]` placeholder text
+  - [x] PDF: dimension hints (`=WxH`) scaled to fit page width
+  - [x] PDF: exception handling with fallback to placeholder
 
 **Files:**
-- Modify: `mdutil/export/pdf.py`
+- Modify: `mdutil/export/pdf.py` (line 88-112: `_InlineHTMLParser` emits image segments; line 208-310: `_embed_image` method)
 
 ---
 

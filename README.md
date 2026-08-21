@@ -38,7 +38,7 @@ mostly using GPT 5.5 because of hardware constraints.
 We currently have a functional Markdown reader and editor with syntax highlighting, themes, and a prompt-toolkit
 interactive view. File-backed sessions support raw Markdown editing, explicit saves, dirty-buffer protection,
 copy/paste helpers, and mode-aware search. We also have a very simple ini-style configuration file that you can
-edit to make your choice of theme and a few other things permanent. The roadmap can be seen in the todo.md
+edit to make your choice of theme and a few other things permanent. The roadmap can be seen in `.kanban/board.md`
 document.
 
 ## Quick Overview

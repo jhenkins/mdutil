@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# verify-phase — run before declaring any KB or phase done.
+#
+# Usage:  ./bin/verify-phase
+# Exit codes:
+#   0  — all tests pass, no regressions
+#   1  — tests failed or pytest not found
+#   2  — no Python/pip environment set up
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+cd "$PROJECT_DIR"
+
+echo "=== mdutil verify-phase ==="
+echo "Project: $PROJECT_DIR"
+echo ""
+
+# --- Pre-flight: check pytest is available ---
+if ! command -v python3 &>/dev/null; then
+    echo "ERROR: python3 not found in PATH"
+    exit 2
+fi
+
+if ! python3 -m pytest --version &>/dev/null; then
+    echo "ERROR: pytest not installed"
+    echo "Install with: pip install -e '.[dev]'  or  pip install pytest"
+    exit 2
+fi
+
+# --- Run test suite ---
+echo "Running full test suite..."
+echo ""
+
+python3 -m pytest -q --tb=short 2>&1
+RESULT=$?
+
+echo ""
+echo "=== verify-phase result ==="
+
+if [ $RESULT -eq 0 ]; then
+    echo "✓ All tests passing. Phase is verified."
+else
+    echo "✗ $RESULT test failure(s) detected. Do NOT mark any KB as done."
+    echo "  Fix failures before continuing."
+fi
+
+exit $RESULT
