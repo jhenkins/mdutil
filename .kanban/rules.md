@@ -26,5 +26,6 @@
 ## References
 - Kanban board (source of truth for task state): this file + `board.md`
 - Implementation plan (active work): `todo-v5.0.md`
+- Full workflow reference: `docs/workflow-reference.md`
 - Archived plans: `docs/archive/`
 - GitHub issue: [#50](https://github.com/jhenkins/mdutil/issues/50)
