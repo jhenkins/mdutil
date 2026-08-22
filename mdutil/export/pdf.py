@@ -1116,12 +1116,12 @@ class PdfExporter(Exporter):
         }
         return "".join(super_map.get(c, c) for c in n)
 
-    def _render_list(self, pdf: FPDF, token: dict) -> None:
-        """Render an ordered or unordered list."""
+    def _render_list(self, pdf: FPDF, token: dict, level: int = 0) -> None:
+        """Render an ordered or unordered list, recursing into sub-lists."""
         parsed_items = token.get("parsed_items", [])
         ordered = token.get("ordered", False)
         is_task_list = token.get("task", False)
-        indent = 5
+        indent = 5 + level * 10
 
         pdf.set_font(self._font_for("regular"), size=self.FONT_SIZE)
 
@@ -1162,5 +1162,11 @@ class PdfExporter(Exporter):
             if effective_w < 10:
                 effective_w = 50  # fallback for very narrow layouts
             pdf.multi_cell(effective_w, 5, f"{prefix} {content}", align="L")
+
+            # Recurse into sub-list (only for dict items)
+            if isinstance(item, dict):
+                sub = item.get("sub_list")
+                if sub:
+                    self._render_list(pdf, sub, level + 1)
 
         pdf.ln(3)

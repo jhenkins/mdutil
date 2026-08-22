@@ -10,7 +10,7 @@ Token = dict[str, Any]
 
 _CODE_FENCE_RE = re.compile(r"^(?P<indent> {0,3})(?P<fence>`{3,}|~{3,})[ \t]*(?P<info>.*)$")
 _HEADING_RE = re.compile(r"^ {0,3}(?P<marks>#{1,6})(?:[ \t]+(?P<text>.*)|[ \t]*)$")
-_LIST_RE = re.compile(r"^(?P<indent> {0,3})(?:(?P<unordered>[-+*])|(?P<ordered>\d{1,9}[.)]))[ \t]+(?P<item>.*)$")
+_LIST_RE = re.compile(r"^(?P<indent> {0,8})(?:(?P<unordered>[-+*])|(?P<ordered>\d{1,9}[.)]))[ \t]+(?P<item>.*)$")
 _AUTOLINK_RE = re.compile(r"<((?:https?|ftp)://[^>]+)>")
 _FOOTNOTE_DEF_RE = re.compile(r"^\[\^([a-zA-Z0-9]+)\]:\s?(.*)$", re.IGNORECASE)
 _FOOTNOTE_REF_RE = re.compile(r"\[\^([a-zA-Z0-9]+)\]", re.IGNORECASE)
@@ -279,30 +279,110 @@ def _extract_list(lines: list[str], start_index: int) -> tuple[Token | None, int
         return None, start_index
 
     ordered = first.group("ordered") is not None
+    parent_indent = len(first.group("indent"))
     list_lines = [lines[start_index]]
-    raw_items = [first.group("item")]
+    raw_items = [(first.group("item"), parent_indent)]
     i = start_index + 1
 
+    # Collect top-level items and detect nested sub-lists
     while i < len(lines):
-        match = _LIST_RE.match(lines[i])
-        if not match or (match.group("ordered") is not None) != ordered:
+        line = lines[i]
+
+        # Blank line: only bridge if next non-blank line is nested deeper
+        if not line.strip():
+            j = i + 1
+            while j < len(lines) and not lines[j].strip():
+                j += 1
+            if j < len(lines):
+                next_match = _LIST_RE.match(lines[j])
+                if next_match and len(next_match.group("indent")) > parent_indent:
+                    # Next line is nested: bridge the blank line
+                    i = j
+                    continue
+            # Blank line is a list terminator
             break
-        list_lines.append(lines[i])
-        raw_items.append(match.group("item"))
-        i += 1
+
+        match = _LIST_RE.match(line)
+        if not match:
+            break
+
+        item_indent = len(match.group("indent"))
+        item_ordered = match.group("ordered") is not None
+
+        # Same indent level and marker type: continuation
+        if item_indent == parent_indent and item_ordered == ordered:
+            list_lines.append(line)
+            raw_items.append((match.group("item"), item_indent))
+            i += 1
+            continue
+
+        # More indented: could be a nested list (mixed marker types allowed)
+        if item_indent > parent_indent:
+            # Collect all nested lines
+            nested_lines = [line]
+            nested_indent = item_indent
+            i += 1
+
+            while i < len(lines):
+                nl = lines[i]
+                if not nl.strip():
+                    # Look ahead: if next non-blank is same indent or deeper, continue
+                    m = i + 1
+                    while m < len(lines) and not lines[m].strip():
+                        m += 1
+                    if m < len(lines):
+                        nm_next = _LIST_RE.match(lines[m])
+                        if nm_next and len(nm_next.group("indent")) >= nested_indent:
+                            i += 1
+                            continue
+                    break
+
+                nm = _LIST_RE.match(nl)
+                if not nm:
+                    break
+                nm_indent = len(nm.group("indent"))
+                if nm_indent < nested_indent:
+                    break
+                if nm_indent > nested_indent:
+                    # Deeper nesting; collect it too
+                    nested_lines.append(nl)
+                    i += 1
+                    continue
+                if nm_indent == nested_indent:
+                    nested_lines.append(nl)
+                    i += 1
+                    continue
+                break
+
+            # Recursively parse nested list
+            sub_token, _ = _extract_list(nested_lines, 0)
+            if sub_token:
+                # Attach sub-list to the last raw item
+                raw_items[-1] = (raw_items[-1][0], item_indent, sub_token)
+            continue
+
+        # Different indent or marker type: end of list
+        break
 
     text = "\n".join(list_lines)
 
     # Detect whether this list contains task items (- [ ] / - [x]).
-    has_task = any(_TASK_CHECK_RE.match(item) for item in raw_items)
+    has_task = any(_TASK_CHECK_RE.match(item) for item, _, *rest in raw_items if not isinstance(item, tuple))
+    has_task = has_task or any(
+        _TASK_CHECK_RE.match(item) for item, _, *rest in raw_items if isinstance(item, tuple) and isinstance(item[0], str)
+    )
 
     # Parse inline formatting for each list item.
-    # ``items`` is a list of dicts with ``text``, ``content``, ``spans`` keys
-    # for exporters; the renderer and tests still expect plain strings, so
-    # we also provide ``item_texts`` with the raw strings.
     parsed_items: list[dict[str, Any]] = []
     item_texts: list[str] = []
-    for raw_item in raw_items:
+    for item_data in raw_items:
+        if isinstance(item_data, tuple):
+            raw_item, _, *sub = item_data
+            sub_list = sub[0] if sub else None
+        else:
+            raw_item = item_data
+            sub_list = None
+
         task_match = _TASK_CHECK_RE.match(raw_item)
         if task_match:
             checked = task_match.group(1).lower() == "x"
@@ -312,13 +392,16 @@ def _extract_list(lines: list[str], start_index: int) -> tuple[Token | None, int
             item_text = raw_item
 
         inline = _parse_inline(item_text)
-        parsed_items.append({
+        parsed_item = {
             "text": item_text,
             "content": inline["content"],
             "spans": inline["spans"],
             "checked": checked,
             "task": task_match is not None,
-        })
+        }
+        if sub_list:
+            parsed_item["sub_list"] = sub_list
+        parsed_items.append(parsed_item)
         item_texts.append(item_text)
 
     return {

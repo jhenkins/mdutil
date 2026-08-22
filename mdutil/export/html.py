@@ -571,25 +571,33 @@ dl dd {{
             f'</li></ol></div>'
         )
 
-    def _render_list(self, token: dict) -> str:
-        """Render an ordered or unordered list."""
+    def _render_list(self, token: dict, level: int = 0) -> str:
+        """Render an ordered or unordered list, recursing into sub-lists."""
         parsed_items = token.get("parsed_items", [])
         ordered = token.get("ordered", False)
         is_task_list = token.get("task", False)
         list_type = "ol" if ordered else "ul"
 
+        indent = "  " * level
         list_items = []
         if parsed_items:
-            for item in parsed_items:
+            for idx, item in enumerate(parsed_items):
                 content = item.get("content", item.get("text", ""))
 
-                # Render task checkbox if applicable
                 if is_task_list and item.get("task") and item.get("checked") is not None:
                     checked_attr = ' checked' if item["checked"] else ''
                     checkbox = f'<input type="checkbox"{checked_attr} disabled> '
-                    list_items.append(f"<li>{checkbox}{content}</li>")
+                    li_content = f"{checkbox}{content}"
                 else:
-                    list_items.append(f"<li>{content}</li>")
+                    li_content = str(content)
+
+                # Recurse into sub-list and include inside <li>
+                sub = item.get("sub_list")
+                if sub:
+                    sub_html = self._render_list(sub, level + 1)
+                    li_content += f"\n{sub_html}"
+
+                list_items.append(f"{indent}<li>{li_content}</li>")
         else:
             # Fallback for tokens without parsed_items (tests, legacy)
             items = token.get("items", [])

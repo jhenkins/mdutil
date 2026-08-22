@@ -125,47 +125,54 @@ def _render_code(token: dict[str, Any], theme: dict[str, Any], syntax_theme: str
     return highlight_code(code, language, theme, syntax_theme=syntax_theme).split("\n")
 
 
-def _render_list(token: dict[str, Any]) -> list[str]:
-    content = token.get("content") or token.get("text")
+def _render_list(token: dict[str, Any], indent_level: int = 0) -> list[str]:
+    """Render a list token, recursively handling nested sub-lists.
+
+    Args:
+        token: Parsed list token with ``parsed_items``.
+        indent_level: Current nesting depth (each level adds 2 spaces).
+    """
     parsed_items = token.get("parsed_items", [])
-
-    # For task lists with parsed_items, always use the structured rendering
-    # to apply checkbox symbols, even when content is set.
     is_task_list = token.get("task", False)
-    if content and not (is_task_list and parsed_items):
-        return str(content).split("\n")
+    ordered = token.get("ordered", False)
+    indent = "  " * indent_level
 
-    items = [str(item) for item in token.get("items", [])]
-
+    result: list[str] = []
     if parsed_items:
-        result = []
-        for i, item in enumerate(parsed_items):
+        for idx, item in enumerate(parsed_items):
+            text = str(item.get("text", ""))
+
+            # Task item with checkbox
             if is_task_list and item.get("task") and item.get("checked") is not None:
                 prefix = "☑" if item["checked"] else "☐"
-                text = str(item.get("text", ""))
+                line = f"{indent}{prefix} {text}"
             elif is_task_list and item.get("task"):
-                text = str(item.get("text", ""))
-                if token.get("ordered"):
-                    result.append(f"{i + 1}. {text}")
+                # Task item without resolved checkbox
+                if ordered:
+                    line = f"{indent}{idx + 1}. {text}"
                 else:
-                    result.append(f"- {text}")
-                continue
+                    line = f"{indent}- {text}"
+            elif ordered:
+                line = f"{indent}{idx + 1}. {text}"
             else:
-                text = str(item.get("text", ""))
-                if token.get("ordered"):
-                    result.append(f"{i + 1}. {text}")
-                else:
-                    result.append(f"- {text}")
-                continue
-            if token.get("ordered"):
-                result.append(f"{i + 1}. {prefix} {text}")
-            else:
-                result.append(f"{prefix} {text}")
-        return result
+                line = f"{indent}- {text}"
 
-    if token.get("ordered"):
-        return [f"{idx}. {item}" for idx, item in enumerate(items, 1)]
-    return [f"- {item}" for item in items]
+            result.append(line)
+
+            # Recurse into sub-list if present
+            sub = item.get("sub_list")
+            if sub:
+                result.extend(_render_list(sub, indent_level + 1))
+    else:
+        # Legacy path: plain ``items`` list
+        items = [str(item) for item in token.get("items", [])]
+        for idx, item in enumerate(items, 1):
+            if ordered:
+                line = f"{indent}{idx}. {item}"
+            else:
+                line = f"{indent}- {item}"
+            result.append(line)
+    return result
 
 
 def _render_blockquote(token: dict[str, Any], theme: dict[str, Any]) -> list[str]:
