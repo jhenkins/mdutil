@@ -472,6 +472,36 @@ def _parse_image_dimensions(raw: str) -> tuple[str, int | None, int | None]:
     return raw.strip(), None, None
 
 
+def _parse_link_attributes(raw: str) -> tuple[str, str | None]:
+    """Parse optional title attribute from a link href string.
+
+    GFM allows appending a title after the URL::
+
+        [text](url "title")
+        [text](url "title" =100x200)
+        [text](url)              # no title
+
+    Returns:
+        Tuple of (cleaned_href, title_or_None).
+    """
+    # Match optional =WxH dimension hint first (if present)
+    dim_match = re.search(r"\s+=(\d+)x(\d+)\s*$", raw)
+    stripped = raw
+    if dim_match:
+        stripped = raw[: dim_match.start()].strip()
+
+    # Match optional "title" or 'title' at the end
+    title_match = re.search(r'\s+(?:"(.*)"|\'(.*)\')\s*$', stripped)
+    if title_match:
+        title = title_match.group(1) if title_match.group(1) is not None else title_match.group(2)
+        href = stripped[: title_match.start()].strip()
+        # Re-append dimension hint if it was present
+        if dim_match:
+            href = href + raw[dim_match.start() :]
+        return href, title
+    return stripped, None
+
+
 def _parse_inline_segment(text: str) -> tuple[str, list[dict[str, str]]]:
     output: list[str] = []
     spans: list[dict[str, str]] = []
@@ -633,10 +663,23 @@ def _parse_inline_segment(text: str) -> tuple[str, list[dict[str, str]]]:
                 close_href = _find_unescaped(text, ")", close_label + 2)
                 if close_href != -1:
                     link_content, link_spans = _parse_inline_segment(text[index + 1 : close_label])
-                    href = text[close_label + 2 : close_href]
+                    raw_href = text[close_label + 2 : close_href]
+                    # Parse optional title attribute from the href string
+                    href, link_title = _parse_link_attributes(raw_href)
                     spans.extend(link_spans)
-                    spans.append({"type": "link", "text": _visible_inline_text(link_content), "href": href})
-                    output.append(f'<a href="{href}">{link_content}</a>')
+                    span_data: dict[str, Any] = {
+                        "type": "link",
+                        "text": _visible_inline_text(link_content),
+                        "href": href,
+                    }
+                    if link_title is not None:
+                        span_data["title"] = link_title
+                    spans.append(span_data)
+                    # Reconstruct HTML with optional title attribute
+                    attrs = f'href="{_escape_html(href)}"'
+                    if link_title is not None:
+                        attrs += f' title="{_escape_html(link_title)}"'
+                    output.append(f'<a {attrs}>{link_content}</a>')
                     index = close_href + 1
                     continue
 
@@ -669,10 +712,15 @@ def _find_unescaped(text: str, marker: str, start: int) -> int:
 
 
 def _visible_inline_text(text: str) -> str:
-    text = re.sub(r"<a\s+href=\"[^\"]*\">(.*?)</a>", r"\1", text)
+    text = re.sub(r"<a\s+[^>]*>(.*?)</a>", r"\1", text)
     text = re.sub(r"<fnref\s+id=\"\d+\">", "", text)
     text = re.sub(r"</?(?:strong|em|code|fnref)>", "", text)
     return text
+
+
+def _escape_html(text: str) -> str:
+    """Escape HTML special characters in text."""
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 def _is_table_separator(line: str) -> bool:
