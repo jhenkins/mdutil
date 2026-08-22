@@ -38,10 +38,10 @@ lane_model: basic
 | KB-068 | v5.0 Phase 3b: Renderer image placeholder display | done | P1 | jan | - | KB-067 | 2026-08-19 |
 | KB-069 | v5.0 Phase 3b: HTML exporter image rendering | done | P1 | jan | - | KB-068 | 2026-08-21 |
 | KB-070 | v5.0 Phase 3b: PDF exporter image rendering | done | P1 | jan | - | KB-069 | 2026-08-21 |
-| KB-071 | v5.0 Phase 4a: Parser link title attribute | backlog | P1 | jan | - | KB-050 | 2026-08-17 |
-| KB-072 | v5.0 Phase 4a: Exporter link title rendering | backlog | P1 | jan | - | KB-071 | 2026-08-17 |
-| KB-073 | v5.0 Phase 5a: Parser nested list structure preservation | backlog | P1 | jan | - | KB-050 | 2026-08-17 |
-| KB-074 | v5.0 Phase 5a: Tests for nested list nesting | backlog | P1 | jan | - | KB-073 | 2026-08-17 |
+| KB-071 | v5.0 Phase 4a: Parser link title attribute | done | P1 | jan | - | KB-050 | 2026-08-21 |
+| KB-072 | v5.0 Phase 4a: Exporter link title rendering | done | P1 | jan | - | KB-071 | 2026-08-21 |
+| KB-073 | v5.0 Phase 5a: Parser nested list structure preservation | done | P1 | jan | - | KB-050 | 2026-08-22 |
+| KB-074 | v5.0 Phase 5a: Tests for nested list nesting | done | P1 | jan | - | KB-073 | 2026-08-22 |
 | KB-075 | v5.0 Phase 6a: Theme support for new inline styles | backlog | P1 | jan | - | KB-050 | 2026-08-17 |
 | KB-076 | v5.0 Phase 6a: Config support for new features | backlog | P1 | jan | - | KB-075 | 2026-08-17 |
 | KB-077 | v5.0 Phase 7a: Parser tests for new syntax | backlog | P1 | jan | - | KB-050 | 2026-08-17 |
@@ -141,3 +141,11 @@ lane_model: basic
 - **KB-068 complete** (Phase 3b renderer): Terminal renderer displays `[image: alt text]` placeholder via `_strip_inline_tags()`. Falls back to `[image: url]` when alt is empty. HTML exporter passes through `<img>` tags. PDF exporter emits `[image: alt text]` placeholder via `_InlineHTMLParser`. HTML exporter `_render_spans` handles `image` span type with `<img>` output. 20 tests in `tests/test_image.py`. Full suite: 614 passed.
 - **KB-069 complete** (Phase 3b HTML): HTML exporter emits `<img src="..." alt="...">` with optional `width`/`height` attributes from GFM `=WxH` dimension syntax. CSS rule: `img { max-width: 100%; box-sizing: border-box; }`. 8 new tests. Full suite: 632 passed.
 - **KB-070 complete** (Phase 3b PDF): PdfExporter now embeds local images via fpdf2 `pdf.image()` with aspect-ratio preservation. Dimension hints `=WxH` used for scaling. Remote URLs and missing files fall back to `[image: alt]` placeholder text. 2 new tests. Full suite: 632 passed.
+
+- **KB-071 complete** (Phase 4a parser): Parser now extracts link title attributes from `[text](url "title")` syntax. `_parse_link_attributes()` helper extracts title from double/single-quoted strings. Link span tokens include `title` field. Inline HTML output includes `title` attribute with HTML-escaped values. 20 new tests. Full suite: 665 passed.
+
+- **KB-072 complete** (Phase 4a exporters): HTML exporter renders `title` attribute on `<a>` tags. PDF exporter's `_InlineHTMLParser` extracts `title` from `<a>` tags and stores in segments. `_render_inline_html` uses `pdf.link()` with `title` parameter for annotations with titles. 13 new tests. Full suite: 665 passed.
+
+- **KB-073 complete** (Phase 5a parser): Nested list support implemented end-to-end. Parser `_extract_list` now detects nested items by indentation level (up to 8 spaces), recursively parses sub-lists, and attaches them to parent items via `sub_list` field. Supports mixed ordered/unordered nesting at any depth. Renderer, HTML exporter, and PDF exporter all updated to recurse into `sub_list` with proper indentation. 20 new tests. Full suite: 685 passed.
+
+- **KB-074 complete** (Phase 5a tests): 20 tests covering 1-3 levels of nesting, mixed ordered/unordered nesting, nested lists with inline formatting (bold, italic, code), nested task lists, and blank-line separation between separate list groups. All 685 tests pass.
