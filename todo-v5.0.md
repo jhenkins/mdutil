@@ -287,17 +287,17 @@
 **Goal:** Support `[text](url "title")` with hover titles
 
 **Tasks:**
-- [ ] KB-071: Parser: parse link title attribute
-  - [ ] Fix current parsing of `"title"` in link syntax
-  - [ ] Add `title` field to link tokens
-  - [ ] Preserve title in export tokens
+- [x] KB-071: Parser: parse link title attribute
+  - [x] Fix current parsing of `"title"` in link syntax
+  - [x] Add `title` field to link tokens
+  - [x] Preserve title in export tokens
 
 **Files:**
 - Modify: `mdutil/parser.py:378-461` (_parse_inline_segment)
 
-- [ ] KB-072: HTML/PDF exporter: render link titles
-  - [ ] HTML: add `title` attribute to `<a>` tags
-  - [ ] PDF: include title in link annotation
+- [x] KB-072: HTML/PDF exporter: render link titles
+  - [x] HTML: add `title` attribute to `<a>` tags
+  - [x] PDF: include title in link annotation
 
 **Files:**
 - Modify: `mdutil/export/html.py`
@@ -312,22 +312,27 @@
 **Goal:** Fix nested list items being merged into single line
 
 **Tasks:**
-- [ ] KB-073: Debug and fix nested list parsing
-  - [ ] Identify why nested items merge: `- item 1\n    - nested 1` → `'- item 1\n- nested 1 - nested 2\n- item 2'`
-  - [ ] Fix list item extraction to preserve nesting structure
-  - [ ] Add proper indentation to nested items in output
+- [x] KB-073: Debug and fix nested list parsing
+  - [x] Identify why nested items merge
+  - [x] Fix list item extraction to preserve nesting structure
+  - [x] Add proper indentation to nested items in output
+  - [x] Update renderer, HTML exporter, PDF exporter for sub_list recursion
 
 **Files:**
-- Modify: `mdutil/parser.py:327-369` (_extract_list)
-- Modify: `mdutil/renderer.py:85-93` (_render_list)
+- Modify: `mdutil/parser.py` (_extract_list)
+- Modify: `mdutil/renderer.py` (_render_list)
+- Modify: `mdutil/export/html.py` (_render_list)
+- Modify: `mdutil/export/pdf.py` (_render_list)
 
-- [ ] KB-074: Add tests for nested list nesting
-  - [ ] Test 1, 2, 3 levels of nesting
-  - [ ] Test mixed ordered/unordered lists
-  - [ ] Test nested lists with inline formatting
+- [x] KB-074: Add tests for nested list nesting
+  - [x] Test 1, 2, 3 levels of nesting
+  - [x] Test mixed ordered/unordered lists
+  - [x] Test nested lists with inline formatting
+  - [x] Test nested task lists
+  - [x] Test blank-line separation between separate list groups
 
 **Files:**
-- Test: `tests/test_parser.py`, `tests/test_renderer.py`
+- Test: `tests/test_nested_list.py` (20 tests)
 
 ---
 
