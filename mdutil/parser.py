@@ -264,6 +264,9 @@ def _parse_heading(line: str) -> Token | None:
     return {"type": "heading", "content": content, "level": level, "text": text}
 
 
+_TASK_CHECK_RE = re.compile(r"^\s*\[([ xX])\]\s+(.*)")
+
+
 def _is_horizontal_rule(line: str) -> bool:
     stripped = line.strip()
     compact = re.sub(r"[ \t]", "", stripped)
@@ -290,6 +293,9 @@ def _extract_list(lines: list[str], start_index: int) -> tuple[Token | None, int
 
     text = "\n".join(list_lines)
 
+    # Detect whether this list contains task items (- [ ] / - [x]).
+    has_task = any(_TASK_CHECK_RE.match(item) for item in raw_items)
+
     # Parse inline formatting for each list item.
     # ``items`` is a list of dicts with ``text``, ``content``, ``spans`` keys
     # for exporters; the renderer and tests still expect plain strings, so
@@ -297,19 +303,30 @@ def _extract_list(lines: list[str], start_index: int) -> tuple[Token | None, int
     parsed_items: list[dict[str, Any]] = []
     item_texts: list[str] = []
     for raw_item in raw_items:
-        inline = _parse_inline(raw_item)
+        task_match = _TASK_CHECK_RE.match(raw_item)
+        if task_match:
+            checked = task_match.group(1).lower() == "x"
+            item_text = task_match.group(2)
+        else:
+            checked = None
+            item_text = raw_item
+
+        inline = _parse_inline(item_text)
         parsed_items.append({
-            "text": raw_item,
+            "text": item_text,
             "content": inline["content"],
             "spans": inline["spans"],
+            "checked": checked,
+            "task": task_match is not None,
         })
-        item_texts.append(raw_item)
+        item_texts.append(item_text)
 
     return {
         "type": "list",
         "content": text,
         "text": text,
         "ordered": ordered,
+        "task": has_task,
         "items": item_texts,
         "parsed_items": parsed_items,
     }, i
@@ -432,6 +449,27 @@ def _collect_footnote_definitions(tokens: list[Token]) -> tuple[dict[str, str], 
                 continue  # skip this paragraph from main stream
         filtered.append(token)
     return footnotes, filtered
+
+
+def _parse_image_dimensions(raw: str) -> tuple[str, int | None, int | None]:
+    """Parse optional `=WxH` dimension hint from an image href string.
+
+    GFM allows appending dimensions after the URL::
+
+        ![alt](image.png =200x100)
+        ![alt](image.png)        # no dimensions
+
+    Returns:
+        Tuple of (cleaned_src, width_or_None, height_or_None).
+    """
+    # Match optional =WxH at the end, after whitespace
+    dim_match = re.search(r"\s+=(\d+)x(\d+)\s*$", raw)
+    if dim_match:
+        width = int(dim_match.group(1))
+        height = int(dim_match.group(2))
+        src = raw[: dim_match.start()].strip()
+        return src, width, height
+    return raw.strip(), None, None
 
 
 def _parse_inline_segment(text: str) -> tuple[str, list[dict[str, str]]]:
@@ -558,17 +596,34 @@ def _parse_inline_segment(text: str) -> tuple[str, list[dict[str, str]]]:
                 index = ref_match.end()
                 continue
 
-        # Image: ![alt](url)
+        # Image: ![alt](url "title" =WxH)
         if char == "!" and index + 1 < len(text) and text[index + 1] == "[":
             close_label = _find_unescaped(text, "]", index + 2)
             if close_label != -1 and close_label + 1 < len(text) and text[close_label + 1] == "(":
                 close_href = _find_unescaped(text, ")", close_label + 2)
                 if close_href != -1:
                     alt_content, alt_spans = _parse_inline_segment(text[index + 2 : close_label])
-                    src = text[close_label + 2 : close_href]
+                    raw_href = text[close_label + 2 : close_href].strip()
+                    # Parse optional =WxH dimension hint appended after the URL
+                    src, img_width, img_height = _parse_image_dimensions(raw_href)
                     spans.extend(alt_spans)
-                    spans.append({"type": "image", "text": _visible_inline_text(alt_content), "src": src})
-                    output.append(f'<img src="{src}" alt="{alt_content}">')
+                    img_span: dict[str, Any] = {
+                        "type": "image",
+                        "text": _visible_inline_text(alt_content),
+                        "src": src,
+                    }
+                    if img_width is not None:
+                        img_span["width"] = img_width
+                    if img_height is not None:
+                        img_span["height"] = img_height
+                    spans.append(img_span)
+                    # Reconstruct HTML with optional width/height attributes
+                    img_attrs = f'src="{src}" alt="{alt_content}"'
+                    if img_width is not None:
+                        img_attrs += f' width="{img_width}"'
+                    if img_height is not None:
+                        img_attrs += f' height="{img_height}"'
+                    output.append(f"<img {img_attrs}>")
                     index = close_href + 1
                     continue
 

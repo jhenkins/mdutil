@@ -81,17 +81,30 @@ class _InlineHTMLParser(html.parser.HTMLParser):
             attrs_dict = dict(attrs)
             alt = attrs_dict.get("alt", "")
             src = attrs_dict.get("src", "")
-            display = alt if alt else src
-            if display:
-                self.segments.append(
-                    {
-                        "text": f"[image: {display}]",
-                        "strong": bool(self._strong),
-                        "emphasis": bool(self._emphasis),
-                        "code": bool(self._code),
-                        "href": self._links[-1] if self._links else "",
-                    }
-                )
+            width = attrs_dict.get("width")
+            height = attrs_dict.get("height")
+            # Emit a special image segment; _render_inline_html will
+            # detect it and embed the actual image via fpdf2.
+            img_segment: dict[str, Any] = {
+                "type": "image",
+                "src": src,
+                "alt": alt,
+                "strong": bool(self._strong),
+                "emphasis": bool(self._emphasis),
+                "code": bool(self._code),
+                "href": self._links[-1] if self._links else "",
+            }
+            if width:
+                try:
+                    img_segment["width"] = int(width)
+                except ValueError:
+                    pass
+            if height:
+                try:
+                    img_segment["height"] = int(height)
+                except ValueError:
+                    pass
+            self.segments.append(img_segment)
 
     def handle_endtag(self, tag: str) -> None:
         if tag == "strong" and self._strong:
@@ -190,6 +203,10 @@ class PdfExporter(Exporter):
     def _render_inline_html(self, pdf: FPDF, html: str, *, line_height: float = 5) -> None:
         """Render parser-produced inline HTML with PDF fonts and link annotations."""
         for segment in self._parse_inline_html(html):
+            # Handle image segments specially — embed the actual image
+            if segment.get("type") == "image":
+                self._embed_image(pdf, segment)
+                continue
             text = segment["text"]
             if not text:
                 continue
@@ -209,6 +226,98 @@ class PdfExporter(Exporter):
                 pdf.set_text_color(0, 0, 0)
             pdf.write(line_height, text, link=segment.get("href") or "")
         pdf.set_text_color(0, 0, 0)
+
+    def _embed_image(self, pdf: FPDF, segment: dict[str, Any]) -> None:
+        """Embed an image into the PDF from a parsed image segment.
+
+        Supports local file paths. Remote URLs are not downloaded (PDF
+        exporters are for offline/static output); falls back to placeholder.
+        """
+        src = segment.get("src", "")
+        alt = segment.get("alt", "")
+
+        pdf.set_font(self._font_for("regular"), size=self.FONT_SIZE)
+
+        # Only attempt to embed local file:// or relative paths
+        if src.startswith("http://") or src.startswith("https://") or src.startswith("//"):
+            # Remote image — cannot embed without network access
+            placeholder = f"[image: {alt or src}]"
+            text = self._strip_non_ascii(placeholder)
+            pdf.write(5, text)
+            pdf.ln(3)
+            return
+
+        # Resolve local path
+        import os
+        if not os.path.isabs(src):
+            # Try relative to working directory
+            candidate = os.path.join(os.getcwd(), src)
+        else:
+            candidate = src
+
+        if not os.path.isfile(candidate):
+            # File not found — fall back to placeholder
+            placeholder = f"[image: {alt or src}]"
+            text = self._strip_non_ascii(placeholder)
+            pdf.write(5, text)
+            pdf.ln(3)
+            return
+
+        # Determine image type for fpdf2
+        ext = os.path.splitext(candidate)[1].lower()
+        supported = {".jpg": "JPEG", ".jpeg": "JPEG", ".png": "PNG", ".gif": "PNG"}
+        img_type = supported.get(ext, "PNG")
+
+        # Calculate dimensions
+        desired_width = segment.get("width")  # CSS pixels — approximate as mm
+        desired_height = segment.get("height")
+
+        available_width = pdf.w - pdf.l_margin - pdf.r_margin - pdf.get_x()
+        if available_width < 10:
+            available_width = 150  # fallback
+
+        try:
+            if desired_width and desired_height:
+                # Scale to fit available width, preserving aspect ratio
+                scale = available_width / desired_width
+                rendered_w = available_width
+                rendered_h = desired_height * scale
+                if rendered_h > available_width:  # prevent excessively tall images
+                    rendered_h = available_width
+                    rendered_w = desired_width * scale
+            elif desired_width:
+                scale = available_width / desired_width
+                rendered_w = available_width
+                rendered_h = None  # let fpdf2 determine height
+            else:
+                rendered_w = min(available_width, 100)  # default max 100mm
+                rendered_h = None
+
+            # Check page break
+            current_y = pdf.get_y()
+            if rendered_h and (current_y + rendered_h > pdf.h - pdf.b_margin):
+                pdf.add_page()
+
+            pdf.image(candidate, x=pdf.get_x(), w=rendered_w, keep_aspect_ratio=bool(rendered_h))
+
+            # Add caption if alt text is meaningful
+            if alt:
+                pdf.ln(2)
+                pdf.set_font(self._font_for("regular"), size=8)
+                pdf.set_text_color(100, 100, 100)
+                pdf.write(4, alt)
+                pdf.set_text_color(0, 0, 0)
+                pdf.ln(3)
+            else:
+                pdf.ln(3)
+
+        except Exception as e:
+            _logger.warning("Failed to embed image %s: %s", src, e)
+            pdf.set_font(self._font_for("regular"), size=self.FONT_SIZE)
+            placeholder = f"[image: {alt or src}]"
+            text = self._strip_non_ascii(placeholder)
+            pdf.write(5, text)
+            pdf.ln(3)
 
     def _is_document_header_metadata(self, token: dict) -> bool:
         """Return True when a paragraph is the spec-style document metadata header."""
@@ -999,6 +1108,7 @@ class PdfExporter(Exporter):
         """Render an ordered or unordered list."""
         parsed_items = token.get("parsed_items", [])
         ordered = token.get("ordered", False)
+        is_task_list = token.get("task", False)
         indent = 5
 
         pdf.set_font(self._font_for("regular"), size=self.FONT_SIZE)
@@ -1014,15 +1124,18 @@ class PdfExporter(Exporter):
             items_to_render = token.get("items", [])
 
         for i, item in enumerate(items_to_render, 1):
-            if ordered:
-                prefix = f"{i}. "
-            else:
-                prefix = "- "
-
             if isinstance(item, dict):
                 content = item.get("content", item.get("text", ""))
+
+                # Render task checkbox prefix
+                if is_task_list and item.get("task") and item.get("checked") is not None:
+                    prefix = "☑" if item["checked"] else "☐"
+                else:
+                    prefix = f"{i}. " if ordered else "- "
             else:
                 content = str(item)
+                prefix = f"{i}. " if ordered else "- "
+
             # Strip HTML inline tags for PDF (fpdf2 can't render HTML)
             # But replace footnote refs with superscript first
             content = re.sub(
@@ -1036,6 +1149,6 @@ class PdfExporter(Exporter):
             effective_w = pdf.w - left_x - pdf.r_margin - indent
             if effective_w < 10:
                 effective_w = 50  # fallback for very narrow layouts
-            pdf.multi_cell(effective_w, 5, f"{prefix}{content}", align="L")
+            pdf.multi_cell(effective_w, 5, f"{prefix} {content}", align="L")
 
         pdf.ln(3)

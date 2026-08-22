@@ -2,9 +2,11 @@
 
 ## Status
 
-KB-052, KB-053, and KB-054 are marked **done** on the kanban board, but the actual implementation code was **never committed** to the `feature/v5.0-rendering` branch. The git history goes straight from Phase 1a/b (strikethrough, footnotes) to Phase 1d (math) and Phase 2a (footnotes), skipping Phase 1c (task lists).
+**✅ COMPLETED 2026-08-21.**
 
-**Test file exists** (`tests/test_task_list.py`, 14 tests) but the corresponding parser/renderer/exporter code is missing. 10 of 14 tests fail with `KeyError: 'task'` and missing checkbox rendering.
+KB-052, KB-053, and KB-054 were marked done on the kanban board, but the actual implementation code was never committed. This plan remediated that gap.
+
+All 14 tests in `tests/test_task_list.py` now pass. Full suite: 624 passed.
 
 ---
 

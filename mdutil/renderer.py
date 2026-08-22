@@ -127,10 +127,42 @@ def _render_code(token: dict[str, Any], theme: dict[str, Any], syntax_theme: str
 
 def _render_list(token: dict[str, Any]) -> list[str]:
     content = token.get("content") or token.get("text")
-    if content:
+    parsed_items = token.get("parsed_items", [])
+
+    # For task lists with parsed_items, always use the structured rendering
+    # to apply checkbox symbols, even when content is set.
+    is_task_list = token.get("task", False)
+    if content and not (is_task_list and parsed_items):
         return str(content).split("\n")
 
     items = [str(item) for item in token.get("items", [])]
+
+    if parsed_items:
+        result = []
+        for i, item in enumerate(parsed_items):
+            if is_task_list and item.get("task") and item.get("checked") is not None:
+                prefix = "☑" if item["checked"] else "☐"
+                text = str(item.get("text", ""))
+            elif is_task_list and item.get("task"):
+                text = str(item.get("text", ""))
+                if token.get("ordered"):
+                    result.append(f"{i + 1}. {text}")
+                else:
+                    result.append(f"- {text}")
+                continue
+            else:
+                text = str(item.get("text", ""))
+                if token.get("ordered"):
+                    result.append(f"{i + 1}. {text}")
+                else:
+                    result.append(f"- {text}")
+                continue
+            if token.get("ordered"):
+                result.append(f"{i + 1}. {prefix} {text}")
+            else:
+                result.append(f"{prefix} {text}")
+        return result
+
     if token.get("ordered"):
         return [f"{idx}. {item}" for idx, item in enumerate(items, 1)]
     return [f"- {item}" for item in items]

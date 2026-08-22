@@ -412,7 +412,12 @@ dl dd {{
                 output.append(f"<mark>{content}</mark>")
             elif span_type == "image":
                 src = span.get("src", "")
-                output.append(f'<img src="{src}" alt="{content}">')
+                attrs = f'src="{src}" alt="{content}"'
+                if span.get("width") is not None:
+                    attrs += f' width="{span["width"]}"'
+                if span.get("height") is not None:
+                    attrs += f' height="{span["height"]}"'
+                output.append(f'<img {attrs}>')
             else:
                 output.append(content)
 
@@ -566,13 +571,21 @@ dl dd {{
         """Render an ordered or unordered list."""
         parsed_items = token.get("parsed_items", [])
         ordered = token.get("ordered", False)
+        is_task_list = token.get("task", False)
         list_type = "ol" if ordered else "ul"
 
         list_items = []
         if parsed_items:
             for item in parsed_items:
                 content = item.get("content", item.get("text", ""))
-                list_items.append(f"<li>{content}</li>")
+
+                # Render task checkbox if applicable
+                if is_task_list and item.get("task") and item.get("checked") is not None:
+                    checked_attr = ' checked' if item["checked"] else ''
+                    checkbox = f'<input type="checkbox"{checked_attr} disabled> '
+                    list_items.append(f"<li>{checkbox}{content}</li>")
+                else:
+                    list_items.append(f"<li>{content}</li>")
         else:
             # Fallback for tokens without parsed_items (tests, legacy)
             items = token.get("items", [])
