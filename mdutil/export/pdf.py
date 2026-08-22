@@ -349,6 +349,7 @@ class PdfExporter(Exporter):
         """Render tokens to PDF bytes."""
         _logger.debug("Starting PDF export with %d tokens", len(tokens))
         self._options = options  # Store options for use in code block rendering
+        self._theme = theme  # Store theme for use in inline style rendering
         paper_size = options.get("pdf_paper_size", "A4")
         orientation = options.get("pdf_orientation", "portrait")
 
@@ -1082,16 +1083,18 @@ class PdfExporter(Exporter):
         definitions = token.get("definitions", [])
         term_text = " / ".join(terms)
 
-        # Render term in bold with definition_term color
+        # Render term in bold with definition_term color from theme
         pdf.set_font(self._font_for("bold"), size=self.FONT_SIZE)
-        pdf.set_text_color(0, 0, 180)  # Use link color for term
+        term_color = self._hex_to_rgb(self._theme.get("markdown", {}).get("definition_term", "#0000b4"))
+        pdf.set_text_color(*term_color)
         pdf.set_x(pdf.l_margin)
         pdf.write(5, term_text)
         pdf.ln(3)
 
         # Render each definition indented
         pdf.set_font(self._font_for("regular"), size=self.FONT_SIZE)
-        pdf.set_text_color(50, 50, 50)  # Dark gray for definition text
+        def_color = self._hex_to_rgb(self._theme.get("markdown", {}).get("definition_definition", "#323232"))
+        pdf.set_text_color(*def_color)
         indent = pdf.l_margin + 8
         pdf.set_x(indent)
 
@@ -1105,6 +1108,17 @@ class PdfExporter(Exporter):
 
         pdf.ln(3)
         pdf.set_text_color(0, 0, 0)
+
+    @staticmethod
+    def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
+        """Convert a #RRGGBB hex color string to an (R, G, B) tuple."""
+        import re as _re
+
+        match = _re.fullmatch(r"#?([0-9a-fA-F]{6})", hex_color.strip())
+        if not match:
+            return (0, 0, 0)
+        hex_value = match.group(1)
+        return (int(hex_value[0:2], 16), int(hex_value[2:4], 16), int(hex_value[4:6], 16))
 
     @staticmethod
     def _superscript(n: str) -> str:

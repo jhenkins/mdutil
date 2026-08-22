@@ -8,6 +8,7 @@ Covers:
 - Nested task lists
 """
 
+import re
 import unittest
 
 from mdutil.parser import parse_markdown
@@ -171,8 +172,10 @@ class NestedListRendererTests(unittest.TestCase):
 
     def test_nested_task_list_render(self):
         result = self._render("- [ ] todo\n  - [x] done")
-        self.assertIn("☐ todo", result)
-        self.assertIn("☑ done", result)
+        # ANSI codes wrap checkbox symbols with theme colors — strip for assertion
+        plain = re.sub(r"\x1b\[[0-9;]*m", "", result)
+        self.assertIn("☐ todo", plain)
+        self.assertIn("☑ done", plain)
 
 
 class NestedListHtmlTests(unittest.TestCase):

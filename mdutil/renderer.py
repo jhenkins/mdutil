@@ -52,7 +52,7 @@ def _render_token(
     if ttype == "code":
         return _render_code(token, theme, syntax_theme)
     if ttype == "list":
-        return _render_list(token)
+        return _render_list(token, theme)
     if ttype == "blockquote":
         return _render_blockquote(token, theme)
     if ttype == "table":
@@ -125,7 +125,7 @@ def _render_code(token: dict[str, Any], theme: dict[str, Any], syntax_theme: str
     return highlight_code(code, language, theme, syntax_theme=syntax_theme).split("\n")
 
 
-def _render_list(token: dict[str, Any], indent_level: int = 0) -> list[str]:
+def _render_list(token: dict[str, Any], theme: dict[str, Any], indent_level: int = 0) -> list[str]:
     """Render a list token, recursively handling nested sub-lists.
 
     Args:
@@ -145,6 +145,8 @@ def _render_list(token: dict[str, Any], indent_level: int = 0) -> list[str]:
             # Task item with checkbox
             if is_task_list and item.get("task") and item.get("checked") is not None:
                 prefix = "☑" if item["checked"] else "☐"
+                prefix_key = "task_list_checked" if item["checked"] else "task_list_unchecked"
+                prefix = _style(prefix, theme, prefix_key)
                 line = f"{indent}{prefix} {text}"
             elif is_task_list and item.get("task"):
                 # Task item without resolved checkbox
@@ -162,7 +164,7 @@ def _render_list(token: dict[str, Any], indent_level: int = 0) -> list[str]:
             # Recurse into sub-list if present
             sub = item.get("sub_list")
             if sub:
-                result.extend(_render_list(sub, indent_level + 1))
+                result.extend(_render_list(sub, theme, indent_level + 1))
     else:
         # Legacy path: plain ``items`` list
         items = [str(item) for item in token.get("items", [])]
@@ -325,6 +327,7 @@ def _strip_inline_tags(text: str, theme: dict[str, Any] | None = None) -> str:
     text = re.sub(r"<sub>(.*?)</sub>", lambda m: _style(_subscript(re.sub(inner_re, "", m.group(1))), theme or {}, "subscript"), text)
     text = re.sub(r"<sup>(.*?)</sup>", lambda m: _style(_superscript(re.sub(inner_re, "", m.group(1))), theme or {}, "superscript"), text)
     text = re.sub(r"<mark>(.*?)</mark>", lambda m: _highlight_text(re.sub(inner_re, "", m.group(1)), theme or {}), text)
+    text = re.sub(r"<del>(.*?)</del>", lambda m: _style(re.sub(inner_re, "", m.group(1)), theme or {}, "strikethrough", bold=False), text)
     text = re.sub(r"</?(?:strong|em|del|code|math|sub|sup|mark)>", "", text)
     return text
 

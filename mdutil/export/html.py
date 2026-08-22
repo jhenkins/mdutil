@@ -86,6 +86,12 @@ class HtmlExporter(Exporter):
         table_header_bg = theme.get("table_header_bg", self.TABLE_HEADER_BG)
         table_border = theme.get("table_border", self.TABLE_BORDER_COLOR)
 
+        # Inline-style theme colors (with defaults)
+        highlight_bg = theme.get("markdown", {}).get("highlight", "#ffff00")
+        definition_term_color = theme.get("markdown", {}).get("definition_term", "#0066cc")
+        definition_def_color = theme.get("markdown", {}).get("definition_definition", "#333333")
+        strikethrough_color = theme.get("markdown", {}).get("strikethrough", "#888888")
+
         return f"""
 body {{
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -244,10 +250,15 @@ img {{
 }}
 
 mark {{
-    background-color: #ffff00;
+    background-color: {highlight_bg};
     color: inherit;
     padding: 0.1em 0.2em;
     border-radius: 2px;
+}}
+
+del, s {{
+    color: {strikethrough_color};
+    text-decoration: line-through;
 }}
 
 dl {{
@@ -257,14 +268,14 @@ dl {{
 
 dl dt {{
     font-weight: 600;
-    color: #0066cc;
+    color: {definition_term_color};
     margin-top: 12px;
 }}
 
 dl dd {{
     margin-left: 24px;
     margin-bottom: 8px;
-    color: #333333;
+    color: {definition_def_color};
 }}
 """
 
