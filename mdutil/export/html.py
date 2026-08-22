@@ -403,7 +403,11 @@ dl dd {{
                 output.append(f"<code>{content}</code>")
             elif span_type == "link":
                 href = span.get("href", "#")
-                output.append(f'<a href="{href}">{content}</a>')
+                title = span.get("title")
+                attrs = f'href="{href}"'
+                if title is not None:
+                    attrs += f' title="{self._escape_html(title)}"'
+                output.append(f'<a {attrs}>{content}</a>')
             elif span_type == "footnote_ref":
                 fn_id = span.get("id", "")
                 output.append(f'<sup><a href="#fn-{fn_id}" id="fnref-{fn_id}">'

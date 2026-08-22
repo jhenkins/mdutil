@@ -76,7 +76,8 @@ class _InlineHTMLParser(html.parser.HTMLParser):
             self._code += 1
         elif tag == "a":
             href = dict(attrs).get("href") or ""
-            self._links.append(href)
+            title = dict(attrs).get("title")
+            self._links.append((href, title))
         elif tag == "img":
             attrs_dict = dict(attrs)
             alt = attrs_dict.get("alt", "")
@@ -92,7 +93,8 @@ class _InlineHTMLParser(html.parser.HTMLParser):
                 "strong": bool(self._strong),
                 "emphasis": bool(self._emphasis),
                 "code": bool(self._code),
-                "href": self._links[-1] if self._links else "",
+                "href": self._links[-1][0] if self._links else "",
+                "title": self._links[-1][1] if self._links else None,
             }
             if width:
                 try:
@@ -125,7 +127,8 @@ class _InlineHTMLParser(html.parser.HTMLParser):
                 "strong": bool(self._strong),
                 "emphasis": bool(self._emphasis),
                 "code": bool(self._code),
-                "href": self._links[-1] if self._links else "",
+                "href": self._links[-1][0] if self._links else "",
+                "title": self._links[-1][1] if self._links else None,
             }
         )
 
@@ -224,7 +227,16 @@ class PdfExporter(Exporter):
                 pdf.set_text_color(0, 0, 180)
             else:
                 pdf.set_text_color(0, 0, 0)
-            pdf.write(line_height, text, link=segment.get("href") or "")
+            href = segment.get("href", "") or ""
+            title = segment.get("title")
+            if title is not None:
+                # Use pdf.link() with title parameter for annotations with titles
+                x_before = pdf.get_x()
+                pdf.write(line_height, text)
+                text_width = pdf.get_string_width(text)
+                pdf.link(x_before, pdf.get_y(), text_width, line_height, link=href, title=title)
+            else:
+                pdf.write(line_height, text, link=href)
         pdf.set_text_color(0, 0, 0)
 
     def _embed_image(self, pdf: FPDF, segment: dict[str, Any]) -> None:
