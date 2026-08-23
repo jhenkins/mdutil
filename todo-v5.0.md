@@ -480,13 +480,13 @@
 **Goal:** Prepare v5.0 release
 
 **Tasks:**
-- [ ] KB-088: Version bump
-  - [ ] Update `mdutil/version.py` to `5.0.0`
-  - [ ] Update semantic versioning rules if needed
+- [x] KB-088: Version bump
+  - [x] Update `mdutil/version.py` to `5.0.0`
+  - [x] Update semantic versioning rules if needed
 
-- [ ] KB-089: Create release PR
-  - [ ] Commit all changes
-  - [ ] Create PR to main branch
+- [ ] KB-089: Create release PR (in-progress)
+  - [x] Commit all changes
+  - [x] Create PR to main branch (PR #55)
   - [ ] Request review
 
 ---
