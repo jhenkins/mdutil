@@ -4,4 +4,21 @@ Nested strong em and code text.
 
 Escaped *stars* and [label](url).
 
-Link docs api (https://example.com), plus *literal*, [x](y)!.
+Link docs api (https://example.com), plus *literal, x (y)!.
+
+Strikethrough text for deleted content.
+
+Einstein: E = mc^2 in math notation.
+
+Text with footnote¹ reference inline.
+
+Chemistry: H₂O subscript and X² superscript.
+
+This is highlighted text for emphasis.
+
+[image: https://example.com/logo.png ]
+
+Google (https://google.com) link with title.
+
+
+    ¹  This is the footnote definition.
