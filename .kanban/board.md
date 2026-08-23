@@ -3,7 +3,7 @@
 ## Meta
 project_id: mdutil
 board_version: 4.2
-updated: 2026-08-23 14:00
+updated: 2026-08-23 17:15
 lane_model: basic
 
 ## Lanes
@@ -55,8 +55,8 @@ lane_model: basic
 | KB-085 | v5.0 Phase 8a: Full test suite verification | done | P1 | jan | - | KB-077, KB-078, KB-079, KB-080 | 2026-08-22 |
 | KB-086 | v5.0 Phase 8a: Manual QA with real documents | done | P1 | jan | - | KB-085 | 2026-08-23 |
 | KB-087 | v5.0 Phase 8a: Performance testing | done | P1 | jan | - | KB-085 | 2026-08-23 |
-| KB-088 | v5.0 Phase 8b: Version bump to 5.0.0 | backlog | P1 | jan | - | KB-086, KB-087 | 2026-08-17 |
-| KB-089 | v5.0 Phase 8b: Release PR creation | backlog | P1 | jan | - | KB-088 | 2026-08-17 |
+| KB-088 | v5.0 Phase 8b: Version bump to 5.0.0 | done | P1 | jan | - | KB-086, KB-087 | 2026-08-23 |
+| KB-089 | v5.0 Phase 8b: Release PR creation | in-progress | P1 | jan | - | KB-088 | 2026-08-23 |
 | KB-007 | v3.0 Phase 1: Foundation & Setup (fpdf2, module structure) | done | P2 | jan | - | - | 2026-07-26 |
 | KB-008 | v3.0 Phase 2: PDF Export Core (PdfExporter, CLI flags) | done | P2 | jan | - | KB-007 | 2026-07-26 |
 | KB-009 | v3.0 Phase 3: HTML Export (HtmlExporter, embedded CSS) | done | P2 | jan | - | KB-008 | 2026-07-26 |
