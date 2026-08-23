@@ -52,7 +52,7 @@ class HtmlExporterFootnoteTests(unittest.TestCase):
         md = "Hello[^1].\n\n[^1]: Footnote text."
         tokens = parse_markdown(md)
         html = self.exporter.render(tokens, {}, {})
-        self.assertIn('<sup><a href="#fn-1" id="fnref-1">1</a></sup>', html)
+        self.assertIn('<sup><a href="#fn-1" id="fnref-1">¹</a></sup>', html)
 
     def test_footnote_definition_rendered_as_list_item(self):
         """Footnote definition renders in .footnotes div."""
@@ -96,6 +96,16 @@ class HtmlExporterFootnoteTests(unittest.TestCase):
         html = self.exporter.render(tokens, {}, {})
         self.assertIn("<strong>bold</strong>", html)
         self.assertIn("<em>emphasis</em>", html)
+
+    def test_non_numeric_footnote_id(self):
+        """Non-numeric footnote IDs render with superscript characters."""
+        md = "Text[^note].\n\n[^note]: A named footnote."
+        tokens = parse_markdown(md)
+        html = self.exporter.render(tokens, {}, {})
+        self.assertIn('href="#fn-note"', html)
+        self.assertIn('id="fnref-note"', html)
+        # Should render as superscript "n⁰ᵗᵉ" not raw "note"
+        self.assertIn('<sup><a href="#fn-note" id="fnref-note">', html)
 
 
 class PdfExporterFootnoteTests(unittest.TestCase):
@@ -164,6 +174,11 @@ class PdfExporterFootnoteTests(unittest.TestCase):
         pdf_bytes = self.exporter.render(tokens, {}, {})
         text = _decode_pdf_text(pdf_bytes)
         self.assertIn("\u00b9", text)
+
+    def test_non_numeric_footnote_id_superscript(self):
+        """Non-numeric footnote IDs render with superscript characters."""
+        self.assertEqual(PdfExporter._superscript("note"), "ⁿᵒᵗᵉ")
+        self.assertEqual(PdfExporter._superscript("abc"), "ᵃᵇᶜ")
 
 
 if __name__ == "__main__":

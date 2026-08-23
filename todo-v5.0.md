@@ -394,21 +394,21 @@
 **Files:**
 - Test: `tests/test_renderer.py`
 
-- [ ] KB-079: Exporter tests for HTML/PDF
-  - [ ] HTML export of all new features
-  - [ ] PDF export of all new features
-  - [ ] Cross-format consistency
+- [x] KB-079: Exporter tests for HTML/PDF
+  - [x] HTML export of all new features
+  - [x] PDF export of all new features
+  - [x] Cross-format consistency
 
 **Files:**
-- Test: `tests/test_export.py`
+- Test: `tests/test_export_v5_features.py` (83 tests)
 
-- [ ] KB-080: CLI integration tests
-  - [ ] Test all new CLI flags
-  - [ ] Test config file with new options
-  - [ ] Test multi-format export with new features
+- [x] KB-080: CLI integration tests
+  - [x] Test all new CLI flags
+  - [x] Test config file with new options
+  - [x] Test multi-format export with new features
 
 **Files:**
-- Test: `tests/test_cli.py`, `tests/test_config.py`
+- Test: `tests/test_cli_v5_integration.py` (32 tests)
 
 ---
 
@@ -453,11 +453,11 @@
   - [ ] Verify new tests pass
   - [ ] Check test coverage is ≥90%
 
-- [ ] KB-086: Manual QA with real documents
-  - [ ] Test with CommonMark test suite
-  - [ ] Test with GFM test suite
-  - [ ] Test with user-provided documents
-  - [ ] Verify rendering in different terminal sizes/themes
+- [x] KB-086: Manual QA with real documents
+  - [x] Test with CommonMark test suite
+  - [x] Test with GFM test suite
+  - [x] Test with user-provided documents
+  - [x] Verify rendering in different terminal sizes/themes
 
 - [ ] KB-087: Performance testing
   - [ ] Verify no regressions in large document rendering

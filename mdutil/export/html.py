@@ -9,6 +9,7 @@ from typing import Any
 from mdutil.export.base import Exporter
 from mdutil.export.merman_renderer import MermanRenderer, MermanBinaryNotFoundError, MermanRenderError
 from mdutil.parser import _parse_inline
+from mdutil.renderer import _superscript
 
 _logger = logging.getLogger("mdutil.export.html")
 
@@ -358,9 +359,9 @@ dl dd {{
         """Replace <fnref id="N"> tags with superscript anchor links."""
         import re as _re
         return _re.sub(
-            r'<fnref\s+id="(\d+)">',
+            r'<fnref\s+id="([^"]+)">',
             lambda m: f'<sup><a href="#fn-{m.group(1)}" id="fnref-{m.group(1)}">'
-                      f'{m.group(1)}</a></sup>',
+                      f'{_superscript(m.group(1))}</a></sup>',
             text,
         )
 

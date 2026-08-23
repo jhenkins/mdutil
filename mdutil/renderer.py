@@ -365,13 +365,13 @@ def _strip_inline_tags(
     # Footnote references: superscript (default) or bracketed
     if footnote_style == "bracketed":
         text = re.sub(
-            r"<fnref\s+id=\"(\d+)\">",
+            r'<fnref\s+id="([^"]+)">',
             lambda m: _style(f"[{m.group(1)}]", theme, "footnote_ref"),
             text,
         )
     else:
         text = re.sub(
-            r"<fnref\s+id=\"(\d+)\">",
+            r'<fnref\s+id="([^"]+)">',
             lambda m: _style(_superscript(m.group(1)), theme, "footnote_ref"),
             text,
         )

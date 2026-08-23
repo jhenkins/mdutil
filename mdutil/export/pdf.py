@@ -22,6 +22,7 @@ from mdutil.export.svg_to_image import (
     SvgToImageError,
 )
 from mdutil.parser import _parse_inline
+from mdutil.renderer import _superscript as _renderer_superscript
 
 _logger = logging.getLogger("mdutil.export.pdf")
 
@@ -547,7 +548,7 @@ class PdfExporter(Exporter):
         if content:
             # Replace <fnref id="N"> tags with Unicode superscript
             content = re.sub(
-                r'<fnref\s+id="(\d+)">',
+                r'<fnref\s+id="([^"]+)">',
                 lambda m: self._superscript(m.group(1)),
                 content,
             )
@@ -1122,13 +1123,9 @@ class PdfExporter(Exporter):
 
     @staticmethod
     def _superscript(n: str) -> str:
-        """Convert a number string to Unicode superscript characters."""
-        super_map = {
-            "0": "\u2070", "1": "\u00b9", "2": "\u00b2", "3": "\u00b3",
-            "4": "\u2074", "5": "\u2075", "6": "\u2076", "7": "\u2077",
-            "8": "\u2078", "9": "\u2079",
-        }
-        return "".join(super_map.get(c, c) for c in n)
+        """Convert a string to Unicode superscript characters."""
+        # Delegate to renderer's _superscript for consistent behavior
+        return _renderer_superscript(n)
 
     def _render_list(self, pdf: FPDF, token: dict, level: int = 0) -> None:
         """Render an ordered or unordered list, recursing into sub-lists."""
@@ -1165,7 +1162,7 @@ class PdfExporter(Exporter):
             # Strip HTML inline tags for PDF (fpdf2 can't render HTML)
             # But replace footnote refs with superscript first
             content = re.sub(
-                r'<fnref\s+id="(\d+)">',
+                r'<fnref\s+id="([^"]+)">',
                 lambda m: self._superscript(m.group(1)),
                 content,
             )

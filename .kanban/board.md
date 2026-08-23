@@ -3,7 +3,7 @@
 ## Meta
 project_id: mdutil
 board_version: 4.2
-updated: 2026-08-21 04:15
+updated: 2026-08-22 11:00
 lane_model: basic
 
 ## Lanes
@@ -43,17 +43,17 @@ lane_model: basic
 | KB-073 | v5.0 Phase 5a: Parser nested list structure preservation | done | P1 | jan | - | KB-050 | 2026-08-22 |
 | KB-074 | v5.0 Phase 5a: Tests for nested list nesting | done | P1 | jan | - | KB-073 | 2026-08-22 |
 | KB-075 | v5.0 Phase 6a: Theme support for new inline styles | done | P1 | jan | - | KB-050 | 2026-08-22 |
-| KB-076 | v5.0 Phase 6a: Config support for new features | backlog | P1 | jan | - | KB-075 | 2026-08-17 |
-| KB-077 | v5.0 Phase 7a: Parser tests for new syntax | backlog | P1 | jan | - | KB-050 | 2026-08-17 |
-| KB-078 | v5.0 Phase 7a: Renderer tests for new features | backlog | P1 | jan | - | KB-050 | 2026-08-17 |
-| KB-079 | v5.0 Phase 7a: Exporter tests for new features | backlog | P1 | jan | - | KB-050 | 2026-08-17 |
-| KB-080 | v5.0 Phase 7a: CLI integration tests | backlog | P1 | jan | - | KB-050 | 2026-08-17 |
-| KB-081 | v5.0 Phase 7b: README documentation update | backlog | P1 | jan | - | KB-050 | 2026-08-17 |
-| KB-082 | v5.0 Phase 7b: Specification documentation update | backlog | P1 | jan | - | KB-050 | 2026-08-17 |
-| KB-083 | v5.0 Phase 7b: Changelog documentation update | backlog | P1 | jan | - | KB-050 | 2026-08-17 |
-| KB-084 | v5.0 Phase 7b: Fixture and golden file updates | backlog | P1 | jan | - | KB-050 | 2026-08-17 |
-| KB-085 | v5.0 Phase 8a: Full test suite verification | backlog | P1 | jan | - | KB-077, KB-078, KB-079, KB-080 | 2026-08-17 |
-| KB-086 | v5.0 Phase 8a: Manual QA with real documents | backlog | P1 | jan | - | KB-085 | 2026-08-17 |
+| KB-076 | v5.0 Phase 6a: Config support for new features | done | P1 | jan | - | KB-075 | 2026-08-22 |
+| KB-077 | v5.0 Phase 7a: Parser tests for new syntax | done | P1 | jan | - | KB-050 | 2026-08-22 |
+| KB-078 | v5.0 Phase 7a: Renderer tests for new features | done | P1 | jan | - | KB-050 | 2026-08-22 |
+| KB-079 | v5.0 Phase 7a: Exporter tests for new features | done | P1 | jan | - | KB-050 | 2026-08-17 |
+| KB-080 | v5.0 Phase 7a: CLI integration tests | done | P1 | jan | - | KB-050 | 2026-08-17 |
+| KB-081 | v5.0 Phase 7b: README documentation update | done | P1 | jan | - | KB-050 | 2026-08-22 |
+| KB-082 | v5.0 Phase 7b: Specification documentation update | done | P1 | jan | - | KB-050 | 2026-08-22 |
+| KB-083 | v5.0 Phase 7b: Changelog documentation update | done | P1 | jan | - | KB-050 | 2026-08-22 |
+| KB-084 | v5.0 Phase 7b: Fixture and golden file updates | done | P1 | jan | - | KB-050 | 2026-08-22 |
+| KB-085 | v5.0 Phase 8a: Full test suite verification | done | P1 | jan | - | KB-077, KB-078, KB-079, KB-080 | 2026-08-22 |
+| KB-086 | v5.0 Phase 8a: Manual QA with real documents | in-progress | P1 | jan | - | KB-085 | 2026-08-22 |
 | KB-087 | v5.0 Phase 8a: Performance testing | backlog | P1 | jan | - | KB-085 | 2026-08-17 |
 | KB-088 | v5.0 Phase 8b: Version bump to 5.0.0 | backlog | P1 | jan | - | KB-086, KB-087 | 2026-08-17 |
 | KB-089 | v5.0 Phase 8b: Release PR creation | backlog | P1 | jan | - | KB-088 | 2026-08-17 |
@@ -151,3 +151,11 @@ lane_model: basic
 - **KB-074 complete** (Phase 5a tests): 20 tests covering 1-3 levels of nesting, mixed ordered/unordered nesting, nested lists with inline formatting (bold, italic, code), nested task lists, and blank-line separation between separate list groups. All 685 tests pass.
 
 - **KB-075 complete** (Phase 6a themes): Extended theme system with 3 new inline-style keys: `strikethrough`, `task_list_checked`, `task_list_unchecked` added to `MARKDOWN_COLORS`. All 4 built-in themes (colored, dracula, high-contrast, one-dark) now have values for all 8 inline-style keys (`strikethrough`, `subscript`, `superscript`, `highlight`, `task_list_checked`, `task_list_unchecked`, `definition_term`, `definition_definition`). Renderer: `<del>` tags styled with strikethrough color; checkbox symbols (`☐`/`☑`) colored via theme keys. PDF exporter: `_render_definition` uses `definition_term`/`definition_definition` theme colors. HTML exporter: CSS for `mark`, `dl dt`, `dl dd`, and `del/s` now theme-driven. 685 tests passing.
+
+- **KB-076 complete** (Phase 6a config): Added `--math-fallback` (bool) and `--footnote-style` (`numbered`|`bracketed`) CLI flags and matching `math_fallback`/`footnote_style` INI config keys. Renderer: `math_fallback=True` preserves `$...$` delimiters around math; `footnote_style=bracketed` renders `[^1]` as `[1]` instead of superscript. All options thread from CLI → config → `render()`. 15 new tests (config, renderer, CLI). 700 tests passing.
+
+- **KB-077 complete** (Phase 7a parser tests): 41 tests across 10 test classes covering all new syntax: strikethrough (4), math (4), footnote (3), sub/superscript (5), highlight (4), definition list (3), image (2), task list (2), nested list (2), link title (4), cross-feature (3), parser interactions (5). Added `tests/test_parser_comprehensive.py`. 779 tests passing.
+
+- **KB-078 complete** (Phase 7a renderer tests): 38 tests across 9 test classes covering theme colors (7), math fallback (3), footnote styles (3), cross-feature rendering (6), images (3), definition lists (2), complex documents (7), fallback behaviors (4), unicode (3). Also fixed a bug in `_strip_inline_tags()` where the `<a>` tag regex didn't handle `title` attributes after `href`. Added `tests/test_renderer_comprehensive.py`. 779 tests passing.
+- **KB-079 complete** (Phase 7a exporter tests): 83 tests across 14 test classes covering HTML and PDF exporters for all v5.0 features: strikethrough (`<del>`), task lists (checkboxes), math (`<math>`), footnotes (ref + definition), subscript (`<sub>`), superscript (`<sup>`), highlight (`<mark>`), definition lists (`<dl>/<dt>/<dd>`), images (`<img>` with dimensions), nested lists (recursive), link titles (`title` attr), PDF `_InlineHTMLParser` span handling, and cross-format consistency. Added `tests/test_export_v5_features.py`. 862 tests passing.
+- **KB-080 complete** (Phase 7a CLI integration tests): 32 tests across 5 test classes covering CLI-to-exporter pipeline with v5.0 features: `--math-fallback` flag behavior (terminal + export), `--footnote-style` flag (numbered/bracketed), multi-format export with new features, config file integration (`math_fallback`/`footnote_style`), and end-to-end document rendering. Added `tests/test_cli_v5_integration.py`. 894 tests passing.

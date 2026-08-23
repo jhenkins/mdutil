@@ -123,6 +123,9 @@ def parse_markdown(content: str) -> list[Token]:
             nxt = lines[i]
             if not nxt.strip():
                 break
+            # Footnote definitions must not be merged with other paragraphs
+            if _FOOTNOTE_DEF_RE.match(nxt.strip()):
+                break
             if (_CODE_FENCE_RE.match(nxt) or _parse_heading(nxt)
                     or _is_horizontal_rule(nxt)
                     or _LIST_RE.match(nxt)
