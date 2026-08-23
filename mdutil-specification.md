@@ -1,8 +1,8 @@
 # Markdown Viewer CLI – Program Specification
 
 **Author:** _Jan Henkins_
-**Version:** 4.0.1 (source of truth: `mdutil/version.py`)
-**Last‑Updated:** 2026‑07‑27
+**Version:** 5.0.0 (source of truth: `mdutil/version.py`)
+**Last‑Updated:** 2026‑08‑22
 **License:** MIT
 **Repository:** <https://github.com/jhenkins/mdutil>
 
@@ -63,6 +63,16 @@ The focus is on a clean, fast, and fully‑featured viewer with a few light edit
 | **Multi-Format**     | Export to both PDF and HTML in one pass.                                                            | `--export pdf,html` |
 | **Custom CSS**       | Embed a user-supplied CSS file into HTML export output (appended after base theme CSS).              | `--custom-css <path>` |
 | **Configuration**    | Export defaults are read from the `[export]` section in `~/.mdutilcfg` (paper size, margins, etc.). | `[export]` section |
+| **Strikethrough**    | Render `~~text~~` as deleted text with strikethrough styling in terminal, HTML (`<del>`), and PDF (strikethrough font). | – |
+| **Task Lists**       | Render `- [ ]` / `- [x]` / `- [X]` as unchecked/checked checkboxes. Terminal: `☐`/`☑`; HTML: `<input type="checkbox">`; PDF: Unicode prefix. | – |
+| **Math Notation**    | Render `$E = mc^2$` inline LaTeX math. Terminal: monospace italic; HTML: `<span class="math">`; PDF: mono font. Falls back to raw LaTeX with `--math-fallback`. | `--math-fallback` |
+| **Footnotes**        | Render `[^1]` references as superscript numbers with footnote definitions at document end. HTML: anchor links + bottom-of-page section. PDF: superscript CID glyphs + horizontal rule separator. | `--footnote-style numbered\|bracketed` |
+| **Subscript/Superscript** | Render `~sub~` and `^super^` as Unicode subscript/superscript characters. Nested inline tags stripped before conversion. | – |
+| **Highlight**        | Render `==text==` with yellow background highlighting. Terminal: ANSI yellow background; HTML: `<mark>` with CSS; PDF: text renders normally. | – |
+| **Definition Lists** | Render `Term\n:   Definition` syntax. Terminal: styled term + indented definition. HTML: `<dl>/<dt>/<dd>`. PDF: bold term + indented definitions with `—` prefix. | – |
+| **Image Rendering**  | Render `![alt](url)` inline. Terminal: `[image: alt]` placeholder; HTML: `<img>` with optional width/height; PDF: embed local images via PNG, placeholder for remote URLs. | – |
+| **Link Titles**      | Extract `title` attribute from `[text](url "title")`. HTML: `title` attribute on `<a>` tags. PDF: link annotation with title. | – |
+| **Nested Lists**     | Support arbitrarily nested ordered/unordered lists (up to 8 levels) with proper indentation and recursion in all renderers. | – |
 
 **User‑Interface Constraints**
 
@@ -135,13 +145,26 @@ Ctrl-/ so `/` remains normal text input.
        │      file
        │       │
 ┌──────▼───────┴────────┐
-│   Markdown Parser     │ 
+│   Markdown Parser     │
+│  (block + inline)     │
+│  • Lists, headers,    │
+│    code, blockquotes  │
+│  • Strikethrough,     │
+│    math, footnotes    │
+│  • Sub/sup, highlight,│
+│    images, link titles│
+│  • Definition lists   │
+│  • Nested lists       │
 └──────▲───────┬────────┘
        │       │
        │     events
        │       │
 ┌──────▼───────┴────────┐
 │    Markdown Renderer  │
+│  • Unicode sub/sup    │
+│  • Checkbox symbols   │
+│  • Highlight colors   │
+│  • Math fallback      │
 └──────▲───────┬────────┘
        │       │
        │    tokens
@@ -161,6 +184,36 @@ Ctrl-/ so `/` remains normal text input.
 │   view/edit) │         │  → .pdf / .html │
 └──────────────┘         └─────────────────┘
 ```
+
+### v5.0 Rendering Pipeline
+
+v5.0 extends the parser and exporters to support a comprehensive set of inline and block features:
+
+1. **Parser extensions** (`mdutil/parser.py`):
+   - Block-level: definition lists (`_extract_definition_list`), task list detection (`- [ ]`/`- [x]`), nested list recursion (up to 8 levels)
+   - Inline: strikethrough (`~~`), math (`$...$`), footnote refs (`[^n]`), subscript (`~sub~`), superscript (`^super^`), highlight (`==`), image (`![alt](url)`), link titles (`[text](url "title")`)
+   - Mermaid block detection (` ```mermaid ` → `"mermaid"` token type)
+
+2. **Renderer extensions** (`mdutil/renderer.py`):
+   - Terminal: Unicode sub/superscript characters, `☐`/`☑` checkboxes, yellow highlight background, math fallback mode, footnote superscript glyphs
+   - Theme keys: `strikethrough`, `task_list_checked`, `task_list_unchecked`, `highlight`, `definition_term`, `definition_definition`
+
+3. **HTML exporter** (`mdutil/export/html.py`):
+   - `<del>` for strikethrough, `<input type="checkbox">` for task lists, `<span class="math">` for math, `<sup><a href="#fn-N">` for footnotes, `<sub>`/`<sup>` for sub/superscript, `<mark>` for highlight, `<dl>/<dt>/<dd>` for definition lists, `<img>` for images (with optional width/height), `title` attribute on `<a>` tags, recursive nested list rendering
+
+4. **PDF exporter** (`mdutil/export/pdf.py`):
+   - Strikethrough via font, Unicode checkbox prefix, monospace math, superscript CID glyphs + footnote section, sub/superscript Unicode chars, image embedding via PNG (local) or placeholder (remote), link annotations with titles, recursive nested list rendering
+
+5. **Mermaid rendering** (`mdutil/export/merman_renderer.py`, `mdutil/export/svg_to_image.py`):
+   - HTML: inline SVG via `merman-cli`, theme passthrough
+   - PDF: SVG→PNG conversion via `SvgToImageRenderer`, page-break handling, aspect-ratio preservation
+
+6. **Theme system** (`mdutil/themes.py`):
+   - All 8 built-in inline styles theme keys populated across all built-in themes (colored, dracula, high-contrast, one-dark)
+
+7. **Configuration** (`mdutil/config.py`, `mdutil/cli.py`):
+   - `--math-fallback` flag + `math_fallback` INI key: preserve `$...$` delimiters in output
+   - `--footnote-style` flag + `footnote_style` INI key: `numbered` (superscript) or `bracketed` (`[1]`) reference style
 
 ---
 
@@ -262,6 +315,11 @@ When `--no-mermaid` is passed OR the `merman-cli` binary is unavailable:
 | **Configuration Tests**    | Verify default config paths, config generation, comments/default values, alternate `--config`, and CLI precedence.    |
 | **Interactive Editor Tests** | Verify normal/insert mode transitions, `i`, Escape, `dd`, `cw`, explicit Ctrl-S save, dirty indicators, dirty quit blocking, discard quit, failed-save preservation, atomic-write cleanup, mode-aware search keys, status-bar search hints, and highlighted search matches. |
 | **Export Tests**           | Verify PdfExporter (bytes, paper sizes, margins, headers/footers, bookmarks) and HtmlExporter (str, embedded CSS, custom CSS, all token types). |
+| **Parser Syntax Tests**    | Verify parser handles all new syntax: strikethrough, task lists, math, footnotes, sub/superscript, highlight, definition lists, images, link titles, nested lists, mermaid blocks. |
+| **Renderer Feature Tests** | Verify terminal rendering of all new inline/block features, theme color application, fallback behaviors, unicode character rendering. |
+| **Exporter Feature Tests** | Verify HTML/PDF export of all v5.0 features: `<del>`, checkboxes, math, footnotes, sub/sup, `<mark>`, `<dl>/<dt>/<dd>`, `<img>`, nested lists, link titles. |
+| **CLI Integration Tests**  | Verify `--math-fallback`, `--footnote-style`, and config file integration for new options. |
+| **Mermaid Tests**          | Verify mermaid rendering in HTML (SVG), PDF (PNG embedding), theme passthrough, `--no-mermaid` fallback, air-gapped operation. |
 | **Cross‑Platform CI**      | GitHub Actions matrix: ubuntu, macos, windows.                                                                        |
 | **Performance Benchmarks** | Measure rendering time on large docs (10k lines).                                                                     |
 
@@ -281,3 +339,5 @@ When `--no-mermaid` is passed OR the `merman-cli` binary is unavailable:
 ## 8. Future Enhancements (Roadmap)
 
 The project roadmap is maintained in `.kanban/board.md` (kanban board with card state and completion notes). The implementation plan for current work is in `todo-v5.0.md`. Historical plans (v3.0, v3.1, v4.0) are archived in `docs/archive/`. This spec intentionally does not duplicate the roadmap; consult `.kanban/board.md` for current priorities and backlog items.
+
+**v5.0 Status:** All planned features (GFM/CommonMark syntax, Mermaid diagrams, theme support, config options) are implemented and tested. Remaining v5.0 work focuses on verification, manual QA, performance testing, and release preparation.
