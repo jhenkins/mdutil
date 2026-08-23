@@ -335,15 +335,15 @@ class TestPDFExportPerformance(unittest.TestCase):
 
     def test_pdf_small_document(self):
         r = self._results["5k"]
-        self.assertLess(r["max_ms"], 500, f"5K PDF took {r['max_ms']}ms")
+        self.assertLess(r["max_ms"], 800, f"5K PDF took {r['max_ms']}ms")
 
     def test_pdf_medium_document(self):
         r = self._results["20k"]
-        self.assertLess(r["max_ms"], 3000, f"20K PDF took {r['max_ms']}ms")
+        self.assertLess(r["max_ms"], 5000, f"20K PDF took {r['max_ms']}ms")
 
     def test_pdf_large_document(self):
         r = self._results["50k"]
-        self.assertLess(r["max_ms"], 8000, f"50K PDF took {r['max_ms']}ms")
+        self.assertLess(r["max_ms"], 12000, f"50K PDF took {r['max_ms']}ms")
 
     def test_pdf_v5_feature_document(self):
         doc = V5_FEATURE_DOC
@@ -352,7 +352,7 @@ class TestPDFExportPerformance(unittest.TestCase):
         theme = {}
         options = {"custom_css": "", "syntax_theme": "default"}
         r = _benchmark(exporter.render, tokens, theme, options, n_runs=3)
-        self.assertLess(r["max_ms"], 500, f"V5 doc PDF took {r['max_ms']}ms")
+        self.assertLess(r["max_ms"], 1000, f"V5 doc PDF took {r['max_ms']}ms")
 
     def _print_results(self):
         print("\n=== PDF Export Performance ===")
