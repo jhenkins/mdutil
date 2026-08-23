@@ -435,6 +435,37 @@ class CliTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertIn("Permission denied", result.stderr)
 
+    def test_math_fallback_flag_accepted(self):
+        """--math-fallback flag is accepted and does not error."""
+        result = self.run_mdutil("--math-fallback", input_text="Use $E=mc^2$ here.")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_footnote_style_flag_accepted(self):
+        """--footnote-style flag is accepted with valid choice."""
+        result = self.run_mdutil("--footnote-style", "bracketed", input_text="See [^1].")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_footnote_style_rejects_invalid_choice(self):
+        """--footnote-style with invalid value produces non-zero exit."""
+        result = self.run_mdutil("--footnote-style", "invalid_choice", input_text="See [^1].")
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_math_fallback_shows_dollars_in_output(self):
+        """--math-fallback shows $...$ delimiters in rendered output."""
+        result = self.run_mdutil("--math-fallback", input_text="Use $E=mc^2$ here.")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("$E=mc^2$", result.stdout)
+
+    def test_footnote_style_bracketed_in_output(self):
+        """--footnote-style bracketed renders [1] in output."""
+        md = "Text[^1].\n\n[^1]: A footnote."
+        result = self.run_mdutil("--footnote-style", "bracketed", input_text=md)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        # Strip ANSI for assertion
+        import re
+        plain = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
+        self.assertIn("[1]", plain)
+
 
 if __name__ == "__main__":
     unittest.main()

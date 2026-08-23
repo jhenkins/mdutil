@@ -21,6 +21,8 @@ def render(
     syntax_theme: str = "default",
     line_numbers: bool = False,
     quiet: bool = False,
+    math_fallback: bool = False,
+    footnote_style: str = "numbered",
 ) -> str:
     """Render parsed Markdown content into an ANSI/plain terminal string."""
     if quiet:
@@ -30,7 +32,11 @@ def render(
     result_lines: list[str] = []
 
     for token in parsed_content:
-        result_lines.extend(_render_token(token, selected_theme, syntax_theme))
+        result_lines.extend(_render_token(
+            token, selected_theme, syntax_theme,
+            math_fallback=math_fallback,
+            footnote_style=footnote_style,
+        ))
 
     if line_numbers:
         return "\n".join(f"{idx:4d} | {line}" for idx, line in enumerate(result_lines, 1))
@@ -41,12 +47,15 @@ def _render_token(
     token: dict[str, Any],
     theme: dict[str, Any],
     syntax_theme: str = "default",
+    *,
+    math_fallback: bool = False,
+    footnote_style: str = "numbered",
 ) -> list[str]:
     ttype = token.get("type")
     if ttype == "heading":
         return [_render_heading(token, theme)]
     if ttype == "paragraph":
-        return [_render_paragraph(token, theme)]
+        return [_render_paragraph(token, theme, math_fallback=math_fallback, footnote_style=footnote_style)]
     if ttype == "blank":
         return [""]
     if ttype == "code":
@@ -115,8 +124,15 @@ def _heading_content_from_text(token: dict[str, Any], level: int) -> str:
     return f"{'#' * level} {text}" if text else "#" * level
 
 
-def _render_paragraph(token: dict[str, Any], theme: dict[str, Any] | None = None) -> str:
-    return _strip_inline_tags(str(token.get("content", token.get("text", ""))), theme)
+def _render_paragraph(
+    token: dict[str, Any],
+    theme: dict[str, Any] | None = None,
+    *,
+    math_fallback: bool = False,
+    footnote_style: str = "numbered",
+) -> str:
+    content = str(token.get("content", token.get("text", "")))
+    return _strip_inline_tags(content, theme, math_fallback=math_fallback, footnote_style=footnote_style)
 
 
 def _render_code(token: dict[str, Any], theme: dict[str, Any], syntax_theme: str = "default") -> list[str]:
@@ -297,11 +313,27 @@ def _highlight_text(text: str, theme: dict[str, Any]) -> str:
     return f"\033[48;2;{red};{green};{blue}m{text}\033[0m"
 
 
-def _strip_inline_tags(text: str, theme: dict[str, Any] | None = None) -> str:
-    """Collapse the parser's lightweight HTML-like inline markup to visible text."""
+def _strip_inline_tags(
+    text: str,
+    theme: dict[str, Any] | None = None,
+    *,
+    math_fallback: bool = False,
+    footnote_style: str = "numbered",
+) -> str:
+    """Collapse the parser's lightweight HTML-like inline markup to visible text.
+
+    Args:
+        text: Inline HTML-like markup from the parser.
+        theme: Theme dict for color application.
+        math_fallback: When True, preserve ``$...$`` delimiters around math content.
+        footnote_style: ``"numbered"`` for superscript (default) or
+            ``"bracketed"`` for ``[1]``-style references.
+    """
+    theme = theme or {}
+
     def render_link(match: re.Match[str]) -> str:
         label = re.sub(r"</?(?:strong|em|del|code|math|img)>", "", match.group(2))
-        return _style(f"{label} ({match.group(1)})", theme or {}, "link")
+        return _style(f"{label} ({match.group(1)})", theme, "link")
 
     text = re.sub(
         r"<a\s+href=\"([^\"]+)\">(.*?)</a>",
@@ -312,22 +344,44 @@ def _strip_inline_tags(text: str, theme: dict[str, Any] | None = None) -> str:
     # Image: render as [image: alt text] or [image: url] if no alt
     text = re.sub(
         r'<img\s+src="([^"]+)"\s+alt="([^"]*)"[^>]*/?>',
-        lambda m: _style(f"[image: {m.group(2) or m.group(1)}]", theme or {}, "link"),
+        lambda m: _style(f"[image: {m.group(2) or m.group(1)}]", theme, "link"),
         text,
     )
     # Self-closing <img> without alt (fallback)
     text = re.sub(
         r'<img\s+src="([^"]+)"[^>]*/?>',
-        lambda m: _style(f"[image: {m.group(1)}]", theme or {}, "link"),
+        lambda m: _style(f"[image: {m.group(1)}]", theme, "link"),
         text,
     )
 
-    text = re.sub(r"<fnref\s+id=\"(\d+)\">", lambda m: _style(_superscript(m.group(1)), theme or {}, "footnote_ref"), text)
+    # Footnote references: superscript (default) or bracketed
+    if footnote_style == "bracketed":
+        text = re.sub(
+            r"<fnref\s+id=\"(\d+)\">",
+            lambda m: _style(f"[{m.group(1)}]", theme, "footnote_ref"),
+            text,
+        )
+    else:
+        text = re.sub(
+            r"<fnref\s+id=\"(\d+)\">",
+            lambda m: _style(_superscript(m.group(1)), theme, "footnote_ref"),
+            text,
+        )
+
     inner_re = r"</?(?:strong|em|del|code|math)>"
-    text = re.sub(r"<sub>(.*?)</sub>", lambda m: _style(_subscript(re.sub(inner_re, "", m.group(1))), theme or {}, "subscript"), text)
-    text = re.sub(r"<sup>(.*?)</sup>", lambda m: _style(_superscript(re.sub(inner_re, "", m.group(1))), theme or {}, "superscript"), text)
-    text = re.sub(r"<mark>(.*?)</mark>", lambda m: _highlight_text(re.sub(inner_re, "", m.group(1)), theme or {}), text)
-    text = re.sub(r"<del>(.*?)</del>", lambda m: _style(re.sub(inner_re, "", m.group(1)), theme or {}, "strikethrough", bold=False), text)
+    text = re.sub(r"<sub>(.*?)</sub>", lambda m: _style(_subscript(re.sub(inner_re, "", m.group(1))), theme, "subscript"), text)
+    text = re.sub(r"<sup>(.*?)</sup>", lambda m: _style(_superscript(re.sub(inner_re, "", m.group(1))), theme, "superscript"), text)
+    text = re.sub(r"<mark>(.*?)</mark>", lambda m: _highlight_text(re.sub(inner_re, "", m.group(1)), theme), text)
+
+    # Strikethrough
+    text = re.sub(r"<del>(.*?)</del>", lambda m: _style(re.sub(inner_re, "", m.group(1)), theme, "strikethrough", bold=False), text)
+
+    # Math: show raw $...$ delimiters when math_fallback is enabled
+    if math_fallback:
+        text = re.sub(r"<math>(.*?)</math>", lambda m: f"${m.group(1)}$", text)
+    else:
+        text = re.sub(r"<math>(.*?)</math>", lambda m: re.sub(inner_re, "", m.group(1)), text)
+
     text = re.sub(r"</?(?:strong|em|del|code|math|sub|sup|mark)>", "", text)
     return text
 

@@ -42,7 +42,7 @@ lane_model: basic
 | KB-072 | v5.0 Phase 4a: Exporter link title rendering | done | P1 | jan | - | KB-071 | 2026-08-21 |
 | KB-073 | v5.0 Phase 5a: Parser nested list structure preservation | done | P1 | jan | - | KB-050 | 2026-08-22 |
 | KB-074 | v5.0 Phase 5a: Tests for nested list nesting | done | P1 | jan | - | KB-073 | 2026-08-22 |
-| KB-075 | v5.0 Phase 6a: Theme support for new inline styles | backlog | P1 | jan | - | KB-050 | 2026-08-17 |
+| KB-075 | v5.0 Phase 6a: Theme support for new inline styles | done | P1 | jan | - | KB-050 | 2026-08-22 |
 | KB-076 | v5.0 Phase 6a: Config support for new features | backlog | P1 | jan | - | KB-075 | 2026-08-17 |
 | KB-077 | v5.0 Phase 7a: Parser tests for new syntax | backlog | P1 | jan | - | KB-050 | 2026-08-17 |
 | KB-078 | v5.0 Phase 7a: Renderer tests for new features | backlog | P1 | jan | - | KB-050 | 2026-08-17 |
@@ -149,3 +149,5 @@ lane_model: basic
 - **KB-073 complete** (Phase 5a parser): Nested list support implemented end-to-end. Parser `_extract_list` now detects nested items by indentation level (up to 8 spaces), recursively parses sub-lists, and attaches them to parent items via `sub_list` field. Supports mixed ordered/unordered nesting at any depth. Renderer, HTML exporter, and PDF exporter all updated to recurse into `sub_list` with proper indentation. 20 new tests. Full suite: 685 passed.
 
 - **KB-074 complete** (Phase 5a tests): 20 tests covering 1-3 levels of nesting, mixed ordered/unordered nesting, nested lists with inline formatting (bold, italic, code), nested task lists, and blank-line separation between separate list groups. All 685 tests pass.
+
+- **KB-075 complete** (Phase 6a themes): Extended theme system with 3 new inline-style keys: `strikethrough`, `task_list_checked`, `task_list_unchecked` added to `MARKDOWN_COLORS`. All 4 built-in themes (colored, dracula, high-contrast, one-dark) now have values for all 8 inline-style keys (`strikethrough`, `subscript`, `superscript`, `highlight`, `task_list_checked`, `task_list_unchecked`, `definition_term`, `definition_definition`). Renderer: `<del>` tags styled with strikethrough color; checkbox symbols (`☐`/`☑`) colored via theme keys. PDF exporter: `_render_definition` uses `definition_term`/`definition_definition` theme colors. HTML exporter: CSS for `mark`, `dl dt`, `dl dd`, and `del/s` now theme-driven. 685 tests passing.

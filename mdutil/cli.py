@@ -86,6 +86,8 @@ class RuntimeOptions(TypedDict):
     quiet: bool
     status_bar_normal: str | None
     status_bar_insert: str | None
+    math_fallback: bool
+    footnote_style: str
     export_format: str
     export_output_dir: str | None
     pdf_paper_size: str
@@ -186,6 +188,18 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default=False,
         help="Enable verbose debug logging (useful for troubleshooting)",
     )
+    arg_parser.add_argument(
+        "--math-fallback",
+        action="store_true",
+        default=None,
+        help="Show raw LaTeX in $delimiters$ instead of stripping math tags",
+    )
+    arg_parser.add_argument(
+        "--footnote-style",
+        choices=["numbered", "bracketed"],
+        default=None,
+        help="Footnote reference style in terminal (default: numbered)",
+    )
     return arg_parser
 
 
@@ -246,6 +260,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 syntax_theme=runtime["syntax_theme"],
                 line_numbers=runtime["line_numbers"] and not interactive,
                 quiet=runtime["quiet"],
+                math_fallback=runtime["math_fallback"],
+                footnote_style=runtime["footnote_style"],
             )
             if interactive:
                 run_interactive_viewer(
@@ -399,6 +415,14 @@ def _resolve_runtime_options(
     quiet = cast(bool, args.quiet if args.quiet is not None else config["quiet"])
     status_bar_normal = cast(str | None, config["status_bar_normal"])
     status_bar_insert = cast(str | None, config["status_bar_insert"])
+    math_fallback = cast(
+        bool,
+        args.math_fallback if args.math_fallback is not None else config["math_fallback"],
+    )
+    footnote_style = cast(
+        str,
+        args.footnote_style if args.footnote_style is not None else config["footnote_style"],
+    )
 
     return {
         "theme": theme,
@@ -408,6 +432,8 @@ def _resolve_runtime_options(
         "quiet": quiet,
         "status_bar_normal": status_bar_normal,
         "status_bar_insert": status_bar_insert,
+        "math_fallback": math_fallback,
+        "footnote_style": footnote_style,
         "export_format": cast(str, config.get("export_format", "pdf")),
         "export_output_dir": cast(str | None, config.get("export_output_dir")),
         "pdf_paper_size": cast(str, config.get("pdf_paper_size", "A4")),

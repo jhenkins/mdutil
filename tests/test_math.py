@@ -69,6 +69,27 @@ class MathRendererTests(unittest.TestCase):
         self.assertNotIn("<math>", output)
         self.assertIn("E=mc^2", output)
 
+    def test_math_fallback_raw(self):
+        """math_fallback=True renders $...$ delimiters around math content."""
+        tokens = parse_markdown("The equation $E=mc^2$ is famous.")
+        output = render(tokens, math_fallback=True)
+        plain = self._strip_ansi(output)
+        self.assertIn("$E=mc^2$", plain)
+        self.assertNotIn("<math>", plain)
+
+    def test_math_no_fallback_strips_tags(self):
+        """Default (no fallback) strips <math> tags and shows plain content."""
+        tokens = parse_markdown("The equation $E=mc^2$ is famous.")
+        output = render(tokens, math_fallback=False)
+        plain = self._strip_ansi(output)
+        self.assertNotIn("$E=mc^2$", plain)
+        self.assertIn("E=mc^2", plain)
+
+    @staticmethod
+    def _strip_ansi(text: str) -> str:
+        import re
+        return re.sub(r"\x1b\[[0-9;]*m", "", text)
+
 
 class MathExporterTests(unittest.TestCase):
     def test_math_html_export(self):

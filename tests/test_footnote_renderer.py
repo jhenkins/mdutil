@@ -113,6 +113,28 @@ class FootnoteRendererEdgeCases(unittest.TestCase):
         self.assertIn("¹", output)
         self.assertIn("Link", output)
 
+    def test_footnote_style_bracketed(self):
+        """footnote_style=bracketed renders [N] instead of superscript."""
+        tokens = parse_markdown("Text[^1] and [^2].")
+        output = render(tokens, footnote_style="bracketed")
+        # Strip ANSI codes for assertion
+        plain = self._strip_ansi(output)
+        self.assertIn("[1]", plain)
+        self.assertIn("[2]", plain)
+        self.assertNotIn("¹", plain)
+        self.assertNotIn("²", plain)
+
+    def test_footnote_style_numbered_default(self):
+        """Default footnote_style renders superscript numbers."""
+        tokens = parse_markdown("Text[^1].")
+        output = render(tokens, footnote_style="numbered")
+        self.assertIn("¹", output)
+
+    @staticmethod
+    def _strip_ansi(text: str) -> str:
+        import re
+        return re.sub(r"\x1b\[[0-9;]*m", "", text)
+
 
 if __name__ == "__main__":
     unittest.main()
