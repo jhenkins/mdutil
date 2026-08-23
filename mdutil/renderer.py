@@ -333,10 +333,18 @@ def _strip_inline_tags(
 
     def render_link(match: re.Match[str]) -> str:
         label = re.sub(r"</?(?:strong|em|del|code|math|img)>", "", match.group(2))
-        return _style(f"{label} ({match.group(1)})", theme, "link")
+        href = match.group(1)
+        # Extract title attribute if present
+        title = ""
+        title_match = re.search(r'title="([^"]*)"', match.group(0))
+        if title_match:
+            title = title_match.group(1)
+        if title:
+            return _style(f"{label} ({href})", theme, "link")
+        return _style(f"{label} ({href})", theme, "link")
 
     text = re.sub(
-        r"<a\s+href=\"([^\"]+)\">(.*?)</a>",
+        r'<a\s+href="([^"]+)"\s*[^>]*>(.*?)</a>',
         render_link,
         text,
     )
