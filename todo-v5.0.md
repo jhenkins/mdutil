@@ -459,10 +459,19 @@
   - [x] Test with user-provided documents
   - [x] Verify rendering in different terminal sizes/themes
 
-- [ ] KB-087: Performance testing
-  - [ ] Verify no regressions in large document rendering
-  - [ ] Test rendering performance with many new features
-  - [ ] Profile if needed
+- [x] KB-087: Performance testing
+  - [x] Verify no regressions in large document rendering
+  - [x] Test rendering performance with many new features
+  - [x] Profile if needed
+
+**Result:** 24 performance tests in `tests/test_performance.py`. Baseline numbers established:
+- Parse: 0.86ms (5K) → 40ms (250K), linear scaling confirmed
+- Terminal render: 0.23ms (5K) → 15ms (250K)
+- HTML export: 0.81ms (5K) → 31ms (250K)
+- PDF export: 220ms (5K) → 657ms (50K) (PDF is inherently slower per-page)
+- V5 feature doc: parses in ~3ms, renders in ~1ms across all exporters
+- V5-specific tests: many footnotes (50 refs), many task items (100), dense inline formatting (200 lines), deep nesting (10 levels) — all within thresholds
+- 3 profiling tests available (cProfile) for deeper analysis when investigating regressions
 
 ---
 

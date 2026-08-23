@@ -3,7 +3,7 @@
 ## Meta
 project_id: mdutil
 board_version: 4.2
-updated: 2026-08-22 11:00
+updated: 2026-08-23 14:00
 lane_model: basic
 
 ## Lanes
@@ -54,7 +54,7 @@ lane_model: basic
 | KB-084 | v5.0 Phase 7b: Fixture and golden file updates | done | P1 | jan | - | KB-050 | 2026-08-22 |
 | KB-085 | v5.0 Phase 8a: Full test suite verification | done | P1 | jan | - | KB-077, KB-078, KB-079, KB-080 | 2026-08-22 |
 | KB-086 | v5.0 Phase 8a: Manual QA with real documents | done | P1 | jan | - | KB-085 | 2026-08-23 |
-| KB-087 | v5.0 Phase 8a: Performance testing | backlog | P1 | jan | - | KB-085 | 2026-08-17 |
+| KB-087 | v5.0 Phase 8a: Performance testing | done | P1 | jan | - | KB-085 | 2026-08-23 |
 | KB-088 | v5.0 Phase 8b: Version bump to 5.0.0 | backlog | P1 | jan | - | KB-086, KB-087 | 2026-08-17 |
 | KB-089 | v5.0 Phase 8b: Release PR creation | backlog | P1 | jan | - | KB-088 | 2026-08-17 |
 | KB-007 | v3.0 Phase 1: Foundation & Setup (fpdf2, module structure) | done | P2 | jan | - | - | 2026-07-26 |
@@ -160,3 +160,5 @@ lane_model: basic
 - **KB-079 complete** (Phase 7a exporter tests): 83 tests across 14 test classes covering HTML and PDF exporters for all v5.0 features: strikethrough (`<del>`), task lists (checkboxes), math (`<math>`), footnotes (ref + definition), subscript (`<sub>`), superscript (`<sup>`), highlight (`<mark>`), definition lists (`<dl>/<dt>/<dd>`), images (`<img>` with dimensions), nested lists (recursive), link titles (`title` attr), PDF `_InlineHTMLParser` span handling, and cross-format consistency. Added `tests/test_export_v5_features.py`. 862 tests passing.
 - **KB-080 complete** (Phase 7a CLI integration tests): 32 tests across 5 test classes covering CLI-to-exporter pipeline with v5.0 features: `--math-fallback` flag behavior (terminal + export), `--footnote-style` flag (numbered/bracketed), multi-format export with new features, config file integration (`math_fallback`/`footnote_style`), and end-to-end document rendering. Added `tests/test_cli_v5_integration.py`. 894 tests passing.
 - **KB-086 complete** (Phase 8a manual QA): Tested with 5 real-world documents across 4 themes (colored, dracula, high-contrast, one-dark) and 4 terminal widths (80, 120, 160, 200). All v5.0 features render correctly. Found and fixed 3 bugs: (1) footnote ID regex only matched digits — fixed in renderer, HTML/PDF exporters; (2) consecutive footnote definitions merged into single paragraph — fixed in parser; (3) PDF `_superscript` had incorrect Unicode mappings — fixed by delegating to renderer. Added regression tests. Full report at `tests/qa/qa-report-v5.0.md`. 896 tests passing.
+
+- **KB-087 complete** (Phase 8a performance): 24 performance tests in `tests/test_performance.py` across 5 test classes. Baselines established: parse 0.86ms–40ms (5K–250K, linear scaling confirmed), terminal render 0.23ms–15ms, HTML export 0.81ms–31ms, PDF export 220ms–657ms (5K–50K). V5-specific tests: many footnotes (50 refs), many task items (100), dense inline formatting (200 lines), deep nesting (10 levels). 3 cProfile-based profiling tests available for regression investigation. 920 tests passing.
