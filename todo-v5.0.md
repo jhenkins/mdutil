@@ -549,7 +549,7 @@ v5.0 is complete when:
 - [ ] KB-095: Docs — fix "Math" → "maths" (UK English)
 - [ ] KB-096: PDF — superscript ² not rendered in table cells
 - [ ] KB-097: PDF — definition list alignment (Def. 1.2 not aligning with Def. 1.1)
-- [ ] KB-098: PDF — subscript/superscript not rendered (H2O, E=mc2)
+- [x~dup~] KB-098: PDF — subscript/superscript not rendered (H2O, E=mc2) — **duplicate of KB-096**, resolved by `fa23896`
 - [ ] KB-099: PDF — math notation renders as raw LaTeX instead of formatted
 - [ ] KB-100: HTML — syntax highlighting colours do not match PDF/markdown
 - [ ] KB-101: HTML — math notation disappears entirely (empty)

@@ -3,7 +3,7 @@
 ## Meta
 project_id: mdutil
 board_version: 4.3
-updated: 2026-08-24 12:00
+updated: 2026-08-24 23:55
 lane_model: basic
 
 ## Lanes
@@ -91,11 +91,11 @@ lane_model: basic
 | KB-091 | Terminal: differentiate callout blockquotes from regular blockquotes | backlog | P2 | - | - | - | 2026-08-23 |
 | KB-092 | Terminal: strikethrough font (not just darker colour) | dropped | P2 | - | - | KB-103 | 2026-08-24 |
 | KB-093 | Terminal: inline code visual styling (mono font, background) | done | P1 | jan | - | - | 2026-08-24 |
-| KB-094 | PDF: ***bold and italic*** renders raw markdown instead of bold+italic | backlog | P1 | - | - | - | 2026-08-23 |
+| KB-094 | PDF: ***bold and italic*** renders raw markdown instead of bold+italic | done | P1 | jan | - | - | 2026-08-24 |
 | KB-095 | Docs: fix "Math" → "maths" (UK English) | done | P3 | jan | - | - | 2026-08-23 |
-| KB-096 | PDF: superscript ² not rendered in table cells | backlog | P1 | - | - | - | 2026-08-23 |
+| KB-096 | PDF: superscript ² not rendered in table cells | done | P1 | jan | - | - | 2026-08-24 |
 | KB-097 | PDF: definition list alignment (Def. 1.2 not aligning with Def. 1.1) | backlog | P2 | - | - | - | 2026-08-23 |
-| KB-098 | PDF: subscript/superscript not rendered (H2O, E=mc2) | backlog | P1 | - | - | - | 2026-08-23 |
+| KB-098 | PDF: subscript/superscript not rendered (H2O, E=mc2) | duplicate | P1 | - | - | KB-096 | 2026-08-24 |
 | KB-099 | PDF: math notation renders as raw LaTeX instead of formatted | backlog | P1 | - | - | - | 2026-08-23 |
 | KB-100 | HTML: syntax highlighting colours do not match PDF/markdown | backlog | P2 | - | - | - | 2026-08-23 |
 | KB-101 | HTML: math notation disappears entirely | backlog | P1 | - | - | - | 2026-08-23 |
@@ -187,9 +187,12 @@ lane_model: basic
 - **KB-095**: Typo "Math" → "maths" (UK English).
 - **KB-096**: PDF superscript `²` not rendered in table cells.
 - **KB-097**: PDF definition list alignment — "Definition 1.2" not aligned with "Definition 1.1".
-- **KB-098**: PDF subscript/superscript not rendered (H~2~O shows as H2O, mc^2^ shows as mc2).
+- **KB-098**: PDF subscript/superscript not rendered (H~2~O shows as H2O, mc^2^ shows as mc2). — **CLOSED as duplicate of KB-096**.
 - **KB-099**: PDF math notation renders as raw LaTeX instead of formatted.
 - **KB-100**: HTML syntax highlighting colours do not match PDF/markdown output.
 - **KB-101**: HTML math notation disappears entirely (empty).
 - **KB-102 complete** (bold-italic parser): Parser now checks `***` before `**`, so `***text***` renders as `<strong><em>text</em></strong>` without trailing `*`. Also handles `___text___` underscore variant. 14 new tests. Commit: 0708cb1.
 - **KB-103 complete** (strikethrough ANSI): Terminal renderer now wraps `~~text~~` with ANSI `\033[9m` (STANDOUT ON) and `\033[29m` (STANDOUT OFF) escape sequences, producing actual visual strikethrough in terminals that support it (VIM, iTerm2, GNOME Terminal, etc.). Colour + strikethrough applied together. Replaces KB-092 (which was the backlog card for the same problem). 13 strikethrough tests + 1000 total passing. Commits: `705a947` (renderer fix) + `794fa04` (fixture restore).
+- **KB-094 complete** (bold-italic PDF): Verified working — parser (KB-102) produces `<strong><em>text</em></strong>`, `_InlineHTMLParser` handles both tags, PDF uses `DejaVuSansBoldOblique` font. No raw `***` markers in output. Tested across headings, paragraphs, tables, lists, blockquotes.
+- **KB-096 complete** (PDF superscript/subscript): Fixed `_InlineHTMLParser` to track `<sup>`/`<sub>` state and include flags in segments. `_render_inline_html`, `_plain_text_from_inline_html`, and `_render_heading` apply `_superscript`/`_subscript` conversion. 7 new tests. 1007 tests passing. Commit: `fa23896`.
+- **KB-098 closed as duplicate** of KB-096. Same reported symptom (PDF subscript/superscript not rendered, e.g. H₂O / E=mc²). Verified by reproduction that subscript/superscript now renders correctly in paragraphs, table cells, and headings. No separate work required; resolved by the KB-096 fix (`fa23896`).
