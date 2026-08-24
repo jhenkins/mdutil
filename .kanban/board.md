@@ -3,7 +3,7 @@
 ## Meta
 project_id: mdutil
 board_version: 4.3
-updated: 2026-08-23 18:45
+updated: 2026-08-24 12:00
 lane_model: basic
 
 ## Lanes
@@ -87,7 +87,7 @@ lane_model: basic
 | KB-026c | v4.1 Phase 3: Verification, docs, release prep (KB-026c) | done | P2 | jan | KB-026b | - | 2026-08-08 |
 | KB-027 | HTML: shrink mermaid diagram max-width by 40-50% | done | P1 | jan | - | - | 2026-08-08 |
 | KB-028 | PDF: fit diagrams within A4 page boundaries | done | P1 | jan | KB-027 | - | 2026-08-08 |
-| KB-090 | Terminal: differentiate heading levels h1–h6 (colour + bold weight) | backlog | P1 | - | - | - | 2026-08-23 |
+| KB-090 | Terminal: differentiate heading levels h1–h6 (colour + bold weight) | done | P1 | jan | - | - | 2026-08-24 |
 | KB-091 | Terminal: differentiate callout blockquotes from regular blockquotes | backlog | P2 | - | - | - | 2026-08-23 |
 | KB-092 | Terminal: strikethrough font (not just darker colour) | backlog | P2 | - | - | - | 2026-08-23 |
 | KB-093 | Terminal: inline code visual styling (mono font, background) | done | P1 | jan | - | - | 2026-08-24 |
@@ -177,7 +177,7 @@ lane_model: basic
 
 ### Rendering Quality (KB-090 to KB-101)
 
-- **KB-090**: Terminal heading differentiation — h1–h6 currently only differ by colour. Need bolder differentiation (colour + bold weight / size hierarchy).
+- **KB-090 complete** (Phase rendering): Terminal headings now have level-appropriate visual hierarchy. h1 renders with bold + colour + `═` underline, h2 with bold + colour + `─` underline, h3–h6 with bold + colour only. All 4 themes (colored, dracula, high-contrast, one-dark) now have distinct colours per heading level (6 unique colours each). 34 new tests in `tests/test_heading_differentiation.py`. 973 tests passing. Commit: 16c9d92 (9 files, 463 insertions).
 - **KB-091**: Terminal callout blockquote — no visual difference between `>` and `> [!NOTE]`. Consider prefix or border.
 - **KB-092**: Terminal strikethrough — currently only darker colour, no combining macron or similar.
 - **KB-093 complete**: Added `inline_code` theme key (#e8e8e8 default) with background styling via ANSI `48;2;R;G;B`. All 4 themes updated. 19 new tests in `tests/test_inline_code.py`. 939 tests passing.
