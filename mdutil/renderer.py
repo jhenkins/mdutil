@@ -422,19 +422,27 @@ def _strip_inline_tags(
     text = re.sub(r"<sup>(.*?)</sup>", lambda m: _style(_superscript(re.sub(inner_re, "", m.group(1))), theme, "superscript"), text)
     text = re.sub(r"<mark>(.*?)</mark>", lambda m: _highlight_text(re.sub(inner_re, "", m.group(1)), theme), text)
 
-    # Strikethrough: ~~text~~ → coloured text with combining macron overlay
-    text = re.sub(
-        r"<del>(.*?)</del>",
-        lambda m: _style(_strikethrough(re.sub(inner_re, "", m.group(1))), theme, "strikethrough", bold=False),
-        text,
-    )
+    # Strikethrough: ~~text~~ → coloured text
+    def _strikethrough_handler(m: re.Match) -> str:
+        raw = m.group(1)
+        clean = re.sub(inner_re, "", raw)
+        has_em = "<em>" in raw
+        if has_em:
+            return _style(clean, theme, "strikethrough", bold=False, italic=True)
+        return _style(clean, theme, "strikethrough", bold=False)
 
-    # Bold: <strong>text</strong> → ANSI bold
-    text = re.sub(
-        r"<strong>(.*?)</strong>",
-        lambda m: _style(re.sub(inner_re, "", m.group(1)), theme, "strong", bold=True),
-        text,
-    )
+    text = re.sub(r"<del>(.*?)</del>", _strikethrough_handler, text)
+
+    # Bold / bold+italic: <strong>text</strong> → ANSI bold
+    # If the captured content contains <em>, apply bold+italic together.
+    def _bold_handler(m: re.Match) -> str:
+        raw = m.group(1)
+        clean = re.sub(inner_re, "", raw)
+        if "<em>" in raw:
+            return _style(clean, theme, "strong", bold=True, italic=True)
+        return _style(clean, theme, "strong", bold=True)
+
+    text = re.sub(r"<strong>(.*?)</strong>", _bold_handler, text)
 
     # Italic: <em>text</em> → ANSI italic
     text = re.sub(
@@ -503,6 +511,3 @@ def _subscript(n: str) -> str:
     return "".join(subscript_map.get(c, c) for c in n)
 
 
-def _strikethrough(text: str) -> str:
-    """Apply strikethrough by appending combining macron (U+0305) after each char."""
-    return "".join(f"{c}\u0305" for c in text)
