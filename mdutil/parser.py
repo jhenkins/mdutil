@@ -610,6 +610,19 @@ def _parse_inline_segment(text: str) -> tuple[str, list[dict[str, str]]]:
                 index = end + 1
                 continue
 
+        # Bold italic: ***text*** (must check before **)
+        if text.startswith("***", index):
+            end = _find_unescaped(text, "***", index + 3)
+            if end != -1:
+                inner_content, inner_spans = _parse_inline_segment(text[index + 3 : end])
+                spans.extend(inner_spans)
+                strong_text = _visible_inline_text(inner_content)
+                spans.append({"type": "strong", "text": strong_text})
+                spans.append({"type": "emphasis", "text": strong_text})
+                output.append(f"<strong><em>{inner_content}</em></strong>")
+                index = end + 3
+                continue
+
         if text.startswith("**", index):
             end = _find_unescaped(text, "**", index + 2)
             if end != -1:
@@ -678,6 +691,19 @@ def _parse_inline_segment(text: str) -> tuple[str, list[dict[str, str]]]:
                 spans.append({"type": "emphasis", "text": emphasis_text})
                 output.append(f"<em>{inner_content}</em>")
                 index = end + 1
+                continue
+
+        # Bold italic underscore: ___text___ (must check before __)
+        if text.startswith("___", index):
+            end = _find_unescaped(text, "___", index + 3)
+            if end != -1:
+                inner_content, inner_spans = _parse_inline_segment(text[index + 3 : end])
+                spans.extend(inner_spans)
+                strong_text = _visible_inline_text(inner_content)
+                spans.append({"type": "strong", "text": strong_text})
+                spans.append({"type": "emphasis", "text": strong_text})
+                output.append(f"<strong><em>{inner_content}</em></strong>")
+                index = end + 3
                 continue
 
         # Underscore-style emphasis: _text_

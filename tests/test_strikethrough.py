@@ -1,8 +1,14 @@
 """Tests for KB-051: Strikethrough support (~~text~~)."""
+import re
 import unittest
 
 from mdutil.parser import parse_markdown
 from mdutil.renderer import render
+
+
+def _strip_macrons(text: str) -> str:
+    """Remove combining macron characters (U+0305) from text."""
+    return text.replace("\u0305", "")
 
 
 class StrikethroughParserTests(unittest.TestCase):
@@ -69,8 +75,8 @@ class StrikethroughRendererTests(unittest.TestCase):
         output = render(tokens, theme="colored")
         # Should not contain <del> tags
         self.assertNotIn("<del>", output)
-        # Should contain the text
-        self.assertIn("deleted", output)
+        # Should contain the text (stripped of combining macrons)
+        self.assertIn("deleted", _strip_macrons(output))
 
     def test_strikethrough_with_bold_renderer(self):
         tokens = parse_markdown("~~**bold deleted**~~")
@@ -78,8 +84,8 @@ class StrikethroughRendererTests(unittest.TestCase):
         # Should not contain <del> or <strong> tags
         self.assertNotIn("<del>", output)
         self.assertNotIn("<strong>", output)
-        # Should contain the text
-        self.assertIn("bold deleted", output)
+        # Should contain the text (stripped of combining macrons)
+        self.assertIn("bold deleted", _strip_macrons(output))
 
     def test_strikethrough_with_emphasis_renderer(self):
         tokens = parse_markdown("~~*emphasized*~~")
@@ -87,8 +93,8 @@ class StrikethroughRendererTests(unittest.TestCase):
         # Should not contain <del> or <em> tags
         self.assertNotIn("<del>", output)
         self.assertNotIn("<em>", output)
-        # Should contain the text
-        self.assertIn("emphasized", output)
+        # Should contain the text (stripped of combining macrons)
+        self.assertIn("emphasized", _strip_macrons(output))
 
     def test_strikethrough_with_code_renderer(self):
         tokens = parse_markdown("~~`inline code`~~")
@@ -96,8 +102,8 @@ class StrikethroughRendererTests(unittest.TestCase):
         # Should not contain <del> or <code> tags
         self.assertNotIn("<del>", output)
         self.assertNotIn("<code>", output)
-        # Should contain the text
-        self.assertIn("inline code", output)
+        # Should contain the text (stripped of combining macrons)
+        self.assertIn("inline code", _strip_macrons(output))
 
 
 class StrikethroughExporterTests(unittest.TestCase):

@@ -16,6 +16,11 @@ def strip_ansi(text: str) -> str:
     return re.sub(r"\x1b\[[0-9;]*m", "", text)
 
 
+def _strip_macrons(text: str) -> str:
+    """Remove combining macron characters (U+0305) from text."""
+    return text.replace("\u0305", "")
+
+
 def has_ansi(text: str) -> bool:
     """Check if text contains ANSI escape sequences."""
     return bool(re.search(r"\x1b\[[0-9;]*m", text))
@@ -33,7 +38,7 @@ class ThemeColorTests(unittest.TestCase):
         tokens = parse_markdown("This is ~~deleted~~ text.")
         output = render(tokens, theme="dracula")
         plain = strip_ansi(output)
-        self.assertIn("deleted", plain)
+        self.assertIn("deleted", _strip_macrons(plain))
         # Should have ANSI coloring
         self.assertTrue(has_ansi(output))
 
@@ -197,7 +202,7 @@ class CrossFeatureRendererTests(unittest.TestCase):
         self.assertNotIn("<mark>", plain)
 
         # Content should be present
-        self.assertIn("strike", plain)
+        self.assertIn("strike", _strip_macrons(plain))
         self.assertIn("bold", plain)
         self.assertIn("em", plain)
         self.assertIn("code", plain)
