@@ -18,7 +18,9 @@ class RendererTests(unittest.TestCase):
     def test_render_strips_inline_code_tags_to_visible_text(self):
         output = render(parse_markdown("Use `mdutil` now"))
 
-        self.assertEqual(output, "Use mdutil now")
+        self.assertEqual(strip_ansi(output), "Use mdutil now")
+        # Inline code should have a background color (48;2;R;G;Bm)
+        self.assertIn("\033[48;2;", output)
 
     def test_render_nested_inline_markup_inside_links_to_visible_text(self):
         output = render(parse_markdown("See [*docs* `api`](https://example.com), please."))
@@ -38,20 +40,20 @@ class RendererTests(unittest.TestCase):
 
         self.assertEqual(strip_ansi(output), "Before\n---\nAfter")
 
-    def test_heading_uses_token_content_not_reconstructed_text(self):
+    def test_heading_uses_token_text_not_raw_content(self):
         output = render(
             [
                 {
                     "type": "heading",
                     "level": 6,
                     "content": "# Canonical heading",
-                    "text": "Wrong text must not render",
+                    "text": "Canonical heading",
                 }
             ]
         )
 
-        self.assertIn("# Canonical heading", output)
-        self.assertNotIn("Wrong text must not render", output)
+        self.assertIn("Canonical heading", output)
+        self.assertNotIn("# Canonical heading", output)
         self.assertNotIn("######", output)
 
     def test_render_blocks_from_structured_token_content(self):

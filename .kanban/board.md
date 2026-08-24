@@ -2,8 +2,8 @@
 
 ## Meta
 project_id: mdutil
-board_version: 4.2
-updated: 2026-08-23 17:15
+board_version: 4.3
+updated: 2026-08-23 18:45
 lane_model: basic
 
 ## Lanes
@@ -87,6 +87,18 @@ lane_model: basic
 | KB-026c | v4.1 Phase 3: Verification, docs, release prep (KB-026c) | done | P2 | jan | KB-026b | - | 2026-08-08 |
 | KB-027 | HTML: shrink mermaid diagram max-width by 40-50% | done | P1 | jan | - | - | 2026-08-08 |
 | KB-028 | PDF: fit diagrams within A4 page boundaries | done | P1 | jan | KB-027 | - | 2026-08-08 |
+| KB-090 | Terminal: differentiate heading levels h1–h6 (colour + bold weight) | backlog | P1 | - | - | - | 2026-08-23 |
+| KB-091 | Terminal: differentiate callout blockquotes from regular blockquotes | backlog | P2 | - | - | - | 2026-08-23 |
+| KB-092 | Terminal: strikethrough font (not just darker colour) | backlog | P2 | - | - | - | 2026-08-23 |
+| KB-093 | Terminal: inline code visual styling (mono font, background) | backlog | P1 | - | - | - | 2026-08-23 |
+| KB-094 | PDF: ***bold and italic*** renders raw markdown instead of bold+italic | backlog | P1 | - | - | - | 2026-08-23 |
+| KB-095 | Docs: fix "Math" → "maths" (UK English) | done | P3 | jan | - | - | 2026-08-23 |
+| KB-096 | PDF: superscript ² not rendered in table cells | backlog | P1 | - | - | - | 2026-08-23 |
+| KB-097 | PDF: definition list alignment (Def. 1.2 not aligning with Def. 1.1) | backlog | P2 | - | - | - | 2026-08-23 |
+| KB-098 | PDF: subscript/superscript not rendered (H2O, E=mc2) | backlog | P1 | - | - | - | 2026-08-23 |
+| KB-099 | PDF: math notation renders as raw LaTeX instead of formatted | backlog | P1 | - | - | - | 2026-08-23 |
+| KB-100 | HTML: syntax highlighting colours do not match PDF/markdown | backlog | P2 | - | - | - | 2026-08-23 |
+| KB-101 | HTML: math notation disappears entirely | backlog | P1 | - | - | - | 2026-08-23 |
 
 ## WIP Limits
 - in-progress: 2
@@ -162,3 +174,18 @@ lane_model: basic
 - **KB-086 complete** (Phase 8a manual QA): Tested with 5 real-world documents across 4 themes (colored, dracula, high-contrast, one-dark) and 4 terminal widths (80, 120, 160, 200). All v5.0 features render correctly. Found and fixed 3 bugs: (1) footnote ID regex only matched digits — fixed in renderer, HTML/PDF exporters; (2) consecutive footnote definitions merged into single paragraph — fixed in parser; (3) PDF `_superscript` had incorrect Unicode mappings — fixed by delegating to renderer. Added regression tests. Full report at `tests/qa/qa-report-v5.0.md`. 896 tests passing.
 
 - **KB-087 complete** (Phase 8a performance): 24 performance tests in `tests/test_performance.py` across 5 test classes. Baselines established: parse 0.86ms–40ms (5K–250K, linear scaling confirmed), terminal render 0.23ms–15ms, HTML export 0.81ms–31ms, PDF export 220ms–657ms (5K–50K). V5-specific tests: many footnotes (50 refs), many task items (100), dense inline formatting (200 lines), deep nesting (10 levels). 3 cProfile-based profiling tests available for regression investigation. 920 tests passing.
+
+### Rendering Quality (KB-090 to KB-101)
+
+- **KB-090**: Terminal heading differentiation — h1–h6 currently only differ by colour. Need bolder differentiation (colour + bold weight / size hierarchy).
+- **KB-091**: Terminal callout blockquote — no visual difference between `>` and `> [!NOTE]`. Consider prefix or border.
+- **KB-092**: Terminal strikethrough — currently only darker colour, no combining macron or similar.
+- **KB-093**: Terminal inline code — not visually distinguished from paragraph text. Need background or border.
+- **KB-094**: PDF `***bold and italic***` renders raw `***` markdown.
+- **KB-095**: Typo "Math" → "maths" (UK English).
+- **KB-096**: PDF superscript `²` not rendered in table cells.
+- **KB-097**: PDF definition list alignment — "Definition 1.2" not aligned with "Definition 1.1".
+- **KB-098**: PDF subscript/superscript not rendered (H~2~O shows as H2O, mc^2^ shows as mc2).
+- **KB-099**: PDF math notation renders as raw LaTeX instead of formatted.
+- **KB-100**: HTML syntax highlighting colours do not match PDF/markdown output.
+- **KB-101**: HTML math notation disappears entirely (empty).

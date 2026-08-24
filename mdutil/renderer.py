@@ -115,8 +115,10 @@ def _render_definition(token: dict[str, Any], theme: dict[str, Any]) -> list[str
 
 def _render_heading(token: dict[str, Any], theme: dict[str, Any]) -> str:
     level = int(token.get("level", 1))
-    content = str(token.get("content") or _heading_content_from_text(token, level))
-    return _style(content, theme, f"h{level}", bold=True)
+    # Use the clean "text" field (without # prefix) so the heading renders as styled
+    # text rather than showing raw Markdown syntax like "# Hello World".
+    text = str(token.get("text") or token.get("content", ""))
+    return _style(text, theme, f"h{level}", bold=True)
 
 
 def _heading_content_from_text(token: dict[str, Any], level: int) -> str:
@@ -271,7 +273,10 @@ def _display_width(text: str) -> int:
     return width
 
 
-def _style(text: str, theme: dict[str, Any], markdown_key: str, *, bold: bool = False) -> str:
+ITALIC = "\033[3m"
+
+
+def _style(text: str, theme: dict[str, Any], markdown_key: str, *, bold: bool = False, italic: bool = False) -> str:
     codes: list[str] = []
     color = theme.get("markdown", {}).get(markdown_key)
     color_code = _ansi_color(color)
@@ -279,6 +284,8 @@ def _style(text: str, theme: dict[str, Any], markdown_key: str, *, bold: bool = 
         codes.append(color_code)
     if bold:
         codes.append(BOLD)
+    if italic:
+        codes.append(ITALIC)
     if not codes:
         return text
     return "".join(codes) + text + RESET
@@ -303,6 +310,21 @@ def _highlight_text(text: str, theme: dict[str, Any]) -> str:
     if not color:
         return text
     # Use background color (48;2;R;G;B) for highlight effect
+    match = re.fullmatch(r"#([0-9a-fA-F]{6})", color.strip())
+    if not match:
+        return text
+    hex_value = match.group(1)
+    red = int(hex_value[0:2], 16)
+    green = int(hex_value[2:4], 16)
+    blue = int(hex_value[4:6], 16)
+    return f"\033[48;2;{red};{green};{blue}m{text}\033[0m"
+
+
+def _style_inline_code(text: str, theme: dict[str, Any]) -> str:
+    """Apply ANSI background color to inline code using theme's inline_code color."""
+    color = theme.get("markdown", {}).get("inline_code")
+    if not color:
+        return text
     match = re.fullmatch(r"#([0-9a-fA-F]{6})", color.strip())
     if not match:
         return text
@@ -384,13 +406,35 @@ def _strip_inline_tags(
     # Strikethrough
     text = re.sub(r"<del>(.*?)</del>", lambda m: _style(re.sub(inner_re, "", m.group(1)), theme, "strikethrough", bold=False), text)
 
+    # Bold: <strong>text</strong> → ANSI bold
+    text = re.sub(
+        r"<strong>(.*?)</strong>",
+        lambda m: _style(re.sub(inner_re, "", m.group(1)), theme, "strong", bold=True),
+        text,
+    )
+
+    # Italic: <em>text</em> → ANSI italic
+    text = re.sub(
+        r"<em>(.*?)</em>",
+        lambda m: _style(re.sub(inner_re, "", m.group(1)), theme, "emphasis", italic=True),
+        text,
+    )
+
     # Math: show raw $...$ delimiters when math_fallback is enabled
     if math_fallback:
         text = re.sub(r"<math>(.*?)</math>", lambda m: f"${m.group(1)}$", text)
     else:
         text = re.sub(r"<math>(.*?)</math>", lambda m: re.sub(inner_re, "", m.group(1)), text)
 
-    text = re.sub(r"</?(?:strong|em|del|code|math|sub|sup|mark)>", "", text)
+    # Inline code: apply background color
+    text = re.sub(
+        r"<code>(.*?)</code>",
+        lambda m: _style_inline_code(re.sub(inner_re, "", m.group(1)), theme),
+        text,
+    )
+
+    # Strip any remaining inline tags that we did not handle above
+    text = re.sub(r"</?(?:del|code|math|sub|sup|mark)>", "", text)
     return text
 
 

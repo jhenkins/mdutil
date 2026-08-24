@@ -527,3 +527,23 @@ v5.0 is complete when:
 - New features can be opted out via config flags
 - Themes can override rendering of new features
 - Documentation and tests are prioritized equally with implementation
+
+---
+
+## Phase 9: Rendering Quality (KB-090 to KB-101)
+
+**Goal:** Fix rendering issues discovered during manual QA with the comprehensive test document.
+
+**Tasks:**
+- [ ] KB-090: Terminal — differentiate heading levels h1–h6 (colour + bold weight)
+- [ ] KB-091: Terminal — differentiate callout blockquotes from regular blockquotes
+- [ ] KB-092: Terminal — strikethrough font (not just darker colour)
+- [ ] KB-093: Terminal — inline code visual styling (mono font, background)
+- [ ] KB-094: PDF — `***bold and italic***` renders raw markdown instead of bold+italic
+- [ ] KB-095: Docs — fix "Math" → "maths" (UK English)
+- [ ] KB-096: PDF — superscript ² not rendered in table cells
+- [ ] KB-097: PDF — definition list alignment (Def. 1.2 not aligning with Def. 1.1)
+- [ ] KB-098: PDF — subscript/superscript not rendered (H2O, E=mc2)
+- [ ] KB-099: PDF — math notation renders as raw LaTeX instead of formatted
+- [ ] KB-100: HTML — syntax highlighting colours do not match PDF/markdown
+- [ ] KB-101: HTML — math notation disappears entirely (empty)

@@ -25,6 +25,9 @@ MARKDOWN_COLORS: dict[str, str] = {
     "strikethrough": "#888888",
     "task_list_checked": "#00cc00",
     "task_list_unchecked": "#888888",
+    "inline_code": "#e8e8e8",
+    "strong": "#000000",
+    "emphasis": "#333333",
 }
 
 CODE_COLORS: dict[str, str] = {
@@ -90,6 +93,9 @@ DRACULA: dict[str, Any] = {
         "strikethrough": "#6272a4",
         "task_list_checked": "#50fa7b",
         "task_list_unchecked": "#6272a4",
+        "inline_code": "#44475a",
+        "strong": "#f8f8f2",
+        "emphasis": "#f8f8f2",
     },
     "code": {
         "keyword": "#ff79c6",
@@ -131,6 +137,9 @@ HIGH_CONTRAST: dict[str, Any] = {
         "strikethrough": "#888888",
         "task_list_checked": "#00ff00",
         "task_list_unchecked": "#888888",
+        "inline_code": "#cccccc",
+        "strong": "#ffffff",
+        "emphasis": "#ffffff",
     },
     "code": {
         "keyword": "#ffff00",
@@ -172,6 +181,9 @@ ONE_DARK: dict[str, Any] = {
         "strikethrough": "#5c6370",
         "task_list_checked": "#98c379",
         "task_list_unchecked": "#5c6370",
+        "inline_code": "#3c4048",
+        "strong": "#abb2bf",
+        "emphasis": "#abb2bf",
     },
     "code": {
         "keyword": "#c678dd",
