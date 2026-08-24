@@ -1,7 +1,7 @@
-"""Tests for strikethrough rendering: colour-only approach.
+"""Tests for strikethrough rendering: ANSI \033[9m strikethrough.
 
-Strikethrough `~~text~~` renders with the strikethrough theme colour.
-(Combining macron overlay was removed due to inconsistent terminal rendering.)
+Strikethrough `~~text~~` renders with the strikethrough theme colour
+and the ANSI strikethrough escape (\033[9m / STANDOUT ON).
 """
 import re
 import unittest
@@ -85,3 +85,39 @@ class StrikethroughRendererTests(unittest.TestCase):
         plain = strip_ansi(output)
         self.assertIn("hello", plain)
         self.assertIn("world", plain)
+
+    def test_strikethrough_uses_ansi_escape(self):
+        """Strikethrough output contains \033[9m (STANDOUT ON) and \033[29m (off)."""
+        tokens = parse_markdown("~~deleted~~")
+        output = render(tokens, theme="colored")
+        self.assertIn("\033[9m", output, "Should contain strikethrough ON escape")
+        self.assertIn("\033[29m", output, "Should contain strikethrough OFF escape")
+
+    def test_strikethrough_escape_with_bold(self):
+        """~~**bold**~~ includes strikethrough escape codes."""
+        tokens = parse_markdown("~~**bold**~~")
+        output = render(tokens, theme="colored")
+        self.assertIn("\033[9m", output)
+        self.assertIn("\033[29m", output)
+
+    def test_strikethrough_escape_with_emphasis(self):
+        """~~*em*~~ includes strikethrough escape codes."""
+        tokens = parse_markdown("~~*em*~~")
+        output = render(tokens, theme="colored")
+        self.assertIn("\033[9m", output)
+        self.assertIn("\033[29m", output)
+
+    def test_strikethrough_escape_with_code(self):
+        """~~`code`~~ includes strikethrough escape codes."""
+        tokens = parse_markdown("~~`code`~~")
+        output = render(tokens, theme="colored")
+        self.assertIn("\033[9m", output)
+        self.assertIn("\033[29m", output)
+
+    def test_strikethrough_all_themes_have_escape(self):
+        """All themes apply strikethrough ANSI escape."""
+        for theme in ("colored", "dracula", "high-contrast", "one-dark"):
+            tokens = parse_markdown("~~text~~")
+            output = render(tokens, theme=theme)
+            self.assertIn("\033[9m", output, f"{theme} should apply strikethrough escape")
+            self.assertIn("\033[29m", output, f"{theme} should turn off strikethrough escape")

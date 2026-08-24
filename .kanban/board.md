@@ -100,7 +100,7 @@ lane_model: basic
 | KB-100 | HTML: syntax highlighting colours do not match PDF/markdown | backlog | P2 | - | - | - | 2026-08-23 |
 | KB-101 | HTML: math notation disappears entirely | backlog | P1 | - | - | - | 2026-08-23 |
 | KB-102 | Parser: ***bold-italic*** leaves trailing asterisk (only 2 of 3 consumed) | done | P1 | jan | - | - | 2026-08-24 |
-| KB-103 | Terminal: strikethrough should use combining macron, not just grey colour | done | P1 | jan | - | - | 2026-08-24 |
+| KB-103 | Terminal: strikethrough should use ANSI \\033[9m (actual strikethrough), not just colour | in-progress | P1 | jan | - | - | 2026-08-24 |
 
 ## WIP Limits
 - in-progress: 2
@@ -192,4 +192,4 @@ lane_model: basic
 - **KB-100**: HTML syntax highlighting colours do not match PDF/markdown output.
 - **KB-101**: HTML math notation disappears entirely (empty).
 - **KB-102 complete** (bold-italic parser): Parser now checks `***` before `**`, so `***text***` renders as `<strong><em>text</em></strong>` without trailing `*`. Also handles `___text___` underscore variant. 14 new tests. Commit: 0708cb1.
-- **KB-103 complete** (strikethrough macron): Terminal renderer now uses combining macron (U+0305) after each character in `~~text~~`, producing `t̅e̅x̅t̅`-style strikethrough instead of grey-coloured text. Works with nested bold/em/code. 14 new tests. Commit: 0708cb1.
+- **KB-103 in-progress** (strikethrough ANSI): Reverting colour-only approach. Need to use ANSI `\033[9m` (STANDOUT on) to render actual strikethrough. Modern terminals (VIM, iTerm2, GNOME Terminal) support this. The `~~text~~` syntax should produce visually struck-through text in the terminal.

@@ -12,6 +12,8 @@ from .themes import DEFAULT_THEME, load_theme
 RESET = "\033[0m"
 BOLD = "\033[1m"
 REVERSE = "\033[7m"
+STRIKETHROUGH = "\033[9m"
+STRIKETHROUGH_OFF = "\033[29m"
 
 
 def render(
@@ -422,14 +424,13 @@ def _strip_inline_tags(
     text = re.sub(r"<sup>(.*?)</sup>", lambda m: _style(_superscript(re.sub(inner_re, "", m.group(1))), theme, "superscript"), text)
     text = re.sub(r"<mark>(.*?)</mark>", lambda m: _highlight_text(re.sub(inner_re, "", m.group(1)), theme), text)
 
-    # Strikethrough: ~~text~~ → coloured text
+    # Strikethrough: ~~text~~ → coloured text with strikethrough escape
     def _strikethrough_handler(m: re.Match) -> str:
         raw = m.group(1)
         clean = re.sub(inner_re, "", raw)
         has_em = "<em>" in raw
-        if has_em:
-            return _style(clean, theme, "strikethrough", bold=False, italic=True)
-        return _style(clean, theme, "strikethrough", bold=False)
+        styled = _style(clean, theme, "strikethrough", bold=False, italic=has_em)
+        return f"{STRIKETHROUGH}{styled}{STRIKETHROUGH_OFF}"
 
     text = re.sub(r"<del>(.*?)</del>", _strikethrough_handler, text)
 
