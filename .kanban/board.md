@@ -108,6 +108,7 @@ lane_model: basic
 
 ## Rules Snapshot
 - Use `rules.md` as source of truth for state mapping and custom policies.
+- **GitHub issues are NOT used for normal development work** (see `rules.md`). Work is tracked on this board + `todo-v5.0.md`. Only triage externally-logged issues on a case-by-case basis.
 - v5.0 implementation plan: `todo-v5.0.md`
 - Historical plans archived in `docs/archive/`
 

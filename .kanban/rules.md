@@ -15,6 +15,12 @@
 - **in-progress**: 2
 - **review**: 3
 
+## GitHub Issues Policy
+
+Normal development work (feature requests, bug fixes, refactors, KB cards) is **not** tracked via GitHub issues. The Kanban board (`board.md` + `rules.md`) and `todo-v5.0.md` are the single source of truth for what to work on.
+
+GitHub issues are only worth looking at if someone externally logs one for us to triage — and even then it is a case-by-case decision, not how we work as a rule. Do not spend time searching GitHub issues for normal task tracking; the answers live in the board.
+
 ## Policies
 - Move to `review` when implementation is complete and all tests pass.
 - Only one card per developer in `in-progress` at a time.
