@@ -143,13 +143,13 @@ class RendererTests(unittest.TestCase):
         output = render(parse_markdown("# Title\n\n```python\nprint(1)\nprint(2)\n```\nAfter"), line_numbers=True)
 
         lines = strip_ansi(output).splitlines()
-        self.assertEqual(len(lines), 5)
-        self.assertTrue(lines[0].startswith("   1 | "))
-        self.assertTrue(lines[1].startswith("   2 | "))
-        self.assertEqual(lines[1], "   2 | ")
-        self.assertTrue(lines[2].startswith("   3 | print(1)"))
-        self.assertTrue(lines[3].startswith("   4 | print(2)"))
-        self.assertTrue(lines[4].startswith("   5 | After"))
+        self.assertEqual(len(lines), 6)
+        self.assertTrue(lines[0].startswith("   1 | Title"))
+        self.assertTrue(lines[1].startswith("   2 | ═"))
+        self.assertEqual(lines[2], "   3 | ")
+        self.assertTrue(lines[3].startswith("   4 | print(1)"))
+        self.assertTrue(lines[4].startswith("   5 | print(2)"))
+        self.assertTrue(lines[5].startswith("   6 | After"))
 
     def test_code_blocks_are_syntax_highlighted_for_known_languages(self):
         output = render(parse_markdown("```python\ndef greet():\n    return 'hi'\n```"), theme="dracula")

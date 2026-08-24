@@ -42,7 +42,7 @@ class CliTests(unittest.TestCase):
             result = self.run_mdutil(str(path))
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("# From file", result.stdout)
+        self.assertIn("From file", result.stdout)
         self.assertEqual(result.stderr, "")
 
     def test_file_argument_launches_interactive_viewer_when_stdout_is_terminal(self):
@@ -112,21 +112,21 @@ class CliTests(unittest.TestCase):
             exit_code = main([])
 
         self.assertEqual(exit_code, 0)
-        self.assertIn("# Piped", stdout.getvalue())
+        self.assertIn("Piped", stdout.getvalue())
         viewer.assert_not_called()
 
     def test_reads_stdin_when_file_is_dash(self):
         result = self.run_mdutil("-", input_text="# From dash\n")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("# From dash", result.stdout)
+        self.assertIn("From dash", result.stdout)
         self.assertEqual(result.stderr, "")
 
     def test_reads_piped_stdin_when_no_file_argument(self):
         result = self.run_mdutil(input_text="# From pipe\n")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("# From pipe", result.stdout)
+        self.assertIn("From pipe", result.stdout)
         self.assertEqual(result.stderr, "")
 
     def test_supports_theme_and_theme_file_options(self):
@@ -139,7 +139,7 @@ class CliTests(unittest.TestCase):
             result = self.run_mdutil("--theme", "dracula", "--theme-file", str(theme_file), str(doc))
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("# Themed", result.stdout)
+        self.assertIn("Themed", result.stdout)
         self.assertIn("\033[38;2;255;255;255m", result.stdout)
         self.assertEqual(result.stderr, "")
 
@@ -155,7 +155,7 @@ class CliTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("   1 | ", result.stdout)
-        self.assertIn("# Numbered", result.stdout)
+        self.assertIn("Numbered", result.stdout)
         self.assertEqual(result.stderr, "")
 
     def test_creates_default_config_in_home_when_missing(self):
@@ -193,7 +193,7 @@ class CliTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("   1 | ", result.stdout)
-        self.assertIn("# Configured", result.stdout)
+        self.assertIn("Configured", result.stdout)
         self.assertIn("\033[38;2;255;121;198m", result.stdout)
 
     def test_cli_options_override_config_file_defaults(self):

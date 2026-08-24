@@ -53,7 +53,7 @@ def _render_token(
 ) -> list[str]:
     ttype = token.get("type")
     if ttype == "heading":
-        return [_render_heading(token, theme)]
+        return _render_heading(token, theme)
     if ttype == "paragraph":
         return [_render_paragraph(token, theme, math_fallback=math_fallback, footnote_style=footnote_style)]
     if ttype == "blank":
@@ -113,12 +113,31 @@ def _render_definition(token: dict[str, Any], theme: dict[str, Any]) -> list[str
     return lines
 
 
-def _render_heading(token: dict[str, Any], theme: dict[str, Any]) -> str:
+def _render_heading(
+    token: dict[str, Any], theme: dict[str, Any]
+) -> list[str]:
+    """Render a heading token with level-appropriate decoration.
+
+    Visual hierarchy:
+      h1: colour + bold + underline with ═ (double horizontal)
+      h2: colour + bold + underline with ─ (single horizontal)
+      h3-h6: colour + bold (no underline)
+
+    Returns a list of strings — one per rendered line — so that line-number
+    tracking stays aligned.
+    """
     level = int(token.get("level", 1))
-    # Use the clean "text" field (without # prefix) so the heading renders as styled
-    # text rather than showing raw Markdown syntax like "# Hello World".
     text = str(token.get("text") or token.get("content", ""))
-    return _style(text, theme, f"h{level}", bold=True)
+    markdown_key = f"h{level}"
+    colour = theme.get("markdown", {}).get(markdown_key)
+    lines: list[str] = [_style(text, theme, markdown_key, bold=True)]
+    if level == 1 and colour:
+        # h1: double-horizontal underline spanning heading text width
+        lines.append(_style("═" * len(text), theme, markdown_key))
+    elif level == 2 and colour:
+        # h2: single-horizontal underline spanning heading text width
+        lines.append(_style("─" * len(text), theme, markdown_key))
+    return lines
 
 
 def _heading_content_from_text(token: dict[str, Any], level: int) -> str:
