@@ -2,6 +2,14 @@
 
 All notable changes to mdutil will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- **Strikethrough terminal rendering** (KB-103)
+  - Terminal now uses ANSI `\033[9m` (STANDOUT ON) and `\033[29m` (STANDOUT OFF) escape sequences for actual visual strikethrough
+  - Works with modern terminals (VIM, iTerm2, GNOME Terminal, etc.)
+  - Colour + strikethrough applied together via theme `strikethrough` key
+
 ## [5.0.0] - 2026-08-22
 
 ### Added

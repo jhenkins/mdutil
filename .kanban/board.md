@@ -89,7 +89,7 @@ lane_model: basic
 | KB-028 | PDF: fit diagrams within A4 page boundaries | done | P1 | jan | KB-027 | - | 2026-08-08 |
 | KB-090 | Terminal: differentiate heading levels h1–h6 (colour + bold weight) | done | P1 | jan | - | - | 2026-08-24 |
 | KB-091 | Terminal: differentiate callout blockquotes from regular blockquotes | backlog | P2 | - | - | - | 2026-08-23 |
-| KB-092 | Terminal: strikethrough font (not just darker colour) | backlog | P2 | - | - | - | 2026-08-23 |
+| KB-092 | Terminal: strikethrough font (not just darker colour) | dropped | P2 | - | - | KB-103 | 2026-08-24 |
 | KB-093 | Terminal: inline code visual styling (mono font, background) | done | P1 | jan | - | - | 2026-08-24 |
 | KB-094 | PDF: ***bold and italic*** renders raw markdown instead of bold+italic | backlog | P1 | - | - | - | 2026-08-23 |
 | KB-095 | Docs: fix "Math" → "maths" (UK English) | done | P3 | jan | - | - | 2026-08-23 |
@@ -100,7 +100,7 @@ lane_model: basic
 | KB-100 | HTML: syntax highlighting colours do not match PDF/markdown | backlog | P2 | - | - | - | 2026-08-23 |
 | KB-101 | HTML: math notation disappears entirely | backlog | P1 | - | - | - | 2026-08-23 |
 | KB-102 | Parser: ***bold-italic*** leaves trailing asterisk (only 2 of 3 consumed) | done | P1 | jan | - | - | 2026-08-24 |
-| KB-103 | Terminal: strikethrough should use ANSI \\033[9m (actual strikethrough), not just colour | in-progress | P1 | jan | - | - | 2026-08-24 |
+| KB-103 | Terminal: strikethrough should use ANSI \\033[9m (actual strikethrough), not just colour | done | P1 | jan | - | - | 2026-08-24 |
 
 ## WIP Limits
 - in-progress: 2
@@ -192,4 +192,4 @@ lane_model: basic
 - **KB-100**: HTML syntax highlighting colours do not match PDF/markdown output.
 - **KB-101**: HTML math notation disappears entirely (empty).
 - **KB-102 complete** (bold-italic parser): Parser now checks `***` before `**`, so `***text***` renders as `<strong><em>text</em></strong>` without trailing `*`. Also handles `___text___` underscore variant. 14 new tests. Commit: 0708cb1.
-- **KB-103 in-progress** (strikethrough ANSI): Reverting colour-only approach. Need to use ANSI `\033[9m` (STANDOUT on) to render actual strikethrough. Modern terminals (VIM, iTerm2, GNOME Terminal) support this. The `~~text~~` syntax should produce visually struck-through text in the terminal.
+- **KB-103 complete** (strikethrough ANSI): Terminal renderer now wraps `~~text~~` with ANSI `\033[9m` (STANDOUT ON) and `\033[29m` (STANDOUT OFF) escape sequences, producing actual visual strikethrough in terminals that support it (VIM, iTerm2, GNOME Terminal, etc.). Colour + strikethrough applied together. Replaces KB-092 (which was the backlog card for the same problem). 13 strikethrough tests + 1000 total passing. Commits: `705a947` (renderer fix) + `794fa04` (fixture restore).
