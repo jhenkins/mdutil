@@ -49,6 +49,46 @@ def _decode_pdf_text(pdf_bytes: bytes) -> str:
 
 
 # ===========================================================================
+# _InlineHTMLParser: superscript / subscript handling (KB-096)
+# ===========================================================================
+
+class InlineHTMLParserSuperscriptTests(unittest.TestCase):
+    """Test _InlineHTMLParser handles <sup>/<sub> tags."""
+
+    def test_superscript_tag_tracked(self):
+        parser = _InlineHTMLParser()
+        parser.feed("x<sup>2</sup>")
+        parser.close()
+        segments = parser.segments
+        self.assertEqual(segments[0]["text"], "x")
+        self.assertFalse(segments[0]["superscript"])
+        self.assertEqual(segments[1]["text"], "2")
+        self.assertTrue(segments[1]["superscript"])
+
+    def test_subscript_tag_tracked(self):
+        parser = _InlineHTMLParser()
+        parser.feed("H<sub>2</sub>O")
+        parser.close()
+        segments = parser.segments
+        self.assertEqual(segments[1]["text"], "2")
+        self.assertTrue(segments[1]["subscript"])
+        self.assertEqual(segments[2]["text"], "O")
+        self.assertFalse(segments[2]["subscript"])
+
+    def test_nested_sup_within_strong(self):
+        parser = _InlineHTMLParser()
+        parser.feed("<strong>x<sup>2</sup></strong>")
+        parser.close()
+        segments = parser.segments
+        self.assertEqual(segments[0]["text"], "x")
+        self.assertTrue(segments[0]["strong"])
+        self.assertFalse(segments[0]["superscript"])  # x is before <sup>
+        self.assertEqual(segments[1]["text"], "2")
+        self.assertTrue(segments[1]["strong"])
+        self.assertTrue(segments[1]["superscript"])
+
+
+# ===========================================================================
 # HTML Exporter: Strikethrough
 # ===========================================================================
 
@@ -578,7 +618,24 @@ class PdfExporterSubscriptTests(unittest.TestCase):
         self.assertTrue(pdf_bytes.startswith(b"%PDF"))
         text = _decode_pdf_text(pdf_bytes)
         self.assertIn("H", text)
+        self.assertIn("₂", text)  # subscript two
         self.assertIn("O", text)
+
+    def test_subscript_in_table_cell(self):
+        """KB-096: subscript renders in table cells."""
+        md = "| Compound |\n|----------|\n| H~2~O     |"
+        tokens = parse_markdown(md)
+        pdf_bytes = self.exporter.render(tokens, {}, {})
+        text = _decode_pdf_text(pdf_bytes)
+        self.assertIn("₂", text)  # subscript two, not plain '2'
+
+    def test_subscript_in_heading(self):
+        """KB-096: subscript renders in headings."""
+        md = "# H~2~O"
+        tokens = parse_markdown(md)
+        pdf_bytes = self.exporter.render(tokens, {}, {})
+        text = _decode_pdf_text(pdf_bytes)
+        self.assertIn("₂", text)
 
 
 # ===========================================================================
@@ -597,7 +654,23 @@ class PdfExporterSuperscriptTests(unittest.TestCase):
         self.assertTrue(pdf_bytes.startswith(b"%PDF"))
         text = _decode_pdf_text(pdf_bytes)
         self.assertIn("x", text)
-        self.assertIn("2", text)
+        self.assertIn("²", text)  # superscript two
+
+    def test_superscript_in_table_cell(self):
+        """KB-096: superscript renders in table cells."""
+        md = "| Formula |\n|---------|\n| E=mc^2^ |"
+        tokens = parse_markdown(md)
+        pdf_bytes = self.exporter.render(tokens, {}, {})
+        text = _decode_pdf_text(pdf_bytes)
+        self.assertIn("²", text)  # superscript two, not plain '2'
+
+    def test_superscript_in_heading(self):
+        """KB-096: superscript renders in headings."""
+        md = "# E=mc^2^"
+        tokens = parse_markdown(md)
+        pdf_bytes = self.exporter.render(tokens, {}, {})
+        text = _decode_pdf_text(pdf_bytes)
+        self.assertIn("²", text)
 
 
 # ===========================================================================

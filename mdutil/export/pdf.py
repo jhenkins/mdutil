@@ -22,7 +22,7 @@ from mdutil.export.svg_to_image import (
     SvgToImageError,
 )
 from mdutil.parser import _parse_inline
-from mdutil.renderer import _superscript as _renderer_superscript
+from mdutil.renderer import _subscript as _renderer_subscript, _superscript as _renderer_superscript
 
 _logger = logging.getLogger("mdutil.export.pdf")
 
@@ -66,6 +66,8 @@ class _InlineHTMLParser(html.parser.HTMLParser):
         self._strong = 0
         self._emphasis = 0
         self._code = 0
+        self._superscript = 0
+        self._subscript = 0
         self._links: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -75,6 +77,10 @@ class _InlineHTMLParser(html.parser.HTMLParser):
             self._emphasis += 1
         elif tag == "code":
             self._code += 1
+        elif tag == "sup":
+            self._superscript += 1
+        elif tag == "sub":
+            self._subscript += 1
         elif tag == "a":
             href = dict(attrs).get("href") or ""
             title = dict(attrs).get("title")
@@ -116,6 +122,10 @@ class _InlineHTMLParser(html.parser.HTMLParser):
             self._emphasis -= 1
         elif tag == "code" and self._code:
             self._code -= 1
+        elif tag == "sup" and self._superscript:
+            self._superscript -= 1
+        elif tag == "sub" and self._subscript:
+            self._subscript -= 1
         elif tag == "a" and self._links:
             self._links.pop()
 
@@ -128,6 +138,8 @@ class _InlineHTMLParser(html.parser.HTMLParser):
                 "strong": bool(self._strong),
                 "emphasis": bool(self._emphasis),
                 "code": bool(self._code),
+                "superscript": bool(self._superscript),
+                "subscript": bool(self._subscript),
                 "href": self._links[-1][0] if self._links else "",
                 "title": self._links[-1][1] if self._links else None,
             }
@@ -202,7 +214,15 @@ class PdfExporter(Exporter):
         return parser.segments
 
     def _plain_text_from_inline_html(self, html: str) -> str:
-        return "".join(segment["text"] for segment in self._parse_inline_html(html))
+        parts: list[str] = []
+        for segment in self._parse_inline_html(html):
+            text = segment["text"]
+            if segment.get("superscript"):
+                text = _renderer_superscript(text)
+            elif segment.get("subscript"):
+                text = _renderer_subscript(text)
+            parts.append(text)
+        return "".join(parts)
 
     def _render_inline_html(self, pdf: FPDF, html: str, *, line_height: float = 5) -> None:
         """Render parser-produced inline HTML with PDF fonts and link annotations."""
@@ -216,6 +236,12 @@ class PdfExporter(Exporter):
                 continue
             # Strip non-ASCII characters for PDF rendering
             text = self._strip_non_ascii(text)
+            # Convert to superscript/subscript after stripping so the
+            # resulting Unicode characters survive the PDF writer.
+            if segment.get("superscript"):
+                text = _renderer_superscript(text)
+            elif segment.get("subscript"):
+                text = _renderer_subscript(text)
             if segment.get("code"):
                 pdf.set_font(self._font_for("mono"), size=9)
             else:
@@ -508,6 +534,12 @@ class PdfExporter(Exporter):
         for segment in inline_segments:
             if not segment["text"]:
                 continue
+            text = segment["text"]
+            # Apply superscript/subscript conversion
+            if segment.get("superscript"):
+                text = _renderer_superscript(text)
+            elif segment.get("subscript"):
+                text = _renderer_subscript(text)
             if segment.get("code"):
                 pdf.set_font(self._font_for("mono"), size=9)
             else:
@@ -525,7 +557,7 @@ class PdfExporter(Exporter):
                 pdf.set_text_color(0, 0, 180)
             else:
                 pdf.set_text_color(0, 0, 0)
-            pdf.write(10, segment["text"], link=segment.get("href") or "")
+            pdf.write(10, text, link=segment.get("href") or "")
 
         pdf.set_text_color(0, 0, 0)
         pdf.ln(10)
