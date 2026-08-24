@@ -90,7 +90,7 @@ lane_model: basic
 | KB-090 | Terminal: differentiate heading levels h1–h6 (colour + bold weight) | backlog | P1 | - | - | - | 2026-08-23 |
 | KB-091 | Terminal: differentiate callout blockquotes from regular blockquotes | backlog | P2 | - | - | - | 2026-08-23 |
 | KB-092 | Terminal: strikethrough font (not just darker colour) | backlog | P2 | - | - | - | 2026-08-23 |
-| KB-093 | Terminal: inline code visual styling (mono font, background) | backlog | P1 | - | - | - | 2026-08-23 |
+| KB-093 | Terminal: inline code visual styling (mono font, background) | done | P1 | jan | - | - | 2026-08-24 |
 | KB-094 | PDF: ***bold and italic*** renders raw markdown instead of bold+italic | backlog | P1 | - | - | - | 2026-08-23 |
 | KB-095 | Docs: fix "Math" → "maths" (UK English) | done | P3 | jan | - | - | 2026-08-23 |
 | KB-096 | PDF: superscript ² not rendered in table cells | backlog | P1 | - | - | - | 2026-08-23 |
@@ -180,7 +180,7 @@ lane_model: basic
 - **KB-090**: Terminal heading differentiation — h1–h6 currently only differ by colour. Need bolder differentiation (colour + bold weight / size hierarchy).
 - **KB-091**: Terminal callout blockquote — no visual difference between `>` and `> [!NOTE]`. Consider prefix or border.
 - **KB-092**: Terminal strikethrough — currently only darker colour, no combining macron or similar.
-- **KB-093**: Terminal inline code — not visually distinguished from paragraph text. Need background or border.
+- **KB-093 complete**: Added `inline_code` theme key (#e8e8e8 default) with background styling via ANSI `48;2;R;G;B`. All 4 themes updated. 19 new tests in `tests/test_inline_code.py`. 939 tests passing.
 - **KB-094**: PDF `***bold and italic***` renders raw `***` markdown.
 - **KB-095**: Typo "Math" → "maths" (UK English).
 - **KB-096**: PDF superscript `²` not rendered in table cells.

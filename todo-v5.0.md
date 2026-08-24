@@ -538,7 +538,13 @@ v5.0 is complete when:
 - [ ] KB-090: Terminal — differentiate heading levels h1–h6 (colour + bold weight)
 - [ ] KB-091: Terminal — differentiate callout blockquotes from regular blockquotes
 - [ ] KB-092: Terminal — strikethrough font (not just darker colour)
-- [ ] KB-093: Terminal — inline code visual styling (mono font, background)
+- [x] KB-093: Terminal — inline code visual styling (mono font, background)
+  - [x] Add `inline_code` theme key to MARKDOWN_COLORS (#e8e8e8)
+  - [x] Add `inline_code` to all 4 themes (colored, dracula, high-contrast, one-dark)
+  - [x] Add `_style_inline_code()` helper in renderer
+  - [x] Update `_strip_inline_tags()` to apply background to `<code>` content
+  - [x] Write 19 tests in `tests/test_inline_code.py`
+  - [x] All 939 tests passing
 - [ ] KB-094: PDF — `***bold and italic***` renders raw markdown instead of bold+italic
 - [ ] KB-095: Docs — fix "Math" → "maths" (UK English)
 - [ ] KB-096: PDF — superscript ² not rendered in table cells
