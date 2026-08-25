@@ -68,6 +68,7 @@ class _InlineHTMLParser(html.parser.HTMLParser):
         self._code = 0
         self._superscript = 0
         self._subscript = 0
+        self._math = 0
         self._links: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -81,6 +82,8 @@ class _InlineHTMLParser(html.parser.HTMLParser):
             self._superscript += 1
         elif tag == "sub":
             self._subscript += 1
+        elif tag == "math":
+            self._math += 1
         elif tag == "a":
             href = dict(attrs).get("href") or ""
             title = dict(attrs).get("title")
@@ -126,6 +129,8 @@ class _InlineHTMLParser(html.parser.HTMLParser):
             self._superscript -= 1
         elif tag == "sub" and self._subscript:
             self._subscript -= 1
+        elif tag == "math" and self._math:
+            self._math -= 1
         elif tag == "a" and self._links:
             self._links.pop()
 
@@ -140,6 +145,7 @@ class _InlineHTMLParser(html.parser.HTMLParser):
                 "code": bool(self._code),
                 "superscript": bool(self._superscript),
                 "subscript": bool(self._subscript),
+                "math": bool(self._math),
                 "href": self._links[-1][0] if self._links else "",
                 "title": self._links[-1][1] if self._links else None,
             }
@@ -242,7 +248,7 @@ class PdfExporter(Exporter):
                 text = _renderer_superscript(text)
             elif segment.get("subscript"):
                 text = _renderer_subscript(text)
-            if segment.get("code"):
+            if segment.get("code") or segment.get("math"):
                 pdf.set_font(self._font_for("mono"), size=9)
             else:
                 pdf.set_font(
@@ -540,7 +546,7 @@ class PdfExporter(Exporter):
                 text = _renderer_superscript(text)
             elif segment.get("subscript"):
                 text = _renderer_subscript(text)
-            if segment.get("code"):
+            if segment.get("code") or segment.get("math"):
                 pdf.set_font(self._font_for("mono"), size=9)
             else:
                 style = ""
