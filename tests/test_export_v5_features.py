@@ -195,10 +195,13 @@ class HtmlExporterMathTests(unittest.TestCase):
     def setUp(self):
         self.exporter = HtmlExporter()
 
-    def test_math_renders_math_tag(self):
+    def test_math_renders_math_span(self):
+        # KB-101: HTML export renders math as <span class="math">, not a raw
+        # <math> MathML tag (browsers render <math> content as empty).
         tokens = parse_markdown("Einstein said $E=mc^2$ here.")
         result = self.exporter.render(tokens, {}, {})
-        self.assertIn("<math>E=mc^2</math>", result)
+        self.assertIn('<span class="math">E=mc^2</span>', result)
+        self.assertNotIn("<math>", result)
 
     def test_math_with_surrounding_text(self):
         tokens = parse_markdown("Before $x$ after.")

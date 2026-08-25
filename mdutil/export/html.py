@@ -148,6 +148,11 @@ pre {{
     border-radius: 3px;
 }}
 
+.math {{
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-style: italic;
+}}
+
 pre code {{
     background-color: transparent;
     padding: 0;
@@ -352,7 +357,7 @@ dl dd {{
         level = token.get("level", 1)
         text = token.get("text", "")
         inline = _parse_inline(text)
-        content = inline["content"]
+        content = self._convert_math_tags(inline["content"])
         return f"<h{level}>{content}</h{level}>"
 
     def _process_fnref_tags(self, text: str) -> str:
@@ -364,6 +369,22 @@ dl dd {{
                       f'{_superscript(m.group(1))}</a></sup>',
             text,
         )
+
+    def _convert_math_tags(self, content: str) -> str:
+        """Convert parser ``<math>`` tags into browser-renderable spans.
+
+        The parser emits ``<math>content</math>`` for ``$...$`` math. The
+        ``<math>`` element is an HTML5 MathML container that browsers render
+        as empty, and any unescaped ``<``/``>``/``&`` in the body would break
+        the markup, so we re-wrap the escaped body in ``<span class="math">``
+        which the stylesheet can style.
+        """
+
+        def _wrap(match):
+            inner = self._escape_html(match.group(1))
+            return f'<span class="math">{inner}</span>'
+
+        return re.sub(r"<math>(.*?)</math>", _wrap, content, flags=re.DOTALL)
 
     def _render_paragraph(self, token: dict) -> str:
         """Render a paragraph.
@@ -378,6 +399,7 @@ dl dd {{
         content = token.get("content", "")
         if content:
             content = self._process_fnref_tags(content)
+            content = self._convert_math_tags(content)
             return f"<p>{content}</p>"
         # Fallback for tokens without inline-parsed content
         spans = token.get("spans", [])
@@ -426,6 +448,8 @@ dl dd {{
                               f'{fn_id}</a></sup>')
             elif span_type == "highlight":
                 output.append(f"<mark>{content}</mark>")
+            elif span_type == "math":
+                output.append(f'<span class="math">{self._escape_html(content)}</span>')
             elif span_type == "image":
                 src = span.get("src", "")
                 attrs = f'src="{src}" alt="{content}"'
@@ -523,7 +547,7 @@ dl dd {{
         def cell_html(text: str) -> str:
             if isinstance(text, str):
                 inline = _parse_inline(text)
-                return inline["content"]
+                return self._convert_math_tags(inline["content"])
             return str(text)
 
         def cell_align(i: int) -> str:
@@ -575,7 +599,7 @@ dl dd {{
     def _render_footnote_definition(self, token: dict) -> str:
         """Render footnote definitions as a numbered list with anchor links."""
         fn_id = token.get("id", "")
-        content = token.get("content", "")
+        content = self._convert_math_tags(token.get("content", ""))
         return (
             f'<div class="footnotes">'
             f'<ol><li id="fn-{fn_id}">'
@@ -594,7 +618,7 @@ dl dd {{
         list_items = []
         if parsed_items:
             for idx, item in enumerate(parsed_items):
-                content = item.get("content", item.get("text", ""))
+                content = self._convert_math_tags(item.get("content", item.get("text", "")))
 
                 if is_task_list and item.get("task") and item.get("checked") is not None:
                     checked_attr = ' checked' if item["checked"] else ''
@@ -615,7 +639,7 @@ dl dd {{
             items = token.get("items", [])
             for item in items:
                 if isinstance(item, dict):
-                    content = item.get("content", item.get("text", ""))
+                    content = self._convert_math_tags(item.get("content", item.get("text", "")))
                 else:
                     content = str(item)
                 list_items.append(f"<li>{content}</li>")
@@ -634,5 +658,5 @@ dl dd {{
         dd_elements = ""
         for defn in definitions:
             inline = _parse_inline(defn)
-            dd_elements += f"<dd>{inline['content']}</dd>"
+            dd_elements += f"<dd>{self._convert_math_tags(inline['content'])}</dd>"
         return f"<dl><dt>{term_text}</dt>{dd_elements}</dl>"

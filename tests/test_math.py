@@ -109,6 +109,30 @@ class MathExporterTests(unittest.TestCase):
         self.assertTrue(pdf_bytes.startswith(b"%PDF"))
         self.assertTrue(len(pdf_bytes) > 100)
 
+    def test_math_html_export_uses_math_span(self):
+        """HTML export renders math as <span class=\"math\">, not raw <math>."""
+        from mdutil.export.html import HtmlExporter
+        tokens = parse_markdown("Eq: $E=mc^2$")
+        html = HtmlExporter().render(tokens, {}, {})
+        self.assertIn('<span class="math">E=mc^2</span>', html)
+        self.assertNotIn("<math>", html)
+
+    def test_math_html_export_escapes_special_chars(self):
+        """HTML export escapes < > & inside math content."""
+        from mdutil.export.html import HtmlExporter
+        tokens = parse_markdown("Compare $a < b$")
+        html = HtmlExporter().render(tokens, {}, {})
+        self.assertIn('<span class="math">a &lt; b</span>', html)
+        self.assertNotIn("<math>", html)
+
+    def test_math_html_export_no_raw_mathml_tag(self):
+        """No raw <math> MathML tag leaks into HTML (browsers drop it empty)."""
+        from mdutil.export.html import HtmlExporter
+        tokens = parse_markdown("$x$")
+        html = HtmlExporter().render(tokens, {}, {})
+        self.assertNotIn("<math>", html)
+
+
 
 if __name__ == "__main__":
     unittest.main()

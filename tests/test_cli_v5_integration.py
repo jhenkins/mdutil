@@ -522,7 +522,10 @@ class CliEdgeCaseTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             html = out.read_text(encoding="utf-8")
-            self.assertIn("<math>", html)
+            # KB-101: math renders as <span class="math">, never a raw <math>
+            # MathML tag (browsers render <math> content as empty).
+            self.assertIn('<span class="math">', html)
+            self.assertNotIn("<math>", html)
 
     def test_only_task_list(self):
         """Document with only task list exports correctly."""
