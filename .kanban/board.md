@@ -3,7 +3,7 @@
 ## Meta
 project_id: mdutil
 board_version: 4.3
-updated: 2026-08-24 23:55
+updated: 2026-08-25 01:52
 lane_model: basic
 
 ## Lanes
@@ -96,11 +96,12 @@ lane_model: basic
 | KB-096 | PDF: superscript ² not rendered in table cells | done | P1 | jan | - | - | 2026-08-24 |
 | KB-097 | PDF: definition list alignment (Def. 1.2 not aligning with Def. 1.1) | backlog | P2 | - | - | - | 2026-08-23 |
 | KB-098 | PDF: subscript/superscript not rendered (H2O, E=mc2) | duplicate | P1 | - | - | KB-096 | 2026-08-24 |
-| KB-099 | PDF: math notation renders as raw LaTeX instead of formatted | backlog | P1 | - | - | - | 2026-08-23 |
+| KB-099 | PDF: math notation renders as raw LaTeX instead of formatted | done | P1 | jan | - | - | 2026-08-25 |
 | KB-100 | HTML: syntax highlighting colours do not match PDF/markdown | backlog | P2 | - | - | - | 2026-08-23 |
-| KB-101 | HTML: math notation disappears entirely | backlog | P1 | - | - | - | 2026-08-23 |
+| KB-101 | HTML: math notation disappears entirely | done | P1 | jan | - | - | 2026-08-25 |
 | KB-102 | Parser: ***bold-italic*** leaves trailing asterisk (only 2 of 3 consumed) | done | P1 | jan | - | - | 2026-08-24 |
 | KB-103 | Terminal: strikethrough should use ANSI \\033[9m (actual strikethrough), not just colour | done | P1 | jan | - | - | 2026-08-24 |
+| KB-104 | PDF/HTML: block-level math ($$...$$) leaks into inline parsing instead of rendering as a display block | backlog | P1 | - | - | - | 2026-08-25 |
 
 ## WIP Limits
 - in-progress: 2
@@ -189,9 +190,10 @@ lane_model: basic
 - **KB-096**: PDF superscript `²` not rendered in table cells.
 - **KB-097**: PDF definition list alignment — "Definition 1.2" not aligned with "Definition 1.1".
 - **KB-098**: PDF subscript/superscript not rendered (H~2~O shows as H2O, mc^2^ shows as mc2). — **CLOSED as duplicate of KB-096**.
-- **KB-099**: PDF math notation renders as raw LaTeX instead of formatted.
+- **KB-104**: Block-level math (`$$...$$`) is not detected as a block; the `$$` fences leak into inline parsing and render as empty `<span class="math"></span>` fragments. Separate from KB-099/KB-101 (which cover inline `$...$`). Needs block-level `$$` detection in the parser.
+- **KB-099**: PDF math notation renders as raw LaTeX instead of formatted. — **COMPLETE** (2026-08-25). `_InlineHTMLParser` now tracks `<math>` and `_render_inline_html`/`_render_heading` route math segments to the mono font (spec: "PDF: mono font"). 4 tests in `tests/test_pdf_math.py`. 1014 passing. Commit: `3eecb20`.
 - **KB-100**: HTML syntax highlighting colours do not match PDF/markdown output.
-- **KB-101**: HTML math notation disappears entirely (empty).
+- **KB-101**: HTML math notation disappears entirely (empty). — **COMPLETE** (2026-08-25). Parser emits literal `<math>` (an HTML5 MathML element browsers render as empty); HTML exporter now re-wraps the escaped body in `<span class="math">` (`_convert_math_tags`) across headings, paragraphs, tables, lists, footnote defs, and definition lists, plus a `.math` CSS rule and the `math` span type in `_render_spans`. Updated 2 existing tests that encoded the old `<math>` output. 5 tests in `tests/test_math.py`. 1014 passing. Commit: `0f5372e`.
 - **KB-102 complete** (bold-italic parser): Parser now checks `***` before `**`, so `***text***` renders as `<strong><em>text</em></strong>` without trailing `*`. Also handles `___text___` underscore variant. 14 new tests. Commit: 0708cb1.
 - **KB-103 complete** (strikethrough ANSI): Terminal renderer now wraps `~~text~~` with ANSI `\033[9m` (STANDOUT ON) and `\033[29m` (STANDOUT OFF) escape sequences, producing actual visual strikethrough in terminals that support it (VIM, iTerm2, GNOME Terminal, etc.). Colour + strikethrough applied together. Replaces KB-092 (which was the backlog card for the same problem). 13 strikethrough tests + 1000 total passing. Commits: `705a947` (renderer fix) + `794fa04` (fixture restore).
 - **KB-094 complete** (bold-italic PDF): Verified working — parser (KB-102) produces `<strong><em>text</em></strong>`, `_InlineHTMLParser` handles both tags, PDF uses `DejaVuSansBoldOblique` font. No raw `***` markers in output. Tested across headings, paragraphs, tables, lists, blockquotes.

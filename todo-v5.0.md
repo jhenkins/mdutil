@@ -550,6 +550,7 @@ v5.0 is complete when:
 - [ ] KB-096: PDF — superscript ² not rendered in table cells
 - [ ] KB-097: PDF — definition list alignment (Def. 1.2 not aligning with Def. 1.1)
 - [x~dup~] KB-098: PDF — subscript/superscript not rendered (H2O, E=mc2) — **duplicate of KB-096**, resolved by `fa23896`
-- [ ] KB-099: PDF — math notation renders as raw LaTeX instead of formatted
+- [x] KB-099: PDF — math notation renders in mono font (spec). `_InlineHTMLParser` tracks `<math>`; inline/heading render route math to mono. Commit `3eecb20`.
 - [ ] KB-100: HTML — syntax highlighting colours do not match PDF/markdown
-- [ ] KB-101: HTML — math notation disappears entirely (empty)
+- [x] KB-101: HTML — math notation rendered as `<span class="math">` (escaped) instead of raw `<math>`. Covers headings/paragraphs/tables/lists/footnotes/definition lists + CSS. Commit `0f5372e`.
+- [ ] KB-104: PDF/HTML — block-level math (`$$...$$`) not detected; leaks into inline parsing. Needs block-level `$$` detection in parser.
