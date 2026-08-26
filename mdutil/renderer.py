@@ -15,6 +15,20 @@ REVERSE = "\033[7m"
 STRIKETHROUGH = "\033[9m"
 STRIKETHROUGH_OFF = "\033[29m"
 
+# Default per-type colours for GFM callouts (admonitions). Unknown types fall
+# back to the neutral ``blockquote`` colour.
+_CALLOUT_DEFAULT_COLORS: dict[str, str] = {
+    "NOTE": "#0088ff",
+    "QUESTION": "#0088ff",
+    "TIP": "#00cc00",
+    "SUCCESS": "#00cc00",
+    "INFO": "#0088ff",
+    "IMPORTANT": "#aa00ff",
+    "CAUTION": "#ff8800",
+    "WARNING": "#ffcc00",
+    "DANGER": "#ff0000",
+}
+
 
 def render(
     parsed_content: list[dict[str, Any]],
@@ -216,9 +230,50 @@ def _render_list(token: dict[str, Any], theme: dict[str, Any], indent_level: int
     return result
 
 
+def _callout_color(callout_type: str, theme: dict[str, Any]) -> str | None:
+    """Return the ANSI colour code for a callout type.
+
+    Uses an optional per-theme ``callouts`` mapping first, then the built-in
+    default colours, falling back to the neutral ``blockquote`` colour.
+    """
+    theme_callouts = theme.get("markdown", {}).get("callouts")
+    if isinstance(theme_callouts, dict):
+        color = theme_callouts.get(callout_type) or theme_callouts.get("default")
+    else:
+        color = _CALLOUT_DEFAULT_COLORS.get(callout_type)
+    if not color:
+        color = theme.get("markdown", {}).get("blockquote")
+    return _ansi_color(color)
+
+
 def _render_blockquote(token: dict[str, Any], theme: dict[str, Any]) -> list[str]:
     content = str(token.get("content", token.get("text", "")))
+    callout_type = token.get("callout_type")
     rendered: list[str] = []
+
+    if callout_type:
+        # GFM callout/admonition: render a styled header line followed by body
+        # lines carrying a coloured left border to distinguish them from
+        # ordinary blockquotes.
+        header_color = _callout_color(callout_type, theme)
+        lines = [line.strip()[1:].lstrip() if line.strip().startswith(">") else line.strip()
+                 for line in content.split("\n")]
+        lines = [line for line in lines if line != ""]
+        if not lines:
+            # Empty callout (e.g. ``> [!NOTE]``) still shows its header marker.
+            return [_style_with_color(f"▌ [!{callout_type}]", header_color, bold=True)]
+
+        header = lines[0]
+        marker = f"▌ [!{callout_type}]"
+        header_text = f"{marker}  {header}" if header else marker
+        # Style the header with the callout colour (bold); body lines carry a
+        # matching coloured left border to distinguish them from plain quotes.
+        rendered.append(_style_with_color(header_text, header_color, bold=True))
+        for line in lines[1:]:
+            border = _style_with_color("│", header_color)
+            rendered.append(f"{border} {line}")
+        return rendered
+
     for line in content.split("\n"):
         stripped = line.strip()
         if stripped.startswith(">"):
@@ -301,6 +356,20 @@ def _style(text: str, theme: dict[str, Any], markdown_key: str, *, bold: bool = 
     codes: list[str] = []
     color = theme.get("markdown", {}).get(markdown_key)
     color_code = _ansi_color(color)
+    if color_code:
+        codes.append(color_code)
+    if bold:
+        codes.append(BOLD)
+    if italic:
+        codes.append(ITALIC)
+    if not codes:
+        return text
+    return "".join(codes) + text + RESET
+
+
+def _style_with_color(text: str, color_code: str | None, *, bold: bool = False, italic: bool = False) -> str:
+    """Style ``text`` with an explicit ANSI colour code (no theme lookup)."""
+    codes: list[str] = []
     if color_code:
         codes.append(color_code)
     if bold:

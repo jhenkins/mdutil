@@ -13,6 +13,7 @@ _HEADING_RE = re.compile(r"^ {0,3}(?P<marks>#{1,6})(?:[ \t]+(?P<text>.*)|[ \t]*)
 _LIST_RE = re.compile(r"^(?P<indent> {0,8})(?:(?P<unordered>[-+*])|(?P<ordered>\d{1,9}[.)]))[ \t]+(?P<item>.*)$")
 _AUTOLINK_RE = re.compile(r"<((?:https?|ftp)://[^>]+)>")
 _FOOTNOTE_DEF_RE = re.compile(r"^\[\^([a-zA-Z0-9]+)\]:\s?(.*)$", re.IGNORECASE)
+_CALLOUT_RE = re.compile(r"^\[!([a-zA-Z]+)\]", re.IGNORECASE)
 _FOOTNOTE_REF_RE = re.compile(r"\[\^([a-zA-Z0-9]+)\]", re.IGNORECASE)
 _DEFINITION_RE = re.compile(r"^[ \t]*:[ \t]+(.*)$")
 
@@ -87,18 +88,26 @@ def parse_markdown(content: str) -> list[Token]:
             i = end_pos
             continue
 
-        # Blockquote
+        # Blockquote (including GFM callouts such as ``> [!NOTE]``)
         if line.strip().startswith(">"):
             blockquote_lines = [line]
             i += 1
             while i < len(lines) and lines[i].strip().startswith(">"):
                 blockquote_lines.append(lines[i])
                 i += 1
-            tokens.append({
+            callout = _detect_callout(blockquote_lines)
+            if callout:
+                # Strip the ``[!TYPE]`` marker from the first line, preserving any
+                # title text that shares the line (e.g. ``> [!NOTE] Be careful``).
+                blockquote_lines[0] = _strip_callout_marker(blockquote_lines[0])
+            token = {
                 "type": "blockquote",
                 "content": "\n".join(blockquote_lines),
                 "text": "\n".join(blockquote_lines),
-            })
+            }
+            if callout:
+                token["callout_type"] = callout
+            tokens.append(token)
             continue
 
         # List
@@ -217,6 +226,43 @@ def is_mermaid_block(language: str | None) -> bool:
     lang = language.strip().lower()
     # Accept "mermaid", "mermaid: title", "mermaid:something", etc.
     return lang.split(":")[0].strip() == "mermaid"
+
+
+def _strip_blockquote_marker(line: str) -> str:
+    """Remove a leading ``>`` (and surrounding whitespace) from a blockquote line."""
+    stripped = line.strip()
+    if stripped.startswith(">"):
+        stripped = stripped[1:].lstrip()
+    return stripped
+
+
+def _detect_callout(lines: list[str]) -> str | None:
+    """Detect a GFM callout/admonition in a blockquote.
+
+    A callout is a blockquote whose first line begins with a ``[!TYPE]`` marker,
+    e.g. ``> [!NOTE]`` or ``>[!WARNING]``. The type is returned upper-cased
+    (``"NOTE"``); returns ``None`` for ordinary blockquotes.
+    """
+    if not lines:
+        return None
+    first = _strip_blockquote_marker(lines[0])
+    match = _CALLOUT_RE.match(first)
+    if not match:
+        return None
+    return match.group(1).upper()
+
+
+def _strip_callout_marker(line: str) -> str:
+    """Strip a leading ``[!TYPE]`` callout marker from a blockquote line.
+
+    Any title text following the marker is preserved, e.g.
+    ``> [!NOTE] Be careful`` becomes ``Be careful``.
+    """
+    stripped = _strip_blockquote_marker(line)
+    match = _CALLOUT_RE.match(stripped)
+    if not match:
+        return stripped
+    return stripped[match.end():].strip()
 
 
 def extract_table(lines: list[str], start_index: int) -> tuple[dict[str, Any] | None, int]:
