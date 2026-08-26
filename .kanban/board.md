@@ -3,7 +3,7 @@
 ## Meta
 project_id: mdutil
 board_version: 4.3
-updated: 2026-08-25 01:52
+updated: 2026-08-26 18:12
 lane_model: basic
 
 ## Lanes
@@ -88,7 +88,7 @@ lane_model: basic
 | KB-027 | HTML: shrink mermaid diagram max-width by 40-50% | done | P1 | jan | - | - | 2026-08-08 |
 | KB-028 | PDF: fit diagrams within A4 page boundaries | done | P1 | jan | KB-027 | - | 2026-08-08 |
 | KB-090 | Terminal: differentiate heading levels h1–h6 (colour + bold weight) | done | P1 | jan | - | - | 2026-08-24 |
-| KB-091 | Terminal: differentiate callout blockquotes from regular blockquotes | backlog | P2 | - | - | - | 2026-08-23 |
+| KB-091 | Terminal: differentiate callout blockquotes from regular blockquotes | review | P2 | jan | - | - | 2026-08-26 |
 | KB-092 | Terminal: strikethrough font (not just darker colour) | dropped | P2 | - | - | KB-103 | 2026-08-24 |
 | KB-093 | Terminal: inline code visual styling (mono font, background) | done | P1 | jan | - | - | 2026-08-24 |
 | KB-094 | PDF: ***bold and italic*** renders raw markdown instead of bold+italic | done | P1 | jan | - | - | 2026-08-24 |
@@ -195,6 +195,7 @@ lane_model: basic
 - **KB-100**: HTML syntax highlighting colours do not match PDF/markdown output.
 - **KB-101**: HTML math notation disappears entirely (empty). — **COMPLETE** (2026-08-25). Parser emits literal `<math>` (an HTML5 MathML element browsers render as empty); HTML exporter now re-wraps the escaped body in `<span class="math">` (`_convert_math_tags`) across headings, paragraphs, tables, lists, footnote defs, and definition lists, plus a `.math` CSS rule and the `math` span type in `_render_spans`. Updated 2 existing tests that encoded the old `<math>` output. 5 tests in `tests/test_math.py`. 1014 passing. Commit: `0f5372e`.
 - **KB-102 complete** (bold-italic parser): Parser now checks `***` before `**`, so `***text***` renders as `<strong><em>text</em></strong>` without trailing `*`. Also handles `___text___` underscore variant. 14 new tests. Commit: 0708cb1.
+- **KB-091 complete** (callout blockquotes): Parser now detects GFM callouts — a blockquote whose first line starts with a ``[!TYPE]`` marker (``> [!NOTE]``, ``> [!WARNING]``, …) is tagged with ``callout_type`` and the marker is stripped from content (title text on the same line is preserved). Terminal renderer renders callouts as a bold, type-coloured header (``▌ [!TYPE]  Title``) plus body lines with a matching coloured left border, while ordinary blockquotes keep the plain ``│`` prefix. Per-type colours default via ``_CALLOUT_DEFAULT_COLORS`` (NOTE/QUESTION/INFO=blue, TIP/SUCCESS=green, IMPORTANT=purple, CAUTION=orange, WARNING=yellow, DANGER=red) and can be overridden by a theme's ``callouts`` mapping. HTML/PDF exporters unaffected (marker stripped, title preserved, no raw leak). 16 new tests in ``tests/test_callout.py``. Full suite: 1030 passing. Commit: d5745a6.
 - **KB-103 complete** (strikethrough ANSI): Terminal renderer now wraps `~~text~~` with ANSI `\033[9m` (STANDOUT ON) and `\033[29m` (STANDOUT OFF) escape sequences, producing actual visual strikethrough in terminals that support it (VIM, iTerm2, GNOME Terminal, etc.). Colour + strikethrough applied together. Replaces KB-092 (which was the backlog card for the same problem). 13 strikethrough tests + 1000 total passing. Commits: `705a947` (renderer fix) + `794fa04` (fixture restore).
 - **KB-094 complete** (bold-italic PDF): Verified working — parser (KB-102) produces `<strong><em>text</em></strong>`, `_InlineHTMLParser` handles both tags, PDF uses `DejaVuSansBoldOblique` font. No raw `***` markers in output. Tested across headings, paragraphs, tables, lists, blockquotes.
 - **KB-096 complete** (PDF superscript/subscript): Fixed `_InlineHTMLParser` to track `<sup>`/`<sub>` state and include flags in segments. `_render_inline_html`, `_plain_text_from_inline_html`, and `_render_heading` apply `_superscript`/`_subscript` conversion. 7 new tests. 1007 tests passing. Commit: `fa23896`.
