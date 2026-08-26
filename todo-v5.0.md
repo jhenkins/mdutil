@@ -548,7 +548,7 @@ v5.0 is complete when:
 - [ ] KB-094: PDF — `***bold and italic***` renders raw markdown instead of bold+italic
 - [ ] KB-095: Docs — fix "Math" → "maths" (UK English)
 - [ ] KB-096: PDF — superscript ² not rendered in table cells
-- [ ] KB-097: PDF — definition list alignment (Def. 1.2 not aligning with Def. 1.1)
+- [x] KB-097: PDF — definition list alignment (Def. 1.2 not aligning with Def. 1.1). Fixed `pdf.set_x(indent)` moved inside the definition loop in `_render_definition` (fpdf2 resets x after each `multi_cell`). 2 regression tests in `test_export.py::PdfExporterDefinitionListTests`. 
 - [x~dup~] KB-098: PDF — subscript/superscript not rendered (H2O, E=mc2) — **duplicate of KB-096**, resolved by `fa23896`
 - [x] KB-099: PDF — math notation renders in mono font (spec). `_InlineHTMLParser` tracks `<math>`; inline/heading render route math to mono. Commit `3eecb20`.
 - [ ] KB-100: HTML — syntax highlighting colours do not match PDF/markdown

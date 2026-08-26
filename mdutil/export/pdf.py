@@ -1135,13 +1135,16 @@ class PdfExporter(Exporter):
         def_color = self._hex_to_rgb(self._theme.get("markdown", {}).get("definition_definition", "#323232"))
         pdf.set_text_color(*def_color)
         indent = pdf.l_margin + 8
-        pdf.set_x(indent)
 
         for defn in definitions:
             plain_text = self._plain_text_from_inline_html(defn)
             effective_w = pdf.w - indent - pdf.r_margin
             if effective_w < 10:
                 effective_w = 50
+            # Re-set the x-position before each definition: fpdf2 resets the
+            # cursor x to the left margin after multi_cell(), so the indent
+            # would otherwise be lost on every definition after the first.
+            pdf.set_x(indent)
             pdf.multi_cell(effective_w, 5, f"— {plain_text}", align="L")
             pdf.ln(1)
 

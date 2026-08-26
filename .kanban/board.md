@@ -94,7 +94,7 @@ lane_model: basic
 | KB-094 | PDF: ***bold and italic*** renders raw markdown instead of bold+italic | done | P1 | jan | - | - | 2026-08-24 |
 | KB-095 | Docs: fix "Math" → "maths" (UK English) | done | P3 | jan | - | - | 2026-08-23 |
 | KB-096 | PDF: superscript ² not rendered in table cells | done | P1 | jan | - | - | 2026-08-24 |
-| KB-097 | PDF: definition list alignment (Def. 1.2 not aligning with Def. 1.1) | backlog | P2 | - | - | - | 2026-08-23 |
+| KB-097 | PDF: definition list alignment (Def. 1.2 not aligning with Def. 1.1) | done | P2 | jan | - | - | 2026-08-26 |
 | KB-098 | PDF: subscript/superscript not rendered (H2O, E=mc2) | duplicate | P1 | - | - | KB-096 | 2026-08-24 |
 | KB-099 | PDF: math notation renders as raw LaTeX instead of formatted | done | P1 | jan | - | - | 2026-08-25 |
 | KB-100 | HTML: syntax highlighting colours do not match PDF/markdown | backlog | P2 | - | - | - | 2026-08-23 |
@@ -188,7 +188,7 @@ lane_model: basic
 - **KB-094**: PDF `***bold and italic***` renders raw `***` markdown.
 - **KB-095**: Typo "Math" → "maths" (UK English).
 - **KB-096**: PDF superscript `²` not rendered in table cells.
-- **KB-097**: PDF definition list alignment — "Definition 1.2" not aligned with "Definition 1.1".
+- **KB-097 complete** (PDF definition list alignment): Root cause in `_render_definition` — `pdf.set_x(indent)` was called once before the definition loop, but fpdf2 resets the cursor x to the left margin after each `multi_cell()`, so only the first definition kept the indent and every later definition rendered at the left margin. Fixed by moving `pdf.set_x(indent)` inside the loop so every definition starts at the same indent. Verified via `pdftotext -layout` that all definitions now align; 2 regression tests added in `tests/test_export.py::PdfExporterDefinitionListTests` (verified they fail against the buggy version). Full suite: 1032 passing.
 - **KB-098**: PDF subscript/superscript not rendered (H~2~O shows as H2O, mc^2^ shows as mc2). — **CLOSED as duplicate of KB-096**.
 - **KB-104**: Block-level math (`$$...$$`) is not detected as a block; the `$$` fences leak into inline parsing and render as empty `<span class="math"></span>` fragments. Separate from KB-099/KB-101 (which cover inline `$...$`). Needs block-level `$$` detection in the parser.
 - **KB-099**: PDF math notation renders as raw LaTeX instead of formatted. — **COMPLETE** (2026-08-25). `_InlineHTMLParser` now tracks `<math>` and `_render_inline_html`/`_render_heading` route math segments to the mono font (spec: "PDF: mono font"). 4 tests in `tests/test_pdf_math.py`. 1014 passing. Commit: `3eecb20`.

@@ -424,6 +424,106 @@ class PdfExporterTests(unittest.TestCase):
         self.assertNotIn(b"/Outlines", result)
 
 
+class PdfExporterDefinitionListTests(unittest.TestCase):
+    """Test PdfExporter definition list rendering (KB-097)."""
+
+    def setUp(self):
+        self.exporter = PdfExporter()
+
+    def test_all_definitions_indented_at_same_x(self):
+        """Every definition must start at the same indent (KB-097)."""
+        set_x_calls: list[float] = []
+        multi_cell_texts: list[str] = []
+
+        class FakePdf:
+            page = 1
+            l_margin = 10.0
+            r_margin = 10.0
+            w = 210.0
+
+            def set_font(self, *args, **kwargs):
+                pass
+
+            def set_text_color(self, *args, **kwargs):
+                pass
+
+            def write(self, *args, **kwargs):
+                pass
+
+            def set_x(self, x):
+                set_x_calls.append(x)
+
+            def multi_cell(self, w, h, text, **kwargs):
+                multi_cell_texts.append(text)
+
+            def ln(self, *args, **kwargs):
+                pass
+
+        fake_pdf = cast(Any, FakePdf())
+        self.exporter._use_unicode = False
+        self.exporter._theme = {"markdown": {}}
+        token = {
+            "type": "definition",
+            "terms": ["Term 1"],
+            "definitions": ["Definition 1.1", "Definition 1.2", "Definition 1.3"],
+        }
+        self.exporter._render_definition(fake_pdf, token)
+
+        # One multi_cell per definition, each prefixed with the "— " dash.
+        self.assertEqual(len(multi_cell_texts), 3)
+        for text in multi_cell_texts:
+            self.assertIn("— ", text)
+        # The term renders one set_x at the left margin; each definition then
+        # renders one set_x at the indent. Every definition call must land at
+        # the same indent so the definitions line up vertically.
+        self.assertEqual(len(set_x_calls), 1 + 3)  # term + one per definition
+        self.assertTrue(
+            all(x == set_x_calls[1] for x in set_x_calls[1:]),
+            "definitions must align at the same indent position",
+        )
+
+    def test_multiple_terms_share_indented_definitions(self):
+        """Definitions render once per definition, all indented."""
+        set_x_calls: list[float] = []
+
+        class FakePdf:
+            page = 1
+            l_margin = 10.0
+            r_margin = 10.0
+            w = 210.0
+
+            def set_font(self, *args, **kwargs):
+                pass
+
+            def set_text_color(self, *args, **kwargs):
+                pass
+
+            def write(self, *args, **kwargs):
+                pass
+
+            def set_x(self, x):
+                set_x_calls.append(x)
+
+            def multi_cell(self, *args, **kwargs):
+                pass
+
+            def ln(self, *args, **kwargs):
+                pass
+
+        fake_pdf = cast(Any, FakePdf())
+        self.exporter._use_unicode = False
+        self.exporter._theme = {"markdown": {}}
+        token = {
+            "type": "definition",
+            "terms": ["Term A", "Term B"],
+            "definitions": ["Definition 1", "Definition 2"],
+        }
+        self.exporter._render_definition(fake_pdf, token)
+
+        self.assertEqual(len(set_x_calls), 1 + 2)  # term + one per definition
+        self.assertEqual(set_x_calls[1], set_x_calls[2])  # definitions share indent
+
+
 class PdfExporterMermaidTests(unittest.TestCase):
     """Test PdfExporter mermaid diagram support (KB-026b)."""
 
