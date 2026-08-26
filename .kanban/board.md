@@ -3,7 +3,7 @@
 ## Meta
 project_id: mdutil
 board_version: 4.3
-updated: 2026-08-26 18:12
+updated: 2026-08-26 18:20
 lane_model: basic
 
 ## Lanes
@@ -88,7 +88,7 @@ lane_model: basic
 | KB-027 | HTML: shrink mermaid diagram max-width by 40-50% | done | P1 | jan | - | - | 2026-08-08 |
 | KB-028 | PDF: fit diagrams within A4 page boundaries | done | P1 | jan | KB-027 | - | 2026-08-08 |
 | KB-090 | Terminal: differentiate heading levels h1–h6 (colour + bold weight) | done | P1 | jan | - | - | 2026-08-24 |
-| KB-091 | Terminal: differentiate callout blockquotes from regular blockquotes | review | P2 | jan | - | - | 2026-08-26 |
+| KB-091 | Terminal: differentiate callout blockquotes from regular blockquotes | done | P2 | jan | - | - | 2026-08-26 |
 | KB-092 | Terminal: strikethrough font (not just darker colour) | dropped | P2 | - | - | KB-103 | 2026-08-24 |
 | KB-093 | Terminal: inline code visual styling (mono font, background) | done | P1 | jan | - | - | 2026-08-24 |
 | KB-094 | PDF: ***bold and italic*** renders raw markdown instead of bold+italic | done | P1 | jan | - | - | 2026-08-24 |
