@@ -200,7 +200,7 @@ class HtmlExporterMathTests(unittest.TestCase):
         # <math> MathML tag (browsers render <math> content as empty).
         tokens = parse_markdown("Einstein said $E=mc^2$ here.")
         result = self.exporter.render(tokens, {}, {})
-        self.assertIn('<span class="math">E=mc^2</span>', result)
+        self.assertIn('<span class="math">E=mc²</span>', result)
         self.assertNotIn("<math>", result)
 
     def test_math_with_surrounding_text(self):
@@ -866,7 +866,7 @@ class CrossFormatConsistencyTests(unittest.TestCase):
 
     def test_math_consistency(self):
         html, pdf = self._render_both("$E=mc^2$")
-        self.assertIn("E=mc^2", html)
+        self.assertIn("E=mc²", html)
         self.assertTrue(pdf.startswith(b"%PDF"))
 
     def test_highlight_consistency(self):

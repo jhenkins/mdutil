@@ -61,13 +61,13 @@ class MathRendererTests(unittest.TestCase):
         # Should not contain <math> tags
         self.assertNotIn("<math>", output)
         # Should contain the math content
-        self.assertIn("E=mc^2", output)
+        self.assertIn("E=mc²", output)
 
     def test_math_with_text_renderer(self):
         tokens = parse_markdown("The equation $E=mc^2$ is famous.")
         output = render(tokens, theme="colored")
         self.assertNotIn("<math>", output)
-        self.assertIn("E=mc^2", output)
+        self.assertIn("E=mc²", output)
 
     def test_math_fallback_raw(self):
         """math_fallback=True renders $...$ delimiters around math content."""
@@ -83,7 +83,7 @@ class MathRendererTests(unittest.TestCase):
         output = render(tokens, math_fallback=False)
         plain = self._strip_ansi(output)
         self.assertNotIn("$E=mc^2$", plain)
-        self.assertIn("E=mc^2", plain)
+        self.assertIn("E=mc²", plain)
 
     @staticmethod
     def _strip_ansi(text: str) -> str:
@@ -98,7 +98,7 @@ class MathExporterTests(unittest.TestCase):
         exporter = HtmlExporter()
         html = exporter.render(tokens, {}, {})
         # HTML should preserve <math> tags or render appropriately
-        self.assertIn("E=mc^2", html)
+        self.assertIn("E=mc²", html)
 
     def test_math_pdf_export(self):
         from mdutil.export.pdf import PdfExporter
@@ -114,7 +114,7 @@ class MathExporterTests(unittest.TestCase):
         from mdutil.export.html import HtmlExporter
         tokens = parse_markdown("Eq: $E=mc^2$")
         html = HtmlExporter().render(tokens, {}, {})
-        self.assertIn('<span class="math">E=mc^2</span>', html)
+        self.assertIn('<span class="math">E=mc²</span>', html)
         self.assertNotIn("<math>", html)
 
     def test_math_html_export_escapes_special_chars(self):

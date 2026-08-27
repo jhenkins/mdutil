@@ -22,7 +22,11 @@ from mdutil.export.svg_to_image import (
     SvgToImageError,
 )
 from mdutil.parser import _parse_inline
-from mdutil.renderer import _subscript as _renderer_subscript, _superscript as _renderer_superscript
+from mdutil.renderer import (
+    _convert_math_notation,
+    _subscript as _renderer_subscript,
+    _superscript as _renderer_superscript,
+)
 
 _logger = logging.getLogger("mdutil.export.pdf")
 
@@ -227,6 +231,8 @@ class PdfExporter(Exporter):
                 text = _renderer_superscript(text)
             elif segment.get("subscript"):
                 text = _renderer_subscript(text)
+            elif segment.get("math"):
+                text = _convert_math_notation(text)
             parts.append(text)
         return "".join(parts)
 
@@ -248,6 +254,8 @@ class PdfExporter(Exporter):
                 text = _renderer_superscript(text)
             elif segment.get("subscript"):
                 text = _renderer_subscript(text)
+            elif segment.get("math"):
+                text = _convert_math_notation(text)
             if segment.get("code") or segment.get("math"):
                 pdf.set_font(self._font_for("mono"), size=9)
             else:
@@ -550,6 +558,8 @@ class PdfExporter(Exporter):
                 text = _renderer_superscript(text)
             elif segment.get("subscript"):
                 text = _renderer_subscript(text)
+            elif segment.get("math"):
+                text = _convert_math_notation(text)
             if segment.get("code") or segment.get("math"):
                 pdf.set_font(self._font_for("mono"), size=9)
             else:

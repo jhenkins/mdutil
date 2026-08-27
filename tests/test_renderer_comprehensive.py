@@ -118,7 +118,7 @@ class MathFallbackTests(unittest.TestCase):
         output = render(tokens, math_fallback=False)
         plain = strip_ansi(output)
         self.assertNotIn("$E=mc^2$", plain)
-        self.assertIn("E=mc^2", plain)
+        self.assertIn("E=mc²", plain)
 
     def test_math_default_is_no_fallback(self):
         """Default behavior (no math_fallback param) strips tags."""
@@ -207,7 +207,7 @@ class CrossFeatureRendererTests(unittest.TestCase):
         self.assertIn("em", plain)
         self.assertIn("code", plain)
         self.assertIn("url", plain)
-        self.assertIn("E=mc^2", plain)
+        self.assertIn("E=mc²", plain)
         self.assertIn("H", plain)
         self.assertIn("O", plain)
         self.assertIn("highlight", plain)
@@ -245,7 +245,7 @@ class CrossFeatureRendererTests(unittest.TestCase):
         self.assertNotIn("<strong>", plain)
         self.assertNotIn("<math>", plain)
         self.assertIn("equation", plain)
-        self.assertIn("E=mc^2", plain)
+        self.assertIn("E=mc²", plain)
         self.assertIn("famous", plain)
 
     def test_footnote_with_link(self):

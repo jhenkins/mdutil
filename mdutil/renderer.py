@@ -553,7 +553,11 @@ def _strip_inline_tags(
     if math_fallback:
         text = re.sub(r"<math>(.*?)</math>", lambda m: f"${m.group(1)}$", text)
     else:
-        text = re.sub(r"<math>(.*?)</math>", lambda m: re.sub(inner_re, "", m.group(1)), text)
+        text = re.sub(
+            r"<math>(.*?)</math>",
+            lambda m: _convert_math_notation(re.sub(inner_re, "", m.group(1))),
+            text,
+        )
 
     # Inline code: apply background color
     text = re.sub(
@@ -564,6 +568,39 @@ def _strip_inline_tags(
 
     # Strip any remaining inline tags that we did not handle above
     text = re.sub(r"</?(?:del|code|math|sub|sup|mark)>", "", text)
+    return text
+
+
+def _convert_math_notation(text: str) -> str:
+    r"""Convert TeX-style ``^superscript`` and ``_subscript`` in math content to Unicode.
+
+    Handles bare notation (``^2``, ``_i``) and grouped notation (``^{23}``, ``_{n}``),
+    but leaves backslash commands (``\sum``, ``\frac``) untouched.
+    """
+    # Grouped superscript: ^{...} → superscript
+    text = re.sub(
+        r"(?<!\\)\^\{([^}]*)\}",
+        lambda m: _superscript(m.group(1)),
+        text,
+    )
+    # Bare superscript: ^<chars> → superscript (no whitespace/braces/backslash)
+    text = re.sub(
+        r"(?<!\\)\^([^\s{}\\]+)",
+        lambda m: _superscript(m.group(1)),
+        text,
+    )
+    # Grouped subscript: _{...} → subscript
+    text = re.sub(
+        r"(?<!\\)_\{([^}]*)\}",
+        lambda m: _subscript(m.group(1)),
+        text,
+    )
+    # Bare subscript: _<chars> → subscript (no whitespace/braces/backslash)
+    text = re.sub(
+        r"(?<!\\)_([^\s{}\\]+)",
+        lambda m: _subscript(m.group(1)),
+        text,
+    )
     return text
 
 

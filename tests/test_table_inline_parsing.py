@@ -29,7 +29,7 @@ class TestTableInlineParsing:
         # Should not contain raw $ delimiters
         assert "$E = mc^2$" not in result
         # Should contain the math content
-        assert "E = mc^2" in result
+        assert "E = mc²" in result
 
     def test_bold_in_table_cell(self):
         md = "| **bold** | normal |\n| --- | --- |\n| more | text |"

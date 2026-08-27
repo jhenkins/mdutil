@@ -63,7 +63,7 @@ class MathPdfRenderTests(unittest.TestCase):
         self.assertTrue(
             any(family == "Courier" for family, _style, _size in fake.font_calls)
         )
-        self.assertTrue(any(text == "E=mc^2" for text, _link in fake.writes))
+        self.assertTrue(any(text == "E=mc²" for text, _link in fake.writes))
 
     def test_plain_text_uses_regular_font(self):
         """Non-math text still renders in the regular (non-mono) font."""

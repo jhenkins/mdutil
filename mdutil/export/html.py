@@ -9,7 +9,7 @@ from typing import Any
 from mdutil.export.base import Exporter
 from mdutil.export.merman_renderer import MermanRenderer, MermanBinaryNotFoundError, MermanRenderError
 from mdutil.parser import _parse_inline
-from mdutil.renderer import _superscript
+from mdutil.renderer import _convert_math_notation, _superscript
 
 _logger = logging.getLogger("mdutil.export.html")
 
@@ -404,7 +404,7 @@ dl dd {{
         """
 
         def _wrap(match):
-            inner = self._escape_html(match.group(1))
+            inner = self._escape_html(_convert_math_notation(match.group(1)))
             return f'<span class="math">{inner}</span>'
 
         return re.sub(r"<math>(.*?)</math>", _wrap, content, flags=re.DOTALL)
