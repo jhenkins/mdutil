@@ -215,7 +215,10 @@ def _render_list(token: dict[str, Any], theme: dict[str, Any], indent_level: int
     result: list[str] = []
     if parsed_items:
         for idx, item in enumerate(parsed_items):
-            text = str(item.get("text", ""))
+            # Use parsed content (with inline HTML tags) so bold/italic/code
+            # render correctly, falling back to raw text if no content present.
+            text = str(item.get("content", item.get("text", "")))
+            text = _strip_inline_tags(text, theme)
 
             # Task item with checkbox
             if is_task_list and item.get("task") and item.get("checked") is not None:
