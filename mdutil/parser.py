@@ -9,6 +9,7 @@ Token = dict[str, Any]
 
 
 _CODE_FENCE_RE = re.compile(r"^(?P<indent> {0,3})(?P<fence>`{3,}|~{3,})[ \t]*(?P<info>.*)$")
+_DISPLAY_MATH_RE = re.compile(r"^\s*(?P<fence>\${2,})\s*$")
 _HEADING_RE = re.compile(r"^ {0,3}(?P<marks>#{1,6})(?:[ \t]+(?P<text>.*)|[ \t]*)$")
 _LIST_RE = re.compile(r"^(?P<indent> {0,8})(?:(?P<unordered>[-+*])|(?P<ordered>\d{1,9}[.)]))[ \t]+(?P<item>.*)$")
 _AUTOLINK_RE = re.compile(r"<((?:https?|ftp)://[^>]+)>")
@@ -40,14 +41,37 @@ def parse_markdown(content: str) -> list[Token]:
             continue
 
         # --- block elements (single-pass detection) ---
-        # Code fence (including mermaid)
+        # Display math on a single line: $$content$$ → math_display token
+        # Only treat as display math if the line is JUST $$...$$ (no other content).
+        _DISPLAY_MATH_INLINE_RE = re.compile(r"^\$\$(.+?)\$\$$")
+        inline_math_match = _DISPLAY_MATH_INLINE_RE.match(line.strip())
+        if inline_math_match:
+            math_content = inline_math_match.group(1)
+            tokens.append({
+                "type": "math_display",
+                "content": math_content,
+                "language": None,
+                "text": math_content,
+            })
+            i += 1
+            continue
+
+        # Code fence (including mermaid and display-math)
         code_block, end_pos = extract_code_block(lines, i)
         if code_block:
             content_text = code_block["content"] or ""
             language = code_block["language"]
+            block_type = code_block.get("type", "code")
             if is_mermaid_block(language):
                 tokens.append({
                     "type": "mermaid",
+                    "content": content_text,
+                    "language": language,
+                    "text": content_text,
+                })
+            elif block_type == "math_display":
+                tokens.append({
+                    "type": "math_display",
                     "content": content_text,
                     "language": language,
                     "text": content_text,
@@ -180,11 +204,31 @@ def parse_markdown(content: str) -> list[Token]:
 
 
 def extract_code_block(lines: list[str], start_index: int) -> tuple[dict[str, str | None] | None, int]:
-    """Extract a fenced code block from lines."""
+    """Extract a fenced code block or display-math block from lines."""
     if start_index >= len(lines):
         return None, start_index
 
-    opening = _CODE_FENCE_RE.match(lines[start_index])
+    line = lines[start_index]
+
+    # Check for display-math fence ($$...$$) before code fence.
+    # Display math uses $$ on its own line as fence; content is between fences.
+    math_match = _DISPLAY_MATH_RE.match(line)
+    if math_match:
+        fence = math_match.group("fence")
+        # Closing fence: same number of $ as the opening fence.
+        closing_re = re.compile(rf"^\s*\${{{len(fence)},}}\s*$")
+        i = start_index + 1
+        while i < len(lines):
+            if closing_re.match(lines[i]):
+                code_content = "\n".join(lines[start_index + 1 : i])
+                return {"content": code_content, "language": None, "type": "math_display"}, i + 1
+            i += 1
+        # Unclosed: consume to EOF.
+        code_content = "\n".join(lines[start_index + 1 :])
+        return {"content": code_content, "language": None, "type": "math_display"}, len(lines)
+
+    # Standard fenced code block.
+    opening = _CODE_FENCE_RE.match(line)
     if not opening:
         return None, start_index
 

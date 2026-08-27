@@ -3,11 +3,20 @@
 from __future__ import annotations
 
 import re
+import shutil
 import unicodedata
 from typing import Any
 
 from .syntax_highlighter import highlight_code
 from .themes import DEFAULT_THEME, load_theme
+
+
+def _get_terminal_width() -> int:
+    """Return the current terminal width, defaulting to 80."""
+    try:
+        return shutil.get_terminal_size((80, 24)).columns
+    except Exception:
+        return 80
 
 RESET = "\033[0m"
 BOLD = "\033[1m"
@@ -76,6 +85,8 @@ def _render_token(
         return [""]
     if ttype == "code":
         return _render_code(token, theme, syntax_theme)
+    if ttype == "math_display":
+        return _render_math_display(token, theme, syntax_theme)
     if ttype == "list":
         return _render_list(token, theme)
     if ttype == "blockquote":
@@ -176,6 +187,17 @@ def _render_code(token: dict[str, Any], theme: dict[str, Any], syntax_theme: str
     code = str(token.get("content", ""))
     language = str(token.get("language") or "")
     return highlight_code(code, language, theme, syntax_theme=syntax_theme).split("\n")
+
+
+def _render_math_display(token: dict[str, Any], theme: dict[str, Any], syntax_theme: str = "default") -> list[str]:
+    """Render a display-math block ($$...$$) as centered mono text."""
+    content = str(token.get("content", ""))
+    language = str(token.get("language") or "")
+    highlighted = highlight_code(content, language, theme, syntax_theme=syntax_theme)
+    # Center each line within the terminal width.
+    lines = highlighted.split("\n")
+    width = _get_terminal_width()
+    return [line.center(width) for line in lines]
 
 
 def _render_list(token: dict[str, Any], theme: dict[str, Any], indent_level: int = 0) -> list[str]:

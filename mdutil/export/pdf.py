@@ -494,6 +494,10 @@ class PdfExporter(Exporter):
                 self._render_code_block(pdf, token)
                 continue
 
+            if token_type == "math_display":
+                self._render_math_display(pdf, token)
+                continue
+
             if token_type == "mermaid":
                 self._render_mermaid(pdf, token, rendered_svgs)
                 continue
@@ -700,6 +704,49 @@ class PdfExporter(Exporter):
             for _ in range(chunk_size):
                 self._render_code_line(pdf, lines[i], is_code_block=True)
                 i += 1
+
+    def _render_math_display(self, pdf: FPDF, token: dict) -> None:
+        """Render a display-math block ($$...$$) as centered mono-text.
+        
+        Display math renders as a centered block with mono font, similar to
+        code blocks but without the background rect and with centered alignment.
+        """
+        content = str(token.get("content", ""))
+        language = token.get("language", "")
+        syntax_theme = self._options.get("syntax_theme", "default")
+        theme = self._options.get("theme", {})
+        
+        if language:
+            from mdutil.syntax_highlighter import highlight_code_pdf
+            segments = highlight_code_pdf(content, language, theme, syntax_theme)
+        else:
+            segments = [{"text": content, "rgb": None}]
+        
+        pdf.set_font(self._font_for("mono"), size=9)
+        
+        # Render as centered text, one line at a time.
+        lines_list = content.split("\n")
+        if not lines_list:
+            lines_list = [""]
+        
+        # Calculate total height needed.
+        line_height = 5
+        num_lines = len(lines_list)
+        estimated_bg_height = num_lines * line_height + 1
+        
+        # Check if it fits on the current page.
+        remaining_height = pdf.h - pdf.b_margin - pdf.get_y() - 3.0
+        if estimated_bg_height > remaining_height and pdf.get_y() > pdf.t_margin:
+            pdf.add_page()
+        
+        # Center the block on the page.
+        page_width = pdf.w - pdf.l_margin - pdf.r_margin
+        for line in lines_list:
+            # Use single_cell for centered text (0 width = full available width).
+            pdf.set_x(pdf.l_margin + (page_width - pdf.get_string_width(line)) / 2)
+            pdf.cell(0, line_height, text=line, align="C")
+        
+        pdf.ln(3)
 
     def _render_mermaid_batch(
         self,

@@ -153,6 +153,24 @@ pre {{
     font-style: italic;
 }}
 
+.math-display {{
+    text-align: center;
+    padding: 16px;
+    margin: 16px 0;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-style: italic;
+    font-size: 1.1em;
+    background-color: {code_bg};
+    border-radius: 3px;
+    overflow: auto;
+}}
+
+.math-display code {{
+    background-color: transparent;
+    padding: 0;
+    font-size: 100%;
+}}
+
 pre code {{
     background-color: transparent;
     padding: 0;
@@ -320,6 +338,10 @@ dl dd {{
 
             if token_type == "code":
                 output.append(self._render_code_block(token, syntax_theme))
+                continue
+
+            if token_type == "math_display":
+                output.append(self._render_math_display(token))
                 continue
 
             if token_type == "mermaid":
@@ -505,6 +527,29 @@ dl dd {{
     def _escape_html(self, text: str) -> str:
         """Escape HTML entities in text."""
         return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    def _render_math_display(self, token: dict) -> str:
+        """Render a display-math block ($$...$$) as a styled block element.
+
+        Display math renders as a centered block with monospace italic styling,
+        distinguishing it from regular code blocks.
+        """
+        content = token.get("content", "")
+        language = token.get("language", "")
+        if language:
+            # Use Pygments for highlighted math
+            from mdutil.syntax_highlighter import highlight_code_html
+            highlighted = highlight_code_html(content, language, syntax_theme=self._options.get("syntax_theme", "default"))
+            # Strip the outer <div class="highlight"> wrapper
+            import re
+            match = re.search(r'<div class="highlight">.*?<pre>(.*?)</pre></div>', highlighted, re.DOTALL)
+            if match:
+                inner_content = match.group(1)
+                return f'<div class="math-display">{inner_content}</div>'
+            else:
+                return f'<div class="math-display"><code>{self._escape_html(content)}</code></div>'
+        else:
+            return f'<div class="math-display"><code>{self._escape_html(content)}</code></div>'
 
     def _render_code_block(self, token: dict, syntax_theme: str = "default") -> str:
         """Render a code block with syntax highlighting."""
