@@ -313,6 +313,12 @@ def _render_table(token: dict[str, Any]) -> list[str]:
     table_rows = [[str(cell) for cell in headers]] + [
         [str(cell) for cell in row] for row in rows
     ]
+    # Strip inline tags from table cells so <math>, <strong>, etc. render
+    # as visible text instead of raw markup.
+    table_rows = [
+        [_strip_inline_tags(cell) for cell in row]
+        for row in table_rows
+    ]
     if not table_rows or not table_rows[0]:
         return []
 

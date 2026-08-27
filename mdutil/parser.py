@@ -324,6 +324,10 @@ def extract_table(lines: list[str], start_index: int) -> tuple[dict[str, Any] | 
     if len(headers) != len(separator_cells):
         return None, start_index
 
+    # Apply inline parsing to header cells so $math$, **bold**, *italic*, etc.
+    # work in header cells too.
+    headers = [_parse_inline(cell).get("content", cell) for cell in headers]
+
     alignments = [_alignment_for_separator(cell) for cell in separator_cells]
     table_lines = [lines[start_index], lines[start_index + 1]]
     rows: list[list[str]] = []
@@ -332,7 +336,10 @@ def extract_table(lines: list[str], start_index: int) -> tuple[dict[str, Any] | 
         row = _split_table_row(lines[i].strip())
         if len(row) != len(headers):
             break
-        rows.append(row)
+        # Apply inline parsing to each cell so $math$, **bold**, *italic*, etc.
+        # work inside table cells.
+        parsed_row = [_parse_inline(cell).get("content", cell) for cell in row]
+        rows.append(parsed_row)
         table_lines.append(lines[i])
         i += 1
 
