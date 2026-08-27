@@ -42,6 +42,7 @@ class HtmlExporter(Exporter):
     def render(self, tokens: list[dict], theme: dict, options: dict) -> str:
         """Render tokens to HTML."""
         self._options = options
+        self._theme = theme
         css = self._generate_css(theme)
         custom_css = options.get("custom_css", "")
         syntax_theme = options.get("syntax_theme", "default")
@@ -537,9 +538,13 @@ dl dd {{
         content = token.get("content", "")
         language = token.get("language", "")
         if language:
-            # Use Pygments for highlighted math
+            # Use Pygments for highlighted math (merged theme + syntax theme)
             from mdutil.syntax_highlighter import highlight_code_html
-            highlighted = highlight_code_html(content, language, syntax_theme=self._options.get("syntax_theme", "default"))
+            highlighted = highlight_code_html(
+                content, language,
+                syntax_theme=self._options.get("syntax_theme", "default"),
+                theme=getattr(self, '_theme', None),
+            )
             # Strip the outer <div class="highlight"> wrapper
             import re
             match = re.search(r'<div class="highlight">.*?<pre>(.*?)</pre></div>', highlighted, re.DOTALL)
@@ -560,9 +565,11 @@ dl dd {{
         escaped_content = content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
         if language:
-            # Use Pygments for highlighted code
+            # Use Pygments for highlighted code (merged theme + syntax theme)
             from mdutil.syntax_highlighter import highlight_code_html
-            highlighted = highlight_code_html(content, language, syntax_theme)
+            highlighted = highlight_code_html(
+                content, language, syntax_theme, theme=getattr(self, '_theme', None)
+            )
             
             # Strip the outer <div class="highlight"> wrapper from Pygments output
             # Pygments returns: <div class="highlight"><pre>...</pre></div>
