@@ -551,6 +551,6 @@ v5.0 is complete when:
 - [x] KB-097: PDF — definition list alignment (Def. 1.2 not aligning with Def. 1.1). Fixed `pdf.set_x(indent)` moved inside the definition loop in `_render_definition` (fpdf2 resets x after each `multi_cell`). 2 regression tests in `test_export.py::PdfExporterDefinitionListTests`. 
 - [x~dup~] KB-098: PDF — subscript/superscript not rendered (H2O, E=mc2) — **duplicate of KB-096**, resolved by `fa23896`
 - [x] KB-099: PDF — math notation renders in mono font (spec). `_InlineHTMLParser` tracks `<math>`; inline/heading render route math to mono. Commit `3eecb20`.
-- [ ] KB-100: HTML — syntax highlighting colours do not match PDF/markdown
+- [x] KB-100: HTML — syntax highlighting colours now match PDF/markdown. `highlight_code_html` uses `_style_for_theme(theme, syntax_theme)` (merged theme + syntax theme) instead of `get_style_by_name` directly. HTML exporter passes theme to highlighter. 8 new tests. Commit `6658299`.
 - [x] KB-101: HTML — math notation rendered as `<span class="math">` (escaped) instead of raw `<math>`. Covers headings/paragraphs/tables/lists/footnotes/definition lists + CSS. Commit `0f5372e`.
-- [ ] KB-104: PDF/HTML — block-level math (`$$...$$`) not detected; leaks into inline parsing. Needs block-level `$$` detection in parser.
+- [x] KB-104: PDF/HTML — block-level math (`$$...$$`) now detected. Parser `extract_code_block` recognizes `$$` fences on own line; single-line `$$content$$` also handled. Emits `math_display` token. HTML: `.math-display` CSS centered block. PDF: centered mono text. Terminal: centered. 12 new tests. Commit `20bb9e0`.
