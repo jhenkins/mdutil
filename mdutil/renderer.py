@@ -63,9 +63,13 @@ def render(
             footnote_style=footnote_style,
         ))
 
+    result = "\n".join(result_lines)
     if line_numbers:
-        return "\n".join(f"{idx:4d} | {line}" for idx, line in enumerate(result_lines, 1))
-    return "\n".join(result_lines)
+        result = "\n".join(f"{idx:4d} | {line}" for idx, line in enumerate(result_lines, 1))
+    # Sanitize: ensure no \\033[ sequence contains non-ASCII digits that would
+    # crash prompt_toolkit's ANSI parser (Python's str.isdigit() returns True
+    # for Unicode superscripts but int() only accepts ASCII digits).
+    return _sanitize_ansi(result)
 
 
 def _render_token(
@@ -579,32 +583,43 @@ def _convert_math_notation(text: str) -> str:
 
     Handles bare notation (``^2``, ``_i``) and grouped notation (``^{23}``, ``_{n}``),
     but leaves backslash commands (``\sum``, ``\frac``) untouched.
+
+    ANSI-safe: splits on ``\033[...m`` escape sequences so that superscript
+    conversion never runs inside an escape sequence (which would produce
+    non-ASCII digits inside an SGR parameter and crash prompt_toolkit).
     """
-    # Grouped superscript: ^{...} → superscript
-    text = re.sub(
-        r"(?<!\\)\^\{([^}]*)\}",
-        lambda m: _superscript(m.group(1)),
-        text,
-    )
-    # Bare superscript: ^<chars> → superscript (no whitespace/braces/backslash)
-    text = re.sub(
-        r"(?<!\\)\^([^\s{}\\]+)",
-        lambda m: _superscript(m.group(1)),
-        text,
-    )
-    # Grouped subscript: _{...} → subscript
-    text = re.sub(
-        r"(?<!\\)_\{([^}]*)\}",
-        lambda m: _subscript(m.group(1)),
-        text,
-    )
-    # Bare subscript: _<chars> → subscript (no whitespace/braces/backslash)
-    text = re.sub(
-        r"(?<!\\)_([^\s{}\\]+)",
-        lambda m: _subscript(m.group(1)),
-        text,
-    )
-    return text
+    # Split text into (escape, literal) chunks, preserving escapes.
+    ansi_pat = re.compile(r"(\033\[[0-9;]*m)")
+    chunks = ansi_pat.split(text)
+
+    def convert_chunk(chunk: str) -> str:
+        # Grouped superscript: ^{...} → superscript
+        chunk = re.sub(
+            r"(?<!\\)\^\{([^}]*)\}",
+            lambda m: _superscript(m.group(1)),
+            chunk,
+        )
+        # Bare superscript: ^<chars> → superscript (no whitespace/braces/backslash)
+        chunk = re.sub(
+            r"(?<!\\)\^([^\s{}\\]+)",
+            lambda m: _superscript(m.group(1)),
+            chunk,
+        )
+        # Grouped subscript: _{...} → subscript
+        chunk = re.sub(
+            r"(?<!\\)_\{([^}]*)\}",
+            lambda m: _subscript(m.group(1)),
+            chunk,
+        )
+        # Bare subscript: _<chars> → subscript (no whitespace/braces/backslash)
+        chunk = re.sub(
+            r"(?<!\\)_([^\s{}\\]+)",
+            lambda m: _subscript(m.group(1)),
+            chunk,
+        )
+        return chunk
+
+    return "".join(convert_chunk(c) if not ansi_pat.match(c) else c for c in chunks)
 
 
 def _superscript(n: str) -> str:
@@ -647,5 +662,53 @@ def _subscript(n: str) -> str:
         "(": "₍", ")": "₎",
     }
     return "".join(subscript_map.get(c, c) for c in n)
+
+
+# Pattern for a fully-valid SGR sequence — used to recognise sequences we
+# must preserve unchanged.
+_VALID_SGR = re.compile(r"\033\[[0-9;]*m")
+
+
+def _sanitize_ansi(text: str) -> str:
+    """Neutralise any CSI sequence whose parameter portion contains non-ASCII.
+
+    prompt_toolkit uses ``str.isdigit()`` to accumulate SGR parameters, but
+    Python considers Unicode superscripts (e.g. ``³`` U+00B3) to be digits.
+    ``int('³⁸')`` then raises ``ValueError``.  This sanitiser scans the
+    rendered output for any ``\033[...`` whose parameter portion (up to the
+    next ``m`` or end-of-string) contains a non-ASCII character, and strips
+    the leading ``\033[`` so the visible text remains but the malformed
+    escape never reaches prompt_toolkit.
+    """
+    result: list[str] = []
+    i = 0
+    esc = "\033["
+    n = len(text)
+    while i < n:
+        if text[i:i + 2] == esc:
+            # Find next 'm' after the '['
+            j = text.find("m", i + 2)
+            if j == -1:
+                # Unterminated CSI — strip ESC[ if payload has non-ASCII
+                payload = text[i + 2:]
+                if any(ord(c) > 127 for c in payload):
+                    result.append(payload)
+                i = n
+            else:
+                payload = text[i + 2:j]
+                seq = text[i:j + 1]
+                # Preserve valid SGR sequences unchanged.
+                if _VALID_SGR.fullmatch(seq):
+                    result.append(seq)
+                elif any(ord(c) > 127 for c in payload):
+                    # Drop ESC[, keep payload + trailing m as plain text.
+                    result.append(payload + "m")
+                else:
+                    result.append(seq)
+                i = j + 1
+        else:
+            result.append(text[i])
+            i += 1
+    return "".join(result)
 
 

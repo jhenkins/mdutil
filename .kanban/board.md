@@ -102,6 +102,7 @@ lane_model: basic
 | KB-102 | Parser: ***bold-italic*** leaves trailing asterisk (only 2 of 3 consumed) | done | P1 | jan | - | - | 2026-08-24 |
 | KB-103 | Terminal: strikethrough should use ANSI \\033[9m (actual strikethrough), not just colour | done | P1 | jan | - | - | 2026-08-24 |
 | KB-104 | PDF/HTML: block-level math ($$...$$) leaks into inline parsing instead of rendering as a display block | done | P1 | jan | - | - | 2026-08-27 |
+| KB-105 | Terminal: list items in Kanban board now render bold/italic/code | done | P1 | jan | - | - | 2026-08-28 |
 
 ## WIP Limits
 - in-progress: 2

@@ -162,6 +162,44 @@ class RendererTests(unittest.TestCase):
 
         self.assertEqual(output, "raw <code>")
 
+    def test_ansi_sanitiser_strips_non_ascii_in_csi_payload(self):
+        """Malformed CSI sequences with Unicode digits must not crash prompt_toolkit.
+
+        Python's ``str.isdigit()`` returns True for Unicode superscripts
+        (e.g. ``³`` U+00B3) but ``int('³⁸')`` raises ``ValueError``.  The
+        prompt_toolkit ANSI parser uses ``isdigit()`` to accumulate SGR
+        parameters and then calls ``int()`` — so a stray ``\033[³⁸m``
+        would crash the editor UI.  ``_sanitize_ansi`` must neutralise
+        such sequences.
+        """
+        from mdutil.renderer import _sanitize_ansi
+
+        malformed = "\033[³⁸m"
+        sanitised = _sanitize_ansi(malformed)
+        # The ESC[ prefix is stripped; visible text is preserved.
+        self.assertEqual(sanitised, "³⁸m")
+        # Must not crash prompt_toolkit's ANSI parser.
+        from prompt_toolkit.formatted_text.ansi import ANSI
+        ANSI(sanitised)  # should not raise
+
+    def test_ansi_sanitiser_preserves_valid_sgr(self):
+        """Valid SGR sequences must pass through _sanitize_ansi unchanged."""
+        from mdutil.renderer import _sanitize_ansi
+
+        valid = "\033[38;2;255;0;0m\033[0m\033[1m"
+        self.assertEqual(_sanitize_ansi(valid), valid)
+
+    def test_math_notation_with_ansi_in_input_is_safe(self):
+        """Math content that somehow contains ANSI must not produce crashes."""
+        from mdutil.renderer import _convert_math_notation, _sanitize_ansi
+        from prompt_toolkit.formatted_text.ansi import ANSI
+
+        # Synthetic edge case: ESC + [ + ^38m (simulates tainted input).
+        tainted = "\033[^38m"
+        converted = _convert_math_notation(tainted)
+        sanitised = _sanitize_ansi(converted)
+        ANSI(sanitised)  # must not raise
+
 
 if __name__ == "__main__":
     unittest.main()
