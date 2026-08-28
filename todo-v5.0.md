@@ -487,7 +487,7 @@
 - [x] KB-089: Create release PR
   - [x] Commit all changes
   - [x] Create PR to main branch (PR #55)
-  - [ ] Request review
+  - [x] Request review
 
 ---
 
