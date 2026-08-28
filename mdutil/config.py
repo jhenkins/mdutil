@@ -17,6 +17,9 @@ DEFAULTS: dict[str, Any] = {
     "quiet": False,
     "status_bar_normal": None,
     "status_bar_insert": None,
+    # New feature toggles
+    "math_fallback": False,
+    "footnote_style": "numbered",
     # Export defaults
     "export_format": "pdf",
     "export_output_dir": None,
@@ -27,6 +30,7 @@ DEFAULTS: dict[str, Any] = {
     "pdf_margin_right": 20,
     "html_embed_css": True,
     "html_theme": None,
+    "mermaid": True,
 }
 
 SECTION = "mdutil"
@@ -96,6 +100,25 @@ def load_config(path: Path) -> dict[str, Any]:
                 raw_style = section.get(key, fallback="") or ""
                 style = raw_style.strip()
                 loaded[key] = style or None
+        if "mermaid" in section:
+            loaded["mermaid"] = section.getboolean(
+                "mermaid",
+                fallback=DEFAULTS["mermaid"],
+            )
+        if "math_fallback" in section:
+            loaded["math_fallback"] = section.getboolean(
+                "math_fallback",
+                fallback=DEFAULTS["math_fallback"],
+            )
+        if "footnote_style" in section:
+            raw_style = section.get("footnote_style", fallback="") or ""
+            style = raw_style.strip()
+            if style and style not in ("numbered", "bracketed"):
+                raise ValueError(
+                    f"invalid footnote_style in configuration: {style!r} "
+                    f"(choose from numbered, bracketed)"
+                )
+            loaded["footnote_style"] = style or DEFAULTS["footnote_style"]
 
     # Load export settings from [export] section
     if parser.has_section("export"):
@@ -156,6 +179,14 @@ line_numbers = false
 # Suppress rendered output by default when --quiet is not supplied.
 # Accepted values: true, false, yes, no, on, off, 1, 0
 quiet = false
+
+# Math notation rendering in terminal (strip = hide raw LaTeX, raw = show $delimiters$).
+# Accepted values: true, false, yes, no, on, off, 1, 0
+math_fallback = false
+
+# Footnote reference style in terminal (numbered = superscript, bracketed = [1]).
+# Accepted values: numbered, bracketed
+footnote_style = numbered
 
 # Optional prompt-toolkit style overrides for the bottom status bar.
 # Leave empty to use the selected theme's status_bar.normal and status_bar.insert colors.

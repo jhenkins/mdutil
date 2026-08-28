@@ -72,17 +72,20 @@ def highlight_code_html(
     code: str,
     language: str | None = "",
     syntax_theme: str = "default",
+    theme: dict[str, Any] | None = None,
 ) -> str:
     """Return Pygments-highlighted HTML for a code block.
 
     Uses Pygments HtmlFormatter to generate syntax-highlighted HTML with
-    CSS classes for token types. Falls back to plain text for unknown
-    languages or plain text aliases.
+    CSS classes for token types. Merges theme code colors with the syntax
+    theme (same approach as highlight_code_pdf) so HTML colours match PDF
+    and terminal output.
 
     Args:
         code: The code string to highlight.
         language: The language name for lexer detection.
         syntax_theme: Pygments style name for color scheme.
+        theme: Theme dict with code colors (merged with syntax theme).
 
     Returns:
         HTML string with <span> tags for token types, or plain text code.
@@ -97,9 +100,8 @@ def highlight_code_html(
         return code  # Unknown language, return as-is
 
     from pygments.formatters import HtmlFormatter
-    from pygments.styles import get_style_by_name
     
-    style = get_style_by_name(syntax_theme)
+    style = _style_for_theme(theme, syntax_theme)
     formatter = HtmlFormatter(style=style)
     highlighted = highlight(code, lexer, formatter)
     

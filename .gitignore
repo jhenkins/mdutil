@@ -27,7 +27,6 @@ htmlcov/
 
 # Local agent/session artifacts
 .hermes/
-.kanban/
 pi-session*.*
 
 
@@ -39,3 +38,6 @@ tmp/
 *.html
 *.pdf
 *.svg
+
+# Local documentation
+.obsidian/

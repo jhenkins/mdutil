@@ -22,3 +22,20 @@ A | B
 333 | 4
 
 ---
+
+- [x] Completed task
+- [ ] Pending task
+- Regular list item
+
+1. Nested item
+   1. Deep nested
+      - Sub-bullet
+   2. Another deep
+2. Back to level 1
+
+Term
+:   Definition for this term
+
+Another Term
+:   First definition
+:   Second definition

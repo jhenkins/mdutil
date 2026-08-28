@@ -18,7 +18,9 @@ class RendererTests(unittest.TestCase):
     def test_render_strips_inline_code_tags_to_visible_text(self):
         output = render(parse_markdown("Use `mdutil` now"))
 
-        self.assertEqual(output, "Use mdutil now")
+        self.assertEqual(strip_ansi(output), "Use mdutil now")
+        # Inline code should have a background color (48;2;R;G;Bm)
+        self.assertIn("\033[48;2;", output)
 
     def test_render_nested_inline_markup_inside_links_to_visible_text(self):
         output = render(parse_markdown("See [*docs* `api`](https://example.com), please."))
@@ -38,20 +40,20 @@ class RendererTests(unittest.TestCase):
 
         self.assertEqual(strip_ansi(output), "Before\n---\nAfter")
 
-    def test_heading_uses_token_content_not_reconstructed_text(self):
+    def test_heading_uses_token_text_not_raw_content(self):
         output = render(
             [
                 {
                     "type": "heading",
                     "level": 6,
                     "content": "# Canonical heading",
-                    "text": "Wrong text must not render",
+                    "text": "Canonical heading",
                 }
             ]
         )
 
-        self.assertIn("# Canonical heading", output)
-        self.assertNotIn("Wrong text must not render", output)
+        self.assertIn("Canonical heading", output)
+        self.assertNotIn("# Canonical heading", output)
         self.assertNotIn("######", output)
 
     def test_render_blocks_from_structured_token_content(self):
@@ -141,13 +143,13 @@ class RendererTests(unittest.TestCase):
         output = render(parse_markdown("# Title\n\n```python\nprint(1)\nprint(2)\n```\nAfter"), line_numbers=True)
 
         lines = strip_ansi(output).splitlines()
-        self.assertEqual(len(lines), 5)
-        self.assertTrue(lines[0].startswith("   1 | "))
-        self.assertTrue(lines[1].startswith("   2 | "))
-        self.assertEqual(lines[1], "   2 | ")
-        self.assertTrue(lines[2].startswith("   3 | print(1)"))
-        self.assertTrue(lines[3].startswith("   4 | print(2)"))
-        self.assertTrue(lines[4].startswith("   5 | After"))
+        self.assertEqual(len(lines), 6)
+        self.assertTrue(lines[0].startswith("   1 | Title"))
+        self.assertTrue(lines[1].startswith("   2 | ═"))
+        self.assertEqual(lines[2], "   3 | ")
+        self.assertTrue(lines[3].startswith("   4 | print(1)"))
+        self.assertTrue(lines[4].startswith("   5 | print(2)"))
+        self.assertTrue(lines[5].startswith("   6 | After"))
 
     def test_code_blocks_are_syntax_highlighted_for_known_languages(self):
         output = render(parse_markdown("```python\ndef greet():\n    return 'hi'\n```"), theme="dracula")
@@ -159,6 +161,95 @@ class RendererTests(unittest.TestCase):
         output = render(parse_markdown("```unknown-language\nraw <code>\n```"), theme="dracula")
 
         self.assertEqual(output, "raw <code>")
+
+    def test_ansi_sanitiser_strips_non_ascii_in_csi_payload(self):
+        """Malformed CSI sequences with Unicode digits must not crash prompt_toolkit.
+
+        Python's ``str.isdigit()`` returns True for Unicode superscripts
+        (e.g. ``³`` U+00B3) but ``int('³⁸')`` raises ``ValueError``.  The
+        prompt_toolkit ANSI parser uses ``isdigit()`` to accumulate SGR
+        parameters and then calls ``int()`` — so a stray ``\033[³⁸m``
+        would crash the editor UI.  ``_sanitize_ansi`` must neutralise
+        such sequences.
+        """
+        from mdutil.renderer import _sanitize_ansi
+
+        malformed = "\033[³⁸m"
+        sanitised = _sanitize_ansi(malformed)
+        # The ESC[ prefix is stripped; visible text is preserved.
+        self.assertEqual(sanitised, "³⁸m")
+        # Must not crash prompt_toolkit's ANSI parser.
+        from prompt_toolkit.formatted_text.ansi import ANSI
+        ANSI(sanitised)  # should not raise
+
+    def test_ansi_sanitiser_preserves_valid_sgr(self):
+        """Valid SGR sequences must pass through _sanitize_ansi unchanged."""
+        from mdutil.renderer import _sanitize_ansi
+
+        valid = "\033[38;2;255;0;0m\033[0m\033[1m"
+        self.assertEqual(_sanitize_ansi(valid), valid)
+
+    def test_math_notation_with_ansi_in_input_is_safe(self):
+        """Math content that somehow contains ANSI must not produce crashes."""
+        from mdutil.renderer import _convert_math_notation, _sanitize_ansi
+        from prompt_toolkit.formatted_text.ansi import ANSI
+
+        # Synthetic edge case: ESC + [ + ^38m (simulates tainted input).
+        tainted = "\033[^38m"
+        converted = _convert_math_notation(tainted)
+        sanitised = _sanitize_ansi(converted)
+        ANSI(sanitised)  # must not raise
+
+    def test_superscript_preserves_ansi_escapes(self):
+        """_superscript must not convert digits inside ANSI escape sequences.
+
+        Regression test for a crash where ``_superscript`` transformed
+        ``\033[0m`` (ANSI reset) into ``\033[⁰m``, placing a Unicode
+        superscript digit inside an SGR parameter and crashing
+        prompt_toolkit's ANSI parser on ``int('⁰')``.
+        """
+        from mdutil.renderer import _superscript
+        from prompt_toolkit.formatted_text.ansi import ANSI
+
+        ansi_text = "\033[1;38;2;255;0;0m\033[0m"
+        result = _superscript(ansi_text)
+        self.assertEqual(result, ansi_text)
+        # Must not crash prompt_toolkit.
+        ANSI(result)
+
+    def test_subscript_preserves_ansi_escapes(self):
+        """_subscript must not convert digits inside ANSI escape sequences."""
+        from mdutil.renderer import _subscript
+        from prompt_toolkit.formatted_text.ansi import ANSI
+
+        ansi_text = "\033[1;38;2;255;0;0m\033[0m"
+        result = _subscript(ansi_text)
+        self.assertEqual(result, ansi_text)
+        ANSI(result)
+
+    def test_superscript_converts_plain_digits(self):
+        """_superscript must still convert plain ASCII digits to superscript."""
+        from mdutil.renderer import _superscript
+
+        self.assertEqual(_superscript("01234"), "⁰¹²³⁴")
+        # Letters and punctuation also have superscript forms.
+        self.assertEqual(_superscript("abc"), "ᵃᵇᶜ")
+
+    def test_render_with_footnote_zero_and_math_superscript(self):
+        """Full pipeline: footnote ref [^0] + math $x^0$ must not crash.
+
+        Regression test: both produce Unicode superscript zero (⁰), and
+        the rendered output must be safe for prompt_toolkit.
+        """
+        from mdutil.renderer import render
+        from mdutil.parser import parse_markdown
+        from prompt_toolkit.formatted_text.ansi import ANSI
+
+        md = "Text [^0] and $x^0$.\n\n[^0]: A footnote."
+        parsed = parse_markdown(md)
+        result = render(parsed)
+        # Must not crash prompt_toolkit's ANSI parser.
+        ANSI(result)
 
 
 if __name__ == "__main__":

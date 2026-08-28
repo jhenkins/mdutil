@@ -273,7 +273,10 @@ class ScrollBufferTests(unittest.TestCase):
 
         rendered = getattr(app, "mdutil_rendered_text")()
         self.assertIn("\033[", rendered)
-        self.assertEqual(strip_ansi(rendered), "# Title\n\nbody")
+        # h1 heading: text + ═ underline
+        self.assertIn("Title", strip_ansi(rendered))
+        self.assertIn("═", strip_ansi(rendered))
+        self.assertIn("body", strip_ansi(rendered))
 
     def test_prompt_toolkit_normal_mode_syntax_highlights_code_blocks(self):
         with create_pipe_input() as pipe_input:

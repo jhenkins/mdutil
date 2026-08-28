@@ -108,6 +108,55 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(loaded["pdf_paper_size"], "A4")
         self.assertEqual(loaded["html_embed_css"], True)
 
+    def test_math_fallback_default_false(self):
+        """math_fallback defaults to False in DEFAULTS."""
+        self.assertFalse(DEFAULTS["math_fallback"])
+
+    def test_footnote_style_default_numbered(self):
+        """footnote_style defaults to 'numbered' in DEFAULTS."""
+        self.assertEqual(DEFAULTS["footnote_style"], "numbered")
+
+    def test_math_fallback_loaded_from_config(self):
+        """math_fallback=true is loaded from config file."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / ".mdutilcfg"
+            path.write_text("[mdutil]\nmath_fallback = true\n", encoding="utf-8")
+
+            loaded = load_config(path)
+
+        self.assertTrue(loaded["math_fallback"])
+
+    def test_footnote_style_loaded_from_config(self):
+        """footnote_style=bracketed is loaded from config file."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / ".mdutilcfg"
+            path.write_text("[mdutil]\nfootnote_style = bracketed\n", encoding="utf-8")
+
+            loaded = load_config(path)
+
+        self.assertEqual(loaded["footnote_style"], "bracketed")
+
+    def test_invalid_footnote_style_raises_value_error(self):
+        """An invalid footnote_style raises ValueError."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / ".mdutilcfg"
+            path.write_text("[mdutil]\nfootnote_style = invalid\n", encoding="utf-8")
+
+            with self.assertRaises(ValueError) as ctx:
+                load_config(path)
+
+        self.assertIn("invalid footnote_style", str(ctx.exception))
+
+    def test_generated_config_includes_math_and_footnote_options(self):
+        """ensure_config_file writes math_fallback and footnote_style lines."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / ".mdutilcfg"
+            ensure_config_file(path)
+            text = path.read_text(encoding="utf-8")
+
+        self.assertIn("math_fallback = false", text)
+        self.assertIn("footnote_style = numbered", text)
+
 
 if __name__ == "__main__":
     unittest.main()

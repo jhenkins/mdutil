@@ -1,4 +1,4 @@
-# Title
+Title
 
 Paragraph with bold, emphasis, code, and link (https://example.com).
 
@@ -20,3 +20,20 @@ A   |  B
 333 |  4
 
 ---
+
+☑ Completed task
+☐ Pending task
+- Regular list item
+
+1. Nested item
+  1. Deep nested
+    - Sub-bullet
+  2. Another deep
+2. Back to level 1
+
+Term —
+    Definition for this term
+
+Another Term —
+    First definition
+    Second definition

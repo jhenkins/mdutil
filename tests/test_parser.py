@@ -138,9 +138,10 @@ class ParserTests(unittest.TestCase):
     def test_unclosed_code_fence_is_plain_paragraph_text(self):
         tokens = parse_markdown("```python\nprint(1)")
 
-        # Unclosed code fence → both lines become a single paragraph (soft break)
-        self.assertEqual([token["type"] for token in tokens], ["paragraph"])
-        self.assertEqual(tokens[0]["text"], "```python print(1)")
+        # Unclosed code fence → treated as code until EOF (not paragraph)
+        self.assertEqual([token["type"] for token in tokens], ["code"])
+        self.assertEqual(tokens[0]["language"], "python")
+        self.assertEqual(tokens[0]["content"], "print(1)")
 
     def test_parse_tables_with_and_without_outer_pipes(self):
         tokens = parse_markdown("A | B\n:--- | ---:\n1 | 2\n3 | 4")

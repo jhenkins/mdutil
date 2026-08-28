@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import sys
 import html.parser
@@ -21,6 +22,14 @@ from mdutil.export.svg_to_image import (
     SvgToImageError,
 )
 from mdutil.parser import _parse_inline
+from mdutil.renderer import (
+    _convert_math_notation,
+    _subscript as _renderer_subscript,
+    _superscript as _renderer_superscript,
+)
+
+_logger = logging.getLogger("mdutil.export.pdf")
+
 
 # ---------------------------------------------------------------------------
 # Unicode-capable TTF font paths (fallback from core fonts for non-Latin chars)
@@ -61,6 +70,9 @@ class _InlineHTMLParser(html.parser.HTMLParser):
         self._strong = 0
         self._emphasis = 0
         self._code = 0
+        self._superscript = 0
+        self._subscript = 0
+        self._math = 0
         self._links: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -70,9 +82,45 @@ class _InlineHTMLParser(html.parser.HTMLParser):
             self._emphasis += 1
         elif tag == "code":
             self._code += 1
+        elif tag == "sup":
+            self._superscript += 1
+        elif tag == "sub":
+            self._subscript += 1
+        elif tag == "math":
+            self._math += 1
         elif tag == "a":
             href = dict(attrs).get("href") or ""
-            self._links.append(href)
+            title = dict(attrs).get("title")
+            self._links.append((href, title))
+        elif tag == "img":
+            attrs_dict = dict(attrs)
+            alt = attrs_dict.get("alt", "")
+            src = attrs_dict.get("src", "")
+            width = attrs_dict.get("width")
+            height = attrs_dict.get("height")
+            # Emit a special image segment; _render_inline_html will
+            # detect it and embed the actual image via fpdf2.
+            img_segment: dict[str, Any] = {
+                "type": "image",
+                "src": src,
+                "alt": alt,
+                "strong": bool(self._strong),
+                "emphasis": bool(self._emphasis),
+                "code": bool(self._code),
+                "href": self._links[-1][0] if self._links else "",
+                "title": self._links[-1][1] if self._links else None,
+            }
+            if width:
+                try:
+                    img_segment["width"] = int(width)
+                except ValueError:
+                    pass
+            if height:
+                try:
+                    img_segment["height"] = int(height)
+                except ValueError:
+                    pass
+            self.segments.append(img_segment)
 
     def handle_endtag(self, tag: str) -> None:
         if tag == "strong" and self._strong:
@@ -81,6 +129,12 @@ class _InlineHTMLParser(html.parser.HTMLParser):
             self._emphasis -= 1
         elif tag == "code" and self._code:
             self._code -= 1
+        elif tag == "sup" and self._superscript:
+            self._superscript -= 1
+        elif tag == "sub" and self._subscript:
+            self._subscript -= 1
+        elif tag == "math" and self._math:
+            self._math -= 1
         elif tag == "a" and self._links:
             self._links.pop()
 
@@ -93,7 +147,11 @@ class _InlineHTMLParser(html.parser.HTMLParser):
                 "strong": bool(self._strong),
                 "emphasis": bool(self._emphasis),
                 "code": bool(self._code),
-                "href": self._links[-1] if self._links else "",
+                "superscript": bool(self._superscript),
+                "subscript": bool(self._subscript),
+                "math": bool(self._math),
+                "href": self._links[-1][0] if self._links else "",
+                "title": self._links[-1][1] if self._links else None,
             }
         )
 
@@ -166,17 +224,39 @@ class PdfExporter(Exporter):
         return parser.segments
 
     def _plain_text_from_inline_html(self, html: str) -> str:
-        return "".join(segment["text"] for segment in self._parse_inline_html(html))
+        parts: list[str] = []
+        for segment in self._parse_inline_html(html):
+            text = segment["text"]
+            if segment.get("superscript"):
+                text = _renderer_superscript(text)
+            elif segment.get("subscript"):
+                text = _renderer_subscript(text)
+            elif segment.get("math"):
+                text = _convert_math_notation(text)
+            parts.append(text)
+        return "".join(parts)
 
     def _render_inline_html(self, pdf: FPDF, html: str, *, line_height: float = 5) -> None:
         """Render parser-produced inline HTML with PDF fonts and link annotations."""
         for segment in self._parse_inline_html(html):
+            # Handle image segments specially — embed the actual image
+            if segment.get("type") == "image":
+                self._embed_image(pdf, segment)
+                continue
             text = segment["text"]
             if not text:
                 continue
             # Strip non-ASCII characters for PDF rendering
             text = self._strip_non_ascii(text)
-            if segment.get("code"):
+            # Convert to superscript/subscript after stripping so the
+            # resulting Unicode characters survive the PDF writer.
+            if segment.get("superscript"):
+                text = _renderer_superscript(text)
+            elif segment.get("subscript"):
+                text = _renderer_subscript(text)
+            elif segment.get("math"):
+                text = _convert_math_notation(text)
+            if segment.get("code") or segment.get("math"):
                 pdf.set_font(self._font_for("mono"), size=9)
             else:
                 pdf.set_font(
@@ -188,8 +268,109 @@ class PdfExporter(Exporter):
                 pdf.set_text_color(0, 0, 180)
             else:
                 pdf.set_text_color(0, 0, 0)
-            pdf.write(line_height, text, link=segment.get("href") or "")
+            href = segment.get("href", "") or ""
+            title = segment.get("title")
+            if title is not None:
+                # Use pdf.link() with title parameter for annotations with titles
+                x_before = pdf.get_x()
+                pdf.write(line_height, text)
+                text_width = pdf.get_string_width(text)
+                pdf.link(x_before, pdf.get_y(), text_width, line_height, link=href, title=title)
+            else:
+                pdf.write(line_height, text, link=href)
         pdf.set_text_color(0, 0, 0)
+
+    def _embed_image(self, pdf: FPDF, segment: dict[str, Any]) -> None:
+        """Embed an image into the PDF from a parsed image segment.
+
+        Supports local file paths. Remote URLs are not downloaded (PDF
+        exporters are for offline/static output); falls back to placeholder.
+        """
+        src = segment.get("src", "")
+        alt = segment.get("alt", "")
+
+        pdf.set_font(self._font_for("regular"), size=self.FONT_SIZE)
+
+        # Only attempt to embed local file:// or relative paths
+        if src.startswith("http://") or src.startswith("https://") or src.startswith("//"):
+            # Remote image — cannot embed without network access
+            placeholder = f"[image: {alt or src}]"
+            text = self._strip_non_ascii(placeholder)
+            pdf.write(5, text)
+            pdf.ln(3)
+            return
+
+        # Resolve local path
+        import os
+        if not os.path.isabs(src):
+            # Try relative to working directory
+            candidate = os.path.join(os.getcwd(), src)
+        else:
+            candidate = src
+
+        if not os.path.isfile(candidate):
+            # File not found — fall back to placeholder
+            placeholder = f"[image: {alt or src}]"
+            text = self._strip_non_ascii(placeholder)
+            pdf.write(5, text)
+            pdf.ln(3)
+            return
+
+        # Determine image type for fpdf2
+        ext = os.path.splitext(candidate)[1].lower()
+        supported = {".jpg": "JPEG", ".jpeg": "JPEG", ".png": "PNG", ".gif": "PNG"}
+        img_type = supported.get(ext, "PNG")
+
+        # Calculate dimensions
+        desired_width = segment.get("width")  # CSS pixels — approximate as mm
+        desired_height = segment.get("height")
+
+        available_width = pdf.w - pdf.l_margin - pdf.r_margin - pdf.get_x()
+        if available_width < 10:
+            available_width = 150  # fallback
+
+        try:
+            if desired_width and desired_height:
+                # Scale to fit available width, preserving aspect ratio
+                scale = available_width / desired_width
+                rendered_w = available_width
+                rendered_h = desired_height * scale
+                if rendered_h > available_width:  # prevent excessively tall images
+                    rendered_h = available_width
+                    rendered_w = desired_width * scale
+            elif desired_width:
+                scale = available_width / desired_width
+                rendered_w = available_width
+                rendered_h = None  # let fpdf2 determine height
+            else:
+                rendered_w = min(available_width, 100)  # default max 100mm
+                rendered_h = None
+
+            # Check page break
+            current_y = pdf.get_y()
+            if rendered_h and (current_y + rendered_h > pdf.h - pdf.b_margin):
+                pdf.add_page()
+
+            pdf.image(candidate, x=pdf.get_x(), w=rendered_w, keep_aspect_ratio=bool(rendered_h))
+
+            # Add caption if alt text is meaningful
+            if alt:
+                pdf.ln(2)
+                pdf.set_font(self._font_for("regular"), size=8)
+                pdf.set_text_color(100, 100, 100)
+                pdf.write(4, alt)
+                pdf.set_text_color(0, 0, 0)
+                pdf.ln(3)
+            else:
+                pdf.ln(3)
+
+        except Exception as e:
+            _logger.warning("Failed to embed image %s: %s", src, e)
+            pdf.set_font(self._font_for("regular"), size=self.FONT_SIZE)
+            placeholder = f"[image: {alt or src}]"
+            text = self._strip_non_ascii(placeholder)
+            pdf.write(5, text)
+            pdf.ln(3)
 
     def _is_document_header_metadata(self, token: dict) -> bool:
         """Return True when a paragraph is the spec-style document metadata header."""
@@ -207,9 +388,13 @@ class PdfExporter(Exporter):
 
     def render(self, tokens: list[dict], theme: dict, options: dict) -> bytes:
         """Render tokens to PDF bytes."""
+        _logger.debug("Starting PDF export with %d tokens", len(tokens))
         self._options = options  # Store options for use in code block rendering
+        self._theme = theme  # Store theme for use in inline style rendering
         paper_size = options.get("pdf_paper_size", "A4")
         orientation = options.get("pdf_orientation", "portrait")
+
+        _logger.debug("Using paper size %s, orientation %s", paper_size, orientation)
 
         pdf = FPDF(
             orientation=ORIENTATIONS.get(orientation, "P"),
@@ -317,6 +502,10 @@ class PdfExporter(Exporter):
                 self._render_code_block(pdf, token)
                 continue
 
+            if token_type == "math_display":
+                self._render_math_display(pdf, token)
+                continue
+
             if token_type == "mermaid":
                 self._render_mermaid(pdf, token, rendered_svgs)
                 continue
@@ -337,6 +526,14 @@ class PdfExporter(Exporter):
                 self._render_list(pdf, token)
                 continue
 
+            if token_type == "footnote_definition":
+                self._render_footnote_definition(pdf, token)
+                continue
+
+            if token_type == "definition":
+                self._render_definition(pdf, token)
+                continue
+
     def _render_heading(self, pdf: FPDF, token: dict) -> None:
         """Render a heading token with inline formatting."""
         level = token.get("level", 1)
@@ -355,7 +552,15 @@ class PdfExporter(Exporter):
         for segment in inline_segments:
             if not segment["text"]:
                 continue
-            if segment.get("code"):
+            text = segment["text"]
+            # Apply superscript/subscript conversion
+            if segment.get("superscript"):
+                text = _renderer_superscript(text)
+            elif segment.get("subscript"):
+                text = _renderer_subscript(text)
+            elif segment.get("math"):
+                text = _convert_math_notation(text)
+            if segment.get("code") or segment.get("math"):
                 pdf.set_font(self._font_for("mono"), size=9)
             else:
                 style = ""
@@ -372,7 +577,7 @@ class PdfExporter(Exporter):
                 pdf.set_text_color(0, 0, 180)
             else:
                 pdf.set_text_color(0, 0, 0)
-            pdf.write(10, segment["text"], link=segment.get("href") or "")
+            pdf.write(10, text, link=segment.get("href") or "")
 
         pdf.set_text_color(0, 0, 0)
         pdf.ln(10)
@@ -393,6 +598,12 @@ class PdfExporter(Exporter):
 
         content = token.get("content", "")
         if content:
+            # Replace <fnref id="N"> tags with Unicode superscript
+            content = re.sub(
+                r'<fnref\s+id="([^"]+)">',
+                lambda m: self._superscript(m.group(1)),
+                content,
+            )
             pdf.set_x(pdf.l_margin)
             self._render_inline_html(pdf, content)
             pdf.ln(8)
@@ -503,6 +714,49 @@ class PdfExporter(Exporter):
             for _ in range(chunk_size):
                 self._render_code_line(pdf, lines[i], is_code_block=True)
                 i += 1
+
+    def _render_math_display(self, pdf: FPDF, token: dict) -> None:
+        """Render a display-math block ($$...$$) as centered mono-text.
+        
+        Display math renders as a centered block with mono font, similar to
+        code blocks but without the background rect and with centered alignment.
+        """
+        content = str(token.get("content", ""))
+        language = token.get("language", "")
+        syntax_theme = self._options.get("syntax_theme", "default")
+        theme = self._options.get("theme", {})
+        
+        if language:
+            from mdutil.syntax_highlighter import highlight_code_pdf
+            segments = highlight_code_pdf(content, language, theme, syntax_theme)
+        else:
+            segments = [{"text": content, "rgb": None}]
+        
+        pdf.set_font(self._font_for("mono"), size=9)
+        
+        # Render as centered text, one line at a time.
+        lines_list = content.split("\n")
+        if not lines_list:
+            lines_list = [""]
+        
+        # Calculate total height needed.
+        line_height = 5
+        num_lines = len(lines_list)
+        estimated_bg_height = num_lines * line_height + 1
+        
+        # Check if it fits on the current page.
+        remaining_height = pdf.h - pdf.b_margin - pdf.get_y() - 3.0
+        if estimated_bg_height > remaining_height and pdf.get_y() > pdf.t_margin:
+            pdf.add_page()
+        
+        # Center the block on the page.
+        page_width = pdf.w - pdf.l_margin - pdf.r_margin
+        for line in lines_list:
+            # Use single_cell for centered text (0 width = full available width).
+            pdf.set_x(pdf.l_margin + (page_width - pdf.get_string_width(line)) / 2)
+            pdf.cell(0, line_height, text=line, align="C")
+        
+        pdf.ln(3)
 
     def _render_mermaid_batch(
         self,
@@ -877,11 +1131,106 @@ class PdfExporter(Exporter):
         pdf.set_text_color(0, 0, 0)
         pdf.ln(3)
 
-    def _render_list(self, pdf: FPDF, token: dict) -> None:
-        """Render an ordered or unordered list."""
+    def _render_footnote_ref(self, pdf: FPDF, span: dict[str, Any]) -> str:
+        """Render a footnote reference span as a Unicode superscript."""
+        fn_id = span.get("id", "")
+        return self._superscript(fn_id)
+
+    def _render_footnote_definition(self, pdf: FPDF, token: dict) -> None:
+        """Render a footnote definition token.
+
+        Format:  "    ¹  Footnote text..."  with a horizontal rule above.
+        """
+        if pdf.get_y() > pdf.h - pdf.b_margin - 25:
+            pdf.add_page()
+
+        # Horizontal rule separator
+        y = pdf.get_y()
+        x = pdf.l_margin + 2
+        pdf.set_draw_color(160, 160, 160)
+        pdf.line(x, y, pdf.w - pdf.r_margin, y)
+        pdf.ln(4)
+
+        fn_id = token.get("id", "")
+        content = token.get("content", "")
+        plain_text = self._plain_text_from_inline_html(content)
+        superscript = self._superscript(fn_id)
+
+        # Render indented footnote with superscript prefix
+        pdf.set_font(self._font_for("regular"), size=self.FONT_SIZE)
+        pdf.set_text_color(100, 100, 100)
+
+        # Indent for footnote block
+        start_x = pdf.l_margin + 8
+        pdf.set_x(start_x)
+
+        # Render superscript + text
+        effective_w = pdf.w - start_x - pdf.r_margin
+        if effective_w < 10:
+            effective_w = 50
+        pdf.multi_cell(effective_w, 5, f"{superscript}  {plain_text}", align="L")
+
+        pdf.set_text_color(0, 0, 0)
+        pdf.ln(3)
+
+    def _render_definition(self, pdf: FPDF, token: dict) -> None:
+        """Render a definition list token in the PDF."""
+        terms = token.get("terms", [])
+        definitions = token.get("definitions", [])
+        term_text = " / ".join(terms)
+
+        # Render term in bold with definition_term color from theme
+        pdf.set_font(self._font_for("bold"), size=self.FONT_SIZE)
+        term_color = self._hex_to_rgb(self._theme.get("markdown", {}).get("definition_term", "#0000b4"))
+        pdf.set_text_color(*term_color)
+        pdf.set_x(pdf.l_margin)
+        pdf.write(5, term_text)
+        pdf.ln(3)
+
+        # Render each definition indented
+        pdf.set_font(self._font_for("regular"), size=self.FONT_SIZE)
+        def_color = self._hex_to_rgb(self._theme.get("markdown", {}).get("definition_definition", "#323232"))
+        pdf.set_text_color(*def_color)
+        indent = pdf.l_margin + 8
+
+        for defn in definitions:
+            plain_text = self._plain_text_from_inline_html(defn)
+            effective_w = pdf.w - indent - pdf.r_margin
+            if effective_w < 10:
+                effective_w = 50
+            # Re-set the x-position before each definition: fpdf2 resets the
+            # cursor x to the left margin after multi_cell(), so the indent
+            # would otherwise be lost on every definition after the first.
+            pdf.set_x(indent)
+            pdf.multi_cell(effective_w, 5, f"— {plain_text}", align="L")
+            pdf.ln(1)
+
+        pdf.ln(3)
+        pdf.set_text_color(0, 0, 0)
+
+    @staticmethod
+    def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
+        """Convert a #RRGGBB hex color string to an (R, G, B) tuple."""
+        import re as _re
+
+        match = _re.fullmatch(r"#?([0-9a-fA-F]{6})", hex_color.strip())
+        if not match:
+            return (0, 0, 0)
+        hex_value = match.group(1)
+        return (int(hex_value[0:2], 16), int(hex_value[2:4], 16), int(hex_value[4:6], 16))
+
+    @staticmethod
+    def _superscript(n: str) -> str:
+        """Convert a string to Unicode superscript characters."""
+        # Delegate to renderer's _superscript for consistent behavior
+        return _renderer_superscript(n)
+
+    def _render_list(self, pdf: FPDF, token: dict, level: int = 0) -> None:
+        """Render an ordered or unordered list, recursing into sub-lists."""
         parsed_items = token.get("parsed_items", [])
         ordered = token.get("ordered", False)
-        indent = 5
+        is_task_list = token.get("task", False)
+        indent = 5 + level * 10
 
         pdf.set_font(self._font_for("regular"), size=self.FONT_SIZE)
 
@@ -896,22 +1245,37 @@ class PdfExporter(Exporter):
             items_to_render = token.get("items", [])
 
         for i, item in enumerate(items_to_render, 1):
-            if ordered:
-                prefix = f"{i}. "
-            else:
-                prefix = "- "
-
             if isinstance(item, dict):
                 content = item.get("content", item.get("text", ""))
+
+                # Render task checkbox prefix
+                if is_task_list and item.get("task") and item.get("checked") is not None:
+                    prefix = "☑" if item["checked"] else "☐"
+                else:
+                    prefix = f"{i}. " if ordered else "- "
             else:
                 content = str(item)
+                prefix = f"{i}. " if ordered else "- "
+
             # Strip HTML inline tags for PDF (fpdf2 can't render HTML)
+            # But replace footnote refs with superscript first
+            content = re.sub(
+                r'<fnref\s+id="([^"]+)">',
+                lambda m: self._superscript(m.group(1)),
+                content,
+            )
             content = re.sub(r"</?(?:strong|em|code|a[^>]*)>", "", content)
 
             pdf.set_x(left_x + indent)
             effective_w = pdf.w - left_x - pdf.r_margin - indent
             if effective_w < 10:
                 effective_w = 50  # fallback for very narrow layouts
-            pdf.multi_cell(effective_w, 5, f"{prefix}{content}", align="L")
+            pdf.multi_cell(effective_w, 5, f"{prefix} {content}", align="L")
+
+            # Recurse into sub-list (only for dict items)
+            if isinstance(item, dict):
+                sub = item.get("sub_list")
+                if sub:
+                    self._render_list(pdf, sub, level + 1)
 
         pdf.ln(3)

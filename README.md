@@ -38,7 +38,7 @@ mostly using GPT 5.5 because of hardware constraints.
 We currently have a functional Markdown reader and editor with syntax highlighting, themes, and a prompt-toolkit
 interactive view. File-backed sessions support raw Markdown editing, explicit saves, dirty-buffer protection,
 copy/paste helpers, and mode-aware search. We also have a very simple ini-style configuration file that you can
-edit to make your choice of theme and a few other things permanent. The roadmap can be seen in the todo.md
+edit to make your choice of theme and a few other things permanent. The roadmap can be seen in `.kanban/board.md`
 document.
 
 ## Quick Overview
@@ -53,6 +53,9 @@ document.
 - Multiple theme support (default, dracula, one-dark, etc.)
 - ANSI color output for terminal
 - Supports file input or stdin
+- Math notation: `$E = mc^2$` with `--math-fallback` toggle
+- Footnotes: `[^1]` references with `--footnote-style` (numbered/bracketed)
+- Full GFM syntax: strikethrough, task lists, highlight, definition lists, images, link titles, nested lists
 
 ## Interactive controls
 
@@ -65,13 +68,138 @@ When stdout is a TTY and a file path is provided, `mdutil` opens the interactive
 
 ---
 
+## v5.0 Features
+
+mdutil v5.0 adds comprehensive support for GFM and CommonMark syntax, including strikethrough, task lists, math notation, footnotes, subscript/superscript, highlighting, definition lists, image rendering, link titles, and nested lists.
+
+### Strikethrough
+
+Use `~~text~~` for strikethrough:
+
+```markdown
+This is ~~deleted~~ text.
+```
+
+### Task Lists
+
+Create checklists with `- [ ]` (unchecked) and `- [x]` / `- [X]` (checked):
+
+```markdown
+- [x] Write documentation
+- [ ] Review code
+- [x] Run tests
+```
+
+### Math Notation
+
+Inline math with `$...$`:
+
+```markdown
+Einstein's equation: $E = mc^2$
+```
+
+Use `--math-fallback` to show raw LaTeX instead of stripping delimiters.
+
+### Footnotes
+
+Define footnotes at the end of the document and reference them inline:
+
+```markdown
+This has a footnote[^1].
+
+[^1]: This is the footnote definition.
+```
+
+Control reference display with `--footnote-style numbered` (default, superscript) or `--footnote-style bracketed` (e.g., `[1]`).
+
+### Subscript & Superscript
+
+Use `~text~` for subscript and `^text^` for superscript:
+
+```markdown
+Water: H~2~O
+Superscript: X^2^
+```
+
+### Highlight
+
+Highlight text with `==text==`:
+
+```markdown
+This is ==important== text.
+```
+
+### Definition Lists
+
+Define terms and definitions:
+
+```markdown
+Markdown
+:   A lightweight markup language
+
+HTML
+:   HyperText Markup Language
+```
+
+### Images
+
+Render images with `![alt text](url)`:
+
+```markdown
+![Logo](https://example.com/logo.png "Company Logo")
+```
+
+HTML export embeds images directly; PDF export embeds local images; remote URLs render as placeholders.
+
+### Link Titles
+
+Add hover titles to links:
+
+```markdown
+[Google](https://google.com "Search Engine")
+```
+
+### Nested Lists
+
+Support arbitrarily nested lists with indentation:
+
+```markdown
+- Item 1
+  - Sub-item 1a
+  - Sub-item 1b
+    - Deep item
+- Item 2
+```
+
+### CLI Options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--math-fallback` | disabled | Show raw LaTeX in `$...$` delimiters instead of stripping tags |
+| `--footnote-style` | `numbered` | Footnote reference display style (`numbered` or `bracketed`) |
+
+### Configuration
+
+New options are available in the configuration file (`~/.mdutilcfg`):
+
+```ini
+[mdutil]
+# Show raw LaTeX instead of stripping math delimiters
+# math_fallback = true
+
+# Footnote reference style: "numbered" (superscript) or "bracketed" (e.g., [1])
+# footnote_style = numbered
+```
+
+---
+
 ## Installation
 
 ### Quick Installation (Recommended)
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/mdutil.git
+git clone https://github.com/jhenkins/mdutil.git
 cd mdutil
 
 # Install from source

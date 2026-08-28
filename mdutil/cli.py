@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import configparser
+import logging
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -61,6 +62,21 @@ from .renderer import render
 from .themes import load_theme, syntax_theme_names, theme_names
 from typing import Any
 
+_logger = logging.getLogger("mdutil")
+
+# Module-level flag; the CLI sets it via `--debug`.
+_debug: bool = False
+
+
+def _set_debug(flag: bool) -> None:
+    """Enable verbose debug logging to stderr."""
+    global _debug
+    _debug = flag
+    if flag:
+        logging.basicConfig(level=logging.DEBUG, format="%(levelname)s %(name)s: %(message)s")
+    else:
+        logging.getLogger().setLevel(logging.WARNING)
+
 
 class RuntimeOptions(TypedDict):
     theme: str
@@ -70,6 +86,8 @@ class RuntimeOptions(TypedDict):
     quiet: bool
     status_bar_normal: str | None
     status_bar_insert: str | None
+    math_fallback: bool
+    footnote_style: str
     export_format: str
     export_output_dir: str | None
     pdf_paper_size: str
@@ -148,16 +166,14 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--custom-css",
         help="Path to a CSS file to embed in HTML export output",
     )
-    arg_parser.add_argument(
-        "--mermaid",
-        action="store_true",
-        default=True,
-        help="Enable Mermaid diagram rendering in HTML export (default)",
-    )
+    # --no-mermaid is the toggle; default comes from the runtime config.
+    # We expose a store_false flag so users can explicitly disable mermaid
+    # rendering without having to pass a redundant --mermaid/--no-mermaid pair.
     arg_parser.add_argument(
         "--no-mermaid",
         action="store_false",
         dest="mermaid",
+        default=True,
         help="Disable Mermaid rendering (diagrams rendered as code blocks)",
     )
     arg_parser.add_argument(
@@ -166,6 +182,24 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default="default",
         help="Mermaid rendering theme (default: default)",
     )
+    arg_parser.add_argument(
+        "--debug",
+        action="store_true",
+        default=False,
+        help="Enable verbose debug logging (useful for troubleshooting)",
+    )
+    arg_parser.add_argument(
+        "--math-fallback",
+        action="store_true",
+        default=None,
+        help="Show raw LaTeX in $delimiters$ instead of stripping math tags",
+    )
+    arg_parser.add_argument(
+        "--footnote-style",
+        choices=["numbered", "bracketed"],
+        default=None,
+        help="Footnote reference style in terminal (default: numbered)",
+    )
     return arg_parser
 
 
@@ -173,6 +207,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Run the mdutil CLI and return a process exit code."""
     arg_parser = build_arg_parser()
     args = arg_parser.parse_args(argv)
+
+    # Enable debug logging if requested
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG, format="%(levelname)s: %(message)s")
+        _logger.debug("Debug mode enabled")
 
     if args.list:
         import glob
@@ -221,6 +260,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 syntax_theme=runtime["syntax_theme"],
                 line_numbers=runtime["line_numbers"] and not interactive,
                 quiet=runtime["quiet"],
+                math_fallback=runtime["math_fallback"],
+                footnote_style=runtime["footnote_style"],
             )
             if interactive:
                 run_interactive_viewer(
@@ -374,6 +415,14 @@ def _resolve_runtime_options(
     quiet = cast(bool, args.quiet if args.quiet is not None else config["quiet"])
     status_bar_normal = cast(str | None, config["status_bar_normal"])
     status_bar_insert = cast(str | None, config["status_bar_insert"])
+    math_fallback = cast(
+        bool,
+        args.math_fallback if args.math_fallback is not None else config["math_fallback"],
+    )
+    footnote_style = cast(
+        str,
+        args.footnote_style if args.footnote_style is not None else config["footnote_style"],
+    )
 
     return {
         "theme": theme,
@@ -383,6 +432,8 @@ def _resolve_runtime_options(
         "quiet": quiet,
         "status_bar_normal": status_bar_normal,
         "status_bar_insert": status_bar_insert,
+        "math_fallback": math_fallback,
+        "footnote_style": footnote_style,
         "export_format": cast(str, config.get("export_format", "pdf")),
         "export_output_dir": cast(str | None, config.get("export_output_dir")),
         "pdf_paper_size": cast(str, config.get("pdf_paper_size", "A4")),

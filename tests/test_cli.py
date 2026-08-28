@@ -42,7 +42,7 @@ class CliTests(unittest.TestCase):
             result = self.run_mdutil(str(path))
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("# From file", result.stdout)
+        self.assertIn("From file", result.stdout)
         self.assertEqual(result.stderr, "")
 
     def test_file_argument_launches_interactive_viewer_when_stdout_is_terminal(self):
@@ -112,21 +112,21 @@ class CliTests(unittest.TestCase):
             exit_code = main([])
 
         self.assertEqual(exit_code, 0)
-        self.assertIn("# Piped", stdout.getvalue())
+        self.assertIn("Piped", stdout.getvalue())
         viewer.assert_not_called()
 
     def test_reads_stdin_when_file_is_dash(self):
         result = self.run_mdutil("-", input_text="# From dash\n")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("# From dash", result.stdout)
+        self.assertIn("From dash", result.stdout)
         self.assertEqual(result.stderr, "")
 
     def test_reads_piped_stdin_when_no_file_argument(self):
         result = self.run_mdutil(input_text="# From pipe\n")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("# From pipe", result.stdout)
+        self.assertIn("From pipe", result.stdout)
         self.assertEqual(result.stderr, "")
 
     def test_supports_theme_and_theme_file_options(self):
@@ -139,7 +139,7 @@ class CliTests(unittest.TestCase):
             result = self.run_mdutil("--theme", "dracula", "--theme-file", str(theme_file), str(doc))
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("# Themed", result.stdout)
+        self.assertIn("Themed", result.stdout)
         self.assertIn("\033[38;2;255;255;255m", result.stdout)
         self.assertEqual(result.stderr, "")
 
@@ -155,7 +155,7 @@ class CliTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("   1 | ", result.stdout)
-        self.assertIn("# Numbered", result.stdout)
+        self.assertIn("Numbered", result.stdout)
         self.assertEqual(result.stderr, "")
 
     def test_creates_default_config_in_home_when_missing(self):
@@ -193,7 +193,7 @@ class CliTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("   1 | ", result.stdout)
-        self.assertIn("# Configured", result.stdout)
+        self.assertIn("Configured", result.stdout)
         self.assertIn("\033[38;2;255;121;198m", result.stdout)
 
     def test_cli_options_override_config_file_defaults(self):
@@ -434,6 +434,37 @@ class CliTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertIn("Permission denied", result.stderr)
+
+    def test_math_fallback_flag_accepted(self):
+        """--math-fallback flag is accepted and does not error."""
+        result = self.run_mdutil("--math-fallback", input_text="Use $E=mc^2$ here.")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_footnote_style_flag_accepted(self):
+        """--footnote-style flag is accepted with valid choice."""
+        result = self.run_mdutil("--footnote-style", "bracketed", input_text="See [^1].")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_footnote_style_rejects_invalid_choice(self):
+        """--footnote-style with invalid value produces non-zero exit."""
+        result = self.run_mdutil("--footnote-style", "invalid_choice", input_text="See [^1].")
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_math_fallback_shows_dollars_in_output(self):
+        """--math-fallback shows $...$ delimiters in rendered output."""
+        result = self.run_mdutil("--math-fallback", input_text="Use $E=mc^2$ here.")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("$E=mc^2$", result.stdout)
+
+    def test_footnote_style_bracketed_in_output(self):
+        """--footnote-style bracketed renders [1] in output."""
+        md = "Text[^1].\n\n[^1]: A footnote."
+        result = self.run_mdutil("--footnote-style", "bracketed", input_text=md)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        # Strip ANSI for assertion
+        import re
+        plain = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
+        self.assertIn("[1]", plain)
 
 
 if __name__ == "__main__":

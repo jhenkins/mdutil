@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any
 
 from mdutil.export.base import Exporter
 from mdutil.export.merman_renderer import MermanRenderer, MermanBinaryNotFoundError, MermanRenderError
 from mdutil.parser import _parse_inline
+from mdutil.renderer import _convert_math_notation, _superscript
+
+_logger = logging.getLogger("mdutil.export.html")
 
 
 class HtmlExporter(Exporter):
@@ -38,6 +42,7 @@ class HtmlExporter(Exporter):
     def render(self, tokens: list[dict], theme: dict, options: dict) -> str:
         """Render tokens to HTML."""
         self._options = options
+        self._theme = theme
         css = self._generate_css(theme)
         custom_css = options.get("custom_css", "")
         syntax_theme = options.get("syntax_theme", "default")
@@ -82,6 +87,12 @@ class HtmlExporter(Exporter):
         blockquote_color = theme.get("blockquote", self.BLOCKQUOTE_COLOR)
         table_header_bg = theme.get("table_header_bg", self.TABLE_HEADER_BG)
         table_border = theme.get("table_border", self.TABLE_BORDER_COLOR)
+
+        # Inline-style theme colors (with defaults)
+        highlight_bg = theme.get("markdown", {}).get("highlight", "#ffff00")
+        definition_term_color = theme.get("markdown", {}).get("definition_term", "#0066cc")
+        definition_def_color = theme.get("markdown", {}).get("definition_definition", "#333333")
+        strikethrough_color = theme.get("markdown", {}).get("strikethrough", "#888888")
 
         return f"""
 body {{
@@ -136,6 +147,29 @@ pre {{
     line-height: 1.45;
     background-color: {code_bg};
     border-radius: 3px;
+}}
+
+.math {{
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-style: italic;
+}}
+
+.math-display {{
+    text-align: center;
+    padding: 16px;
+    margin: 16px 0;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-style: italic;
+    font-size: 1.1em;
+    background-color: {code_bg};
+    border-radius: 3px;
+    overflow: auto;
+}}
+
+.math-display code {{
+    background-color: transparent;
+    padding: 0;
+    font-size: 100%;
 }}
 
 pre code {{
@@ -212,6 +246,62 @@ img {{
     max-width: 100%;
     height: auto;
 }}
+
+.footnotes {{
+    border-top: 1px solid {table_border};
+    margin-top: 24px;
+    padding-top: 10px;
+    font-size: 0.9em;
+    color: {blockquote_color};
+}}
+
+.footnotes ol {{
+    padding-left: 2em;
+}}
+
+.footnotes li {{
+    margin-bottom: 4px;
+}}
+
+.footnotes a {{
+    color: {link_color};
+    text-decoration: none;
+    margin-left: 2px;
+    font-size: 0.85em;
+}}
+
+.footnotes a:hover {{
+    text-decoration: underline;
+}}
+
+mark {{
+    background-color: {highlight_bg};
+    color: inherit;
+    padding: 0.1em 0.2em;
+    border-radius: 2px;
+}}
+
+del, s {{
+    color: {strikethrough_color};
+    text-decoration: line-through;
+}}
+
+dl {{
+    margin: 0 0 16px 0;
+    padding: 0;
+}}
+
+dl dt {{
+    font-weight: 600;
+    color: {definition_term_color};
+    margin-top: 12px;
+}}
+
+dl dd {{
+    margin-left: 24px;
+    margin-bottom: 8px;
+    color: {definition_def_color};
+}}
 """
 
     def _render_tokens(self, tokens: list[dict], syntax_theme: str = "default") -> str:
@@ -251,6 +341,10 @@ img {{
                 output.append(self._render_code_block(token, syntax_theme))
                 continue
 
+            if token_type == "math_display":
+                output.append(self._render_math_display(token))
+                continue
+
             if token_type == "mermaid":
                 output.append(self._render_mermaid(token, rendered_svgs))
                 continue
@@ -271,6 +365,14 @@ img {{
                 output.append(self._render_list(token))
                 continue
 
+            if token_type == "footnote_definition":
+                output.append(self._render_footnote_definition(token))
+                continue
+
+            if token_type == "definition":
+                output.append(self._render_definition(token))
+                continue
+
         return "\n".join(output)
 
     def _render_heading(self, token: dict) -> str:
@@ -278,8 +380,34 @@ img {{
         level = token.get("level", 1)
         text = token.get("text", "")
         inline = _parse_inline(text)
-        content = inline["content"]
+        content = self._convert_math_tags(inline["content"])
         return f"<h{level}>{content}</h{level}>"
+
+    def _process_fnref_tags(self, text: str) -> str:
+        """Replace <fnref id="N"> tags with superscript anchor links."""
+        import re as _re
+        return _re.sub(
+            r'<fnref\s+id="([^"]+)">',
+            lambda m: f'<sup><a href="#fn-{m.group(1)}" id="fnref-{m.group(1)}">'
+                      f'{_superscript(m.group(1))}</a></sup>',
+            text,
+        )
+
+    def _convert_math_tags(self, content: str) -> str:
+        """Convert parser ``<math>`` tags into browser-renderable spans.
+
+        The parser emits ``<math>content</math>`` for ``$...$`` math. The
+        ``<math>`` element is an HTML5 MathML container that browsers render
+        as empty, and any unescaped ``<``/``>``/``&`` in the body would break
+        the markup, so we re-wrap the escaped body in ``<span class="math">``
+        which the stylesheet can style.
+        """
+
+        def _wrap(match):
+            inner = self._escape_html(_convert_math_notation(match.group(1)))
+            return f'<span class="math">{inner}</span>'
+
+        return re.sub(r"<math>(.*?)</math>", _wrap, content, flags=re.DOTALL)
 
     def _render_paragraph(self, token: dict) -> str:
         """Render a paragraph.
@@ -293,6 +421,8 @@ img {{
 
         content = token.get("content", "")
         if content:
+            content = self._process_fnref_tags(content)
+            content = self._convert_math_tags(content)
             return f"<p>{content}</p>"
         # Fallback for tokens without inline-parsed content
         spans = token.get("spans", [])
@@ -330,7 +460,27 @@ img {{
                 output.append(f"<code>{content}</code>")
             elif span_type == "link":
                 href = span.get("href", "#")
-                output.append(f'<a href="{href}">{content}</a>')
+                title = span.get("title")
+                attrs = f'href="{href}"'
+                if title is not None:
+                    attrs += f' title="{self._escape_html(title)}"'
+                output.append(f'<a {attrs}>{content}</a>')
+            elif span_type == "footnote_ref":
+                fn_id = span.get("id", "")
+                output.append(f'<sup><a href="#fn-{fn_id}" id="fnref-{fn_id}">'
+                              f'{fn_id}</a></sup>')
+            elif span_type == "highlight":
+                output.append(f"<mark>{content}</mark>")
+            elif span_type == "math":
+                output.append(f'<span class="math">{self._escape_html(content)}</span>')
+            elif span_type == "image":
+                src = span.get("src", "")
+                attrs = f'src="{src}" alt="{content}"'
+                if span.get("width") is not None:
+                    attrs += f' width="{span["width"]}"'
+                if span.get("height") is not None:
+                    attrs += f' height="{span["height"]}"'
+                output.append(f'<img {attrs}>')
             else:
                 output.append(content)
 
@@ -379,6 +529,33 @@ img {{
         """Escape HTML entities in text."""
         return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
+    def _render_math_display(self, token: dict) -> str:
+        """Render a display-math block ($$...$$) as a styled block element.
+
+        Display math renders as a centered block with monospace italic styling,
+        distinguishing it from regular code blocks.
+        """
+        content = token.get("content", "")
+        language = token.get("language", "")
+        if language:
+            # Use Pygments for highlighted math (merged theme + syntax theme)
+            from mdutil.syntax_highlighter import highlight_code_html
+            highlighted = highlight_code_html(
+                content, language,
+                syntax_theme=self._options.get("syntax_theme", "default"),
+                theme=getattr(self, '_theme', None),
+            )
+            # Strip the outer <div class="highlight"> wrapper
+            import re
+            match = re.search(r'<div class="highlight">.*?<pre>(.*?)</pre></div>', highlighted, re.DOTALL)
+            if match:
+                inner_content = match.group(1)
+                return f'<div class="math-display">{inner_content}</div>'
+            else:
+                return f'<div class="math-display"><code>{self._escape_html(content)}</code></div>'
+        else:
+            return f'<div class="math-display"><code>{self._escape_html(content)}</code></div>'
+
     def _render_code_block(self, token: dict, syntax_theme: str = "default") -> str:
         """Render a code block with syntax highlighting."""
         content = token.get("content", "")
@@ -388,9 +565,11 @@ img {{
         escaped_content = content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
         if language:
-            # Use Pygments for highlighted code
+            # Use Pygments for highlighted code (merged theme + syntax theme)
             from mdutil.syntax_highlighter import highlight_code_html
-            highlighted = highlight_code_html(content, language, syntax_theme)
+            highlighted = highlight_code_html(
+                content, language, syntax_theme, theme=getattr(self, '_theme', None)
+            )
             
             # Strip the outer <div class="highlight"> wrapper from Pygments output
             # Pygments returns: <div class="highlight"><pre>...</pre></div>
@@ -420,7 +599,7 @@ img {{
         def cell_html(text: str) -> str:
             if isinstance(text, str):
                 inline = _parse_inline(text)
-                return inline["content"]
+                return self._convert_math_tags(inline["content"])
             return str(text)
 
         def cell_align(i: int) -> str:
@@ -469,25 +648,67 @@ img {{
         inner_html = self._render_tokens(sub_tokens)
         return f"<blockquote>\n{inner_html}\n</blockquote>"
 
-    def _render_list(self, token: dict) -> str:
-        """Render an ordered or unordered list."""
+    def _render_footnote_definition(self, token: dict) -> str:
+        """Render footnote definitions as a numbered list with anchor links."""
+        fn_id = token.get("id", "")
+        content = self._convert_math_tags(token.get("content", ""))
+        return (
+            f'<div class="footnotes">'
+            f'<ol><li id="fn-{fn_id}">'
+            f'<a href="#fnref-{fn_id}">\u21a9</a> {content}'
+            f'</li></ol></div>'
+        )
+
+    def _render_list(self, token: dict, level: int = 0) -> str:
+        """Render an ordered or unordered list, recursing into sub-lists."""
         parsed_items = token.get("parsed_items", [])
         ordered = token.get("ordered", False)
+        is_task_list = token.get("task", False)
         list_type = "ol" if ordered else "ul"
 
+        indent = "  " * level
         list_items = []
         if parsed_items:
-            for item in parsed_items:
-                content = item.get("content", item.get("text", ""))
-                list_items.append(f"<li>{content}</li>")
+            for idx, item in enumerate(parsed_items):
+                content = self._convert_math_tags(item.get("content", item.get("text", "")))
+
+                if is_task_list and item.get("task") and item.get("checked") is not None:
+                    checked_attr = ' checked' if item["checked"] else ''
+                    checkbox = f'<input type="checkbox"{checked_attr} disabled> '
+                    li_content = f"{checkbox}{content}"
+                else:
+                    li_content = str(content)
+
+                # Recurse into sub-list and include inside <li>
+                sub = item.get("sub_list")
+                if sub:
+                    sub_html = self._render_list(sub, level + 1)
+                    li_content += f"\n{sub_html}"
+
+                list_items.append(f"{indent}<li>{li_content}</li>")
         else:
             # Fallback for tokens without parsed_items (tests, legacy)
             items = token.get("items", [])
             for item in items:
                 if isinstance(item, dict):
-                    content = item.get("content", item.get("text", ""))
+                    content = self._convert_math_tags(item.get("content", item.get("text", "")))
                 else:
                     content = str(item)
                 list_items.append(f"<li>{content}</li>")
 
         return f"<{list_type}>\n" + "\n".join(list_items) + f"\n</{list_type}>"
+
+    def _render_definition(self, token: dict) -> str:
+        """Render a definition list (dl/dt/dd) for HTML."""
+        terms = token.get("terms", [])
+        definitions = token.get("definitions", [])
+
+        # Join terms with " / " if multiple
+        term_text = " / ".join(terms)
+
+        # Parse inline formatting in each definition
+        dd_elements = ""
+        for defn in definitions:
+            inline = _parse_inline(defn)
+            dd_elements += f"<dd>{self._convert_math_tags(inline['content'])}</dd>"
+        return f"<dl><dt>{term_text}</dt>{dd_elements}</dl>"
