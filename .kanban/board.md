@@ -3,7 +3,7 @@
 ## Meta
 project_id: mdutil
 board_version: 4.3
-updated: 2026-08-26 18:20
+updated: 2026-08-28 19:17
 lane_model: basic
 
 ## Lanes
@@ -56,7 +56,7 @@ lane_model: basic
 | KB-086 | v5.0 Phase 8a: Manual QA with real documents | done | P1 | jan | - | KB-085 | 2026-08-23 |
 | KB-087 | v5.0 Phase 8a: Performance testing | done | P1 | jan | - | KB-085 | 2026-08-23 |
 | KB-088 | v5.0 Phase 8b: Version bump to 5.0.0 | done | P1 | jan | - | KB-086, KB-087 | 2026-08-23 |
-| KB-089 | v5.0 Phase 8b: Release PR creation | in-progress | P1 | jan | - | KB-088 | 2026-08-23 |
+| KB-089 | v5.0 Phase 8b: Release PR creation | done | P1 | jan | - | KB-088 | 2026-08-28 |
 | KB-007 | v3.0 Phase 1: Foundation & Setup (fpdf2, module structure) | done | P2 | jan | - | - | 2026-07-26 |
 | KB-008 | v3.0 Phase 2: PDF Export Core (PdfExporter, CLI flags) | done | P2 | jan | - | KB-007 | 2026-07-26 |
 | KB-009 | v3.0 Phase 3: HTML Export (HtmlExporter, embedded CSS) | done | P2 | jan | - | KB-008 | 2026-07-26 |
@@ -201,3 +201,4 @@ lane_model: basic
 - **KB-094 complete** (bold-italic PDF): Verified working — parser (KB-102) produces `<strong><em>text</em></strong>`, `_InlineHTMLParser` handles both tags, PDF uses `DejaVuSansBoldOblique` font. No raw `***` markers in output. Tested across headings, paragraphs, tables, lists, blockquotes.
 - **KB-096 complete** (PDF superscript/subscript): Fixed `_InlineHTMLParser` to track `<sup>`/`<sub>` state and include flags in segments. `_render_inline_html`, `_plain_text_from_inline_html`, and `_render_heading` apply `_superscript`/`_subscript` conversion. 7 new tests. 1007 tests passing. Commit: `fa23896`.
 - **KB-098 closed as duplicate** of KB-096. Same reported symptom (PDF subscript/superscript not rendered, e.g. H₂O / E=mc²). Verified by reproduction that subscript/superscript now renders correctly in paragraphs, table cells, and headings. No separate work required; resolved by the KB-096 fix (`fa23896`).
+- **KB-105 complete** (Phase rendering): Terminal list items in the Kanban board now render bold/italic/code. Also fixed a latent crash: `_superscript`/`_subscript` converted digits inside ANSI SGR escape sequences (e.g. `\033[0m` → `\033[⁰m`), producing malformed CSI sequences that crashed prompt_toolkit's ANSI parser on `int('⁰')`. Fixed by making both functions ANSI-safe (split on `\033[...m` before converting) and hardened `_sanitize_ansi` to preserve ASCII-only unterminated CSI payloads. Commit: `a43581e`. 1061 tests passing.

@@ -484,7 +484,7 @@
   - [x] Update `mdutil/version.py` to `5.0.0`
   - [x] Update semantic versioning rules if needed
 
-- [ ] KB-089: Create release PR (in-progress)
+- [x] KB-089: Create release PR
   - [x] Commit all changes
   - [x] Create PR to main branch (PR #55)
   - [ ] Request review
