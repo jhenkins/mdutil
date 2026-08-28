@@ -200,6 +200,57 @@ class RendererTests(unittest.TestCase):
         sanitised = _sanitize_ansi(converted)
         ANSI(sanitised)  # must not raise
 
+    def test_superscript_preserves_ansi_escapes(self):
+        """_superscript must not convert digits inside ANSI escape sequences.
+
+        Regression test for a crash where ``_superscript`` transformed
+        ``\033[0m`` (ANSI reset) into ``\033[⁰m``, placing a Unicode
+        superscript digit inside an SGR parameter and crashing
+        prompt_toolkit's ANSI parser on ``int('⁰')``.
+        """
+        from mdutil.renderer import _superscript
+        from prompt_toolkit.formatted_text.ansi import ANSI
+
+        ansi_text = "\033[1;38;2;255;0;0m\033[0m"
+        result = _superscript(ansi_text)
+        self.assertEqual(result, ansi_text)
+        # Must not crash prompt_toolkit.
+        ANSI(result)
+
+    def test_subscript_preserves_ansi_escapes(self):
+        """_subscript must not convert digits inside ANSI escape sequences."""
+        from mdutil.renderer import _subscript
+        from prompt_toolkit.formatted_text.ansi import ANSI
+
+        ansi_text = "\033[1;38;2;255;0;0m\033[0m"
+        result = _subscript(ansi_text)
+        self.assertEqual(result, ansi_text)
+        ANSI(result)
+
+    def test_superscript_converts_plain_digits(self):
+        """_superscript must still convert plain ASCII digits to superscript."""
+        from mdutil.renderer import _superscript
+
+        self.assertEqual(_superscript("01234"), "⁰¹²³⁴")
+        # Letters and punctuation also have superscript forms.
+        self.assertEqual(_superscript("abc"), "ᵃᵇᶜ")
+
+    def test_render_with_footnote_zero_and_math_superscript(self):
+        """Full pipeline: footnote ref [^0] + math $x^0$ must not crash.
+
+        Regression test: both produce Unicode superscript zero (⁰), and
+        the rendered output must be safe for prompt_toolkit.
+        """
+        from mdutil.renderer import render
+        from mdutil.parser import parse_markdown
+        from prompt_toolkit.formatted_text.ansi import ANSI
+
+        md = "Text [^0] and $x^0$.\n\n[^0]: A footnote."
+        parsed = parse_markdown(md)
+        result = render(parsed)
+        # Must not crash prompt_toolkit's ANSI parser.
+        ANSI(result)
+
 
 if __name__ == "__main__":
     unittest.main()

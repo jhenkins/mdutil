@@ -622,8 +622,18 @@ def _convert_math_notation(text: str) -> str:
     return "".join(convert_chunk(c) if not ansi_pat.match(c) else c for c in chunks)
 
 
+# Regex matching standard SGR escape sequences (ESC[digits;...m).
+# Capturing group so ``re.split`` preserves the escapes in the output.
+_ANSI_SGR_RE = re.compile(r"(\033\[[0-9;]*m)")
+
+
 def _superscript(n: str) -> str:
-    """Convert a string to Unicode superscript characters."""
+    """Convert a string to Unicode superscript characters.
+
+    ANSI-safe: digits inside ``\033[...m`` escape sequences are left
+    untouched so they never end up inside an SGR parameter (which would
+    crash prompt_toolkit's ANSI parser via ``int(⁰)``).
+    """
     superscript_map = {
         "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
         "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹",
@@ -640,11 +650,22 @@ def _superscript(n: str) -> str:
         "Y": "ʸ", "-": "⁻", "+": "⁺", "=": "⁼",
         "(": "⁽", ")": "⁾",
     }
-    return "".join(superscript_map.get(c, c) for c in n)
+    # Only convert digits in plain-text chunks, never inside ANSI escapes.
+    parts: list[str] = []
+    for chunk in _ANSI_SGR_RE.split(n):
+        if _ANSI_SGR_RE.match(chunk):
+            parts.append(chunk)
+        else:
+            parts.append("".join(superscript_map.get(c, c) for c in chunk))
+    return "".join(parts)
 
 
 def _subscript(n: str) -> str:
-    """Convert a string to Unicode subscript characters."""
+    """Convert a string to Unicode subscript characters.
+
+    ANSI-safe: digits inside ``\033[...m`` escape sequences are left
+    untouched so they never end up inside an SGR parameter.
+    """
     subscript_map = {
         "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄",
         "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉",
@@ -661,7 +682,13 @@ def _subscript(n: str) -> str:
         "Y": "Y", "Z": "Z", "-": "₋", "+": "₊", "=": "₌",
         "(": "₍", ")": "₎",
     }
-    return "".join(subscript_map.get(c, c) for c in n)
+    parts: list[str] = []
+    for chunk in _ANSI_SGR_RE.split(n):
+        if _ANSI_SGR_RE.match(chunk):
+            parts.append(chunk)
+        else:
+            parts.append("".join(subscript_map.get(c, c) for c in chunk))
+    return "".join(parts)
 
 
 # Pattern for a fully-valid SGR sequence — used to recognise sequences we
@@ -689,10 +716,8 @@ def _sanitize_ansi(text: str) -> str:
             # Find next 'm' after the '['
             j = text.find("m", i + 2)
             if j == -1:
-                # Unterminated CSI — strip ESC[ if payload has non-ASCII
-                payload = text[i + 2:]
-                if any(ord(c) > 127 for c in payload):
-                    result.append(payload)
+                # Unterminated CSI — drop ESC[, keep payload as plain text.
+                result.append(text[i + 2:])
                 i = n
             else:
                 payload = text[i + 2:j]
