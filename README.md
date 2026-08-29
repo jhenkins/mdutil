@@ -4,8 +4,8 @@ A simple and comfortable Markdown viewer and editor for terminal written in Pyth
 
 ## A note on this project
 
-mdutil began as an experiment in AI-assisted coding and remains a sandbox project. You are welcome to use
-it; just be aware that, given its experimental nature, pull requests are unlikely to be accepted.
+*mdutil* began as an experiment in AI-assisted coding and remains a sandbox project. You are welcome to use
+it. Just be aware that given its experimental nature, pull requests are unlikely to be accepted.
 
 ## Where we are today
 
