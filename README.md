@@ -2,44 +2,17 @@
 
 A simple and comfortable Markdown viewer and editor for terminal written in Python.
 
-## The story behind this project
+## A note on this project
 
-Firstly - a word of warning:
-
-This is a test project that has been created with the help of AI. If you don't like that, then please
-ignore this project. If you find the software useful, feel free to use it. Due to the sandbox nature 
-of this project, it is unlikely that I will entertain any pull requests (unless there is something to
-be learned from it, of course).
-
-Are you still here?  OK, grab a brew and let's carry on! :-D
-
-The following tools and LLM's were used so far (more might be used as time goes on):
-
-* Hermes Agent (https://github.com/NousResearch/hermes-agent)
-* GPT 5.5 (via openai-codex)
-* Gemma 4 12B (via local llama.cpp)
-* Gemma 4 26B A4B (via local llama.cpp)
-* Ornith 1.0 35B (via local llama.cpp - my new favourite local model)
-
-The intention behind this project wasn't neccessarily to create a functional piece of software (although I 
-dare say that it is already pretty functional as a Markdown reader), but to learn about doing functional 
-coding with AI. I claim no ability as a programmer, program designer or software architect - my background
-is physical network infrastructure and server hardware. Therefore this project is purely to see what can be
-done with AI and the tools available at the moment. 
-
-While I was playing with this project, I found that I had to use a cloud-based AI provider. The main reason 
-for this was that my local Ollama instance did not work so well, and constantly ran out of context space 
-causing agent timeouts and loads of time wasted. So, in order to at least get something done and learn the 
-ropes with Hermes, I decided to use my ChatGPT Plus account with the GPT 5.5 model. My workflow is still 
-mostly using GPT 5.5 because of hardware constraints.
+*mdutil* began as an experiment in AI-assisted coding and remains a sandbox project. You are welcome to use
+it. Just be aware that given its experimental nature, pull requests are unlikely to be accepted.
 
 ## Where we are today
 
 We currently have a functional Markdown reader and editor with syntax highlighting, themes, and a prompt-toolkit
 interactive view. File-backed sessions support raw Markdown editing, explicit saves, dirty-buffer protection,
 copy/paste helpers, and mode-aware search. We also have a very simple ini-style configuration file that you can
-edit to make your choice of theme and a few other things permanent. The roadmap can be seen in `.kanban/board.md`
-document.
+edit to make your choice of theme and a few other things permanent.
 
 ## Quick Overview
 
@@ -56,6 +29,8 @@ document.
 - Math notation: `$E = mc^2$` with `--math-fallback` toggle
 - Footnotes: `[^1]` references with `--footnote-style` (numbered/bracketed)
 - Full GFM syntax: strikethrough, task lists, highlight, definition lists, images, link titles, nested lists
+
+Release history is documented in [CHANGELOG.md](CHANGELOG.md).
 
 ## Interactive controls
 

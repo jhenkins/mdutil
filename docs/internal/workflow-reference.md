@@ -139,6 +139,6 @@ That's the whole workflow.
 
 ---
 
-**Document location:** `docs/workflow-reference.md`  
+**Document location:** `docs/internal/workflow-reference.md`  
 **Kanban rules:** `.kanban/rules.md` (short version of this document)  
 **AGENTS.md:** `/home/jan/.pi/agent/AGENTS.md` (global agent instructions referencing this workflow)
