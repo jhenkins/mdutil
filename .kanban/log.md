@@ -66,22 +66,22 @@
 - Ready for PR to main
 ## 2026-08-17
 
-KB-050 (parser coverage audit) and KB-051 (strikethrough) complete. Audit documented in `docs/phase-1a-audit-report.md` and `docs/phase-1-continuation.md`. 12 new strikethrough tests added (6 parser + 4 renderer + 2 exporter). Full test suite: 401 passed (389 + 12). Phase 1a complete. — Phase 0 Complete
+KB-050 (parser coverage audit) and KB-051 (strikethrough) complete. Audit documented in `docs/internal/phase-1a-audit-report.md` and `docs/internal/phase-1-continuation.md`. 12 new strikethrough tests added (6 parser + 4 renderer + 2 exporter). Full test suite: 401 passed (389 + 12). Phase 1a complete. — Phase 0 Complete
 
-| 2026-08-17 12:00 | update | - | - | - | agent | Phase 0 complete: all 6 Copilot review findings addressed. 389 tests pass. See docs/phase-0-completion.md for details. Minor gaps: missing multi-line unclosed-fence regression test, no --debug flag test, partial type coercion, HTML exporter logger imported but no debug calls. Ready for v5.0 Phase 1. |
+| 2026-08-17 12:00 | update | - | - | - | agent | Phase 0 complete: all 6 Copilot review findings addressed. 389 tests pass. See docs/internal/phase-0-completion.md for details. Minor gaps: missing multi-line unclosed-fence regression test, no --debug flag test, partial type coercion, HTML exporter logger imported but no debug calls. Ready for v5.0 Phase 1. |
 
 ## 2026-08-08
 - Added KB-026a/v4.1 Phase 1 (SVG→PNG conversion layer) — ready
 - Added KB-026b/v4.1 Phase 2 (PDF Mermaid rendering) — ready, depends on KB-026a
 - Added KB-026c/v4.1 Phase 3 (Verification/docs/release) — ready, depends on KB-026b
-- Created `docs/KB-026-v4.1-planning.md` with full plan
+- Created `docs/internal/KB-026-v4.1-planning.md` with full plan
 - Started on `feature/pdf-mermaid-export` branch
 - **KB-026b complete** (Phase 2): PdfExporter extended to consume `"mermaid"` tokens. Batch-renders via `SvgToImageRenderer`, embeds PNGs in PDF. Page-break handling, aspect-ratio preservation, error fallback. 7 new PDF mermaid tests. Full suite: 437 passed.
 - **KB-026c complete** (Phase 3): All 437 tests pass. PDF smoke test: 3 diagrams → 47KB PDF with 2 embedded PNGs. README/spec/CHANGELOG updated. Version bumped to 4.1.0.
 
 ## 2026-08-07
-| 2026-08-07 13:36 | create | KB-027 | - | ready | agent | HTML diagram sizing bug: diagrams too big, need 40-50% shrink. Debug plan at docs/debug-plan-html-diagram-sizing.md |
-| 2026-08-07 13:36 | create | KB-028 | - | ready | agent | PDF diagram sizing bug: tall diagrams overflow A4 pages. Debug plan at docs/debug-plan-pdf-diagram-sizing.md |
+| 2026-08-07 13:36 | create | KB-027 | - | ready | agent | HTML diagram sizing bug: diagrams too big, need 40-50% shrink. Debug plan at docs/internal/debug-plan-html-diagram-sizing.md |
+| 2026-08-07 13:36 | create | KB-028 | - | ready | agent | PDF diagram sizing bug: tall diagrams overflow A4 pages. Debug plan at docs/internal/debug-plan-pdf-diagram-sizing.md |
 | 2026-08-08 12:00 | move | KB-027 | review | done | agent | PR #52 merged to bugfix/v4.1.0. Shrink factor finalised at 0.5 (50%). |
 | 2026-08-18 12:00 | update | KB-061 | backlog | done | jan | Sub/superscript parser support (~sub~, ^super^) |
 | 2026-08-18 12:00 | update | KB-062 | backlog | done | jan | Sub/superscript renderer with Unicode subscripts/superscripts, 34 tests |
